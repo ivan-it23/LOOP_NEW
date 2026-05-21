@@ -1,0 +1,45 @@
+# === Visual Studio Temporary and Build Files ===
+.vs/
+[Dd]ebug/
+[Rr]elease/
+LOOP/[Dd]ebug/
+LOOP/[Rr]elease/
+x64/
+x86/
+
+# Compiland artifacts
+*.obj
+*.ilk
+*.pdb
+*.idb
+*.gch
+*.pch
+*.ipch
+*.metagen
+
+# Metadata and database files
+*.suo
+*.user
+*.db
+*.opendb
+*.sdf
+*.tlog
+*.cache
+*.resources
+
+# Executables and libraries (rebuildable)
+*.exe
+*.dll
+*.lib
+
+# === Large data logs and temporary test files ===
+*.log
+dataout.txt
+*.bin
+*.las
+*.pdf
+*.rtf
+*.ini
+*.emt
+LOOP/Temerature_loop
+LOOP/f
