@@ -14,7 +14,6 @@
 //#include <vector>
 //#include "winuser.h"
 //#include "MetroForm.h"
-#include "MyForm.h"
 #include "WorkForm.h"
 
 #pragma warning(disable:4244)
