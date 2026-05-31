@@ -1,4 +1,4 @@
-#pragma once
+п»ї#pragma once
 #pragma once
 #include "windows.h"
 #include <fstream>
@@ -14,7 +14,7 @@
 #include "MyForm1.h"
 #include "Help_form.h"
 #include "MetroForm.h"
-#include <typeinfo.h>
+#include <typeinfo>
 #include <winuser.h>
 #include <locale.h>
 #include <urlmon.h>
@@ -53,7 +53,7 @@ namespace LOOP {
 
 	
 	/// <summary>
-	/// Сводка для WorkForm
+	/// РЎРІРѕРґРєР° РґР»СЏ WorkForm
 	/// </summary>
 	public ref class WorkForm : public System::Windows::Forms::Form
 	{
@@ -148,14 +148,14 @@ namespace LOOP {
 	private: System::Windows::Forms::TextBox^  textBox_f_7;
 	private: System::Windows::Forms::TextBox^  textBox_f_8;
 	private: System::Windows::Forms::Label^  label11;
-	private: System::Windows::Forms::TextBox^  textBox_С1;
-	private: System::Windows::Forms::TextBox^  textBox_С2;
-	private: System::Windows::Forms::TextBox^  textBox_С3;
-	private: System::Windows::Forms::TextBox^  textBox_С4;
-	private: System::Windows::Forms::TextBox^  textBox_С5;
-	private: System::Windows::Forms::TextBox^  textBox_С6;
-	private: System::Windows::Forms::TextBox^  textBox_С7;
-	private: System::Windows::Forms::TextBox^  textBox_С8;
+	private: System::Windows::Forms::TextBox^  textBox_РЎ1;
+	private: System::Windows::Forms::TextBox^  textBox_РЎ2;
+	private: System::Windows::Forms::TextBox^  textBox_РЎ3;
+	private: System::Windows::Forms::TextBox^  textBox_РЎ4;
+	private: System::Windows::Forms::TextBox^  textBox_РЎ5;
+	private: System::Windows::Forms::TextBox^  textBox_РЎ6;
+	private: System::Windows::Forms::TextBox^  textBox_РЎ7;
+	private: System::Windows::Forms::TextBox^  textBox_РЎ8;
 	private: System::Windows::Forms::TextBox^  textBox_Z_calc1;
 	private: System::Windows::Forms::TextBox^  textBox_Z_calc2;
 	private: System::Windows::Forms::TextBox^  textBox_Z_calc3;
@@ -198,8 +198,8 @@ private: System::Windows::Forms::Button^  button_Z9;
 
 private: System::Windows::Forms::TextBox^  textBox_Z_calc10;
 private: System::Windows::Forms::TextBox^  textBox_Z_calc9;
-private: System::Windows::Forms::TextBox^  textBox_С10;
-private: System::Windows::Forms::TextBox^  textBox_С9;
+private: System::Windows::Forms::TextBox^  textBox_РЎ10;
+private: System::Windows::Forms::TextBox^  textBox_РЎ9;
 
 private: System::Windows::Forms::TextBox^  textBox_f_10;
 private: System::Windows::Forms::TextBox^  textBox_f_9;
@@ -341,10 +341,10 @@ private: System::Windows::Forms::CheckBox^  checkBox_R3;
 private: System::Windows::Forms::CheckBox^  checkBox_R2;
 private: System::Windows::Forms::CheckBox^  checkBox_R1;
 private: System::Windows::Forms::MenuStrip^  menuStrip1;
-private: System::Windows::Forms::ToolStripMenuItem^  сохранитьРапортRTFToolStripMenuItem;
+private: System::Windows::Forms::ToolStripMenuItem^  СЃРѕС…СЂР°РЅРёС‚СЊР Р°РїРѕСЂС‚RTFToolStripMenuItem;
 private: System::Windows::Forms::ToolStripMenuItem^  uploadToFTPToolStripMenuItem;
-private: System::Windows::Forms::ToolStripMenuItem^  работаСФайломМетрологииToolStripMenuItem;
-private: System::Windows::Forms::ToolStripMenuItem^  пОМОЩЬToolStripMenuItem;
+private: System::Windows::Forms::ToolStripMenuItem^  СЂР°Р±РѕС‚Р°РЎР¤Р°Р№Р»РѕРјРњРµС‚СЂРѕР»РѕРіРёРёToolStripMenuItem;
+private: System::Windows::Forms::ToolStripMenuItem^  РїРћРњРћР©Р¬ToolStripMenuItem;
 private: System::Windows::Forms::RichTextBox^  richTextBox1;
 private: System::Windows::Forms::SaveFileDialog^  saveFileDialog1;
 
@@ -382,7 +382,7 @@ internal:
 		    extern bool express;
 			InitializeComponent();
 			//
-			//TODO: добавьте код конструктора
+			//TODO: РґРѕР±Р°РІСЊС‚Рµ РєРѕРґ РєРѕРЅСЃС‚СЂСѓРєС‚РѕСЂР°
 			//
 			
 			Sonde_Read_Thread->Start();
@@ -433,7 +433,7 @@ internal:
 
 	protected:
 		/// <summary>
-		/// Освободить все используемые ресурсы.
+		/// РћСЃРІРѕР±РѕРґРёС‚СЊ РІСЃРµ РёСЃРїРѕР»СЊР·СѓРµРјС‹Рµ СЂРµСЃСѓСЂСЃС‹.
 		/// </summary>
 		~WorkForm()
 		{
@@ -496,7 +496,7 @@ internal:
 
 	private:
 		/// <summary>
-		/// Обязательная переменная конструктора.
+		/// РћР±СЏР·Р°С‚РµР»СЊРЅР°СЏ РїРµСЂРµРјРµРЅРЅР°СЏ РєРѕРЅСЃС‚СЂСѓРєС‚РѕСЂР°.
 		/// </summary>
 
 
@@ -504,8 +504,8 @@ internal:
 
 #pragma region Windows Form Designer generated code
 		/// <summary>
-		/// Требуемый метод для поддержки конструктора — не изменяйте 
-		/// содержимое этого метода с помощью редактора кода.
+		/// РўСЂРµР±СѓРµРјС‹Р№ РјРµС‚РѕРґ РґР»СЏ РїРѕРґРґРµСЂР¶РєРё РєРѕРЅСЃС‚СЂСѓРєС‚РѕСЂР° вЂ” РЅРµ РёР·РјРµРЅСЏР№С‚Рµ 
+		/// СЃРѕРґРµСЂР¶РёРјРѕРµ СЌС‚РѕРіРѕ РјРµС‚РѕРґР° СЃ РїРѕРјРѕС‰СЊСЋ СЂРµРґР°РєС‚РѕСЂР° РєРѕРґР°.
 		/// </summary>
 		void InitializeComponent(void)
 		{
@@ -676,7 +676,7 @@ internal:
 			this->textBox_L1_10 = (gcnew System::Windows::Forms::TextBox());
 			this->textBox_L2_10 = (gcnew System::Windows::Forms::TextBox());
 			this->textBox_f_10 = (gcnew System::Windows::Forms::TextBox());
-			this->textBox_С10 = (gcnew System::Windows::Forms::TextBox());
+			this->textBox_РЎ10 = (gcnew System::Windows::Forms::TextBox());
 			this->textBox_signature = (gcnew System::Windows::Forms::TextBox());
 			this->textBox_Z_calc10 = (gcnew System::Windows::Forms::TextBox());
 			this->label15 = (gcnew System::Windows::Forms::Label());
@@ -686,23 +686,23 @@ internal:
 			this->label12 = (gcnew System::Windows::Forms::Label());
 			this->textBox_Z_calc9 = (gcnew System::Windows::Forms::TextBox());
 			this->textBox_L1_1 = (gcnew System::Windows::Forms::TextBox());
-			this->textBox_С9 = (gcnew System::Windows::Forms::TextBox());
+			this->textBox_РЎ9 = (gcnew System::Windows::Forms::TextBox());
 			this->textBox_L2_1 = (gcnew System::Windows::Forms::TextBox());
 			this->textBox_f_1 = (gcnew System::Windows::Forms::TextBox());
 			this->textBox_f_9 = (gcnew System::Windows::Forms::TextBox());
-			this->textBox_С1 = (gcnew System::Windows::Forms::TextBox());
+			this->textBox_РЎ1 = (gcnew System::Windows::Forms::TextBox());
 			this->textBox_Z_calc1 = (gcnew System::Windows::Forms::TextBox());
 			this->textBox_L2_9 = (gcnew System::Windows::Forms::TextBox());
 			this->textBox_L1_9 = (gcnew System::Windows::Forms::TextBox());
 			this->textBox_Z_calc8 = (gcnew System::Windows::Forms::TextBox());
-			this->textBox_С8 = (gcnew System::Windows::Forms::TextBox());
+			this->textBox_РЎ8 = (gcnew System::Windows::Forms::TextBox());
 			this->textBox_f_8 = (gcnew System::Windows::Forms::TextBox());
 			this->textBox_L2_8 = (gcnew System::Windows::Forms::TextBox());
 			this->textBox_L1_8 = (gcnew System::Windows::Forms::TextBox());
 			this->textBox_L1_7 = (gcnew System::Windows::Forms::TextBox());
 			this->textBox_L2_7 = (gcnew System::Windows::Forms::TextBox());
 			this->textBox_f_7 = (gcnew System::Windows::Forms::TextBox());
-			this->textBox_С7 = (gcnew System::Windows::Forms::TextBox());
+			this->textBox_РЎ7 = (gcnew System::Windows::Forms::TextBox());
 			this->textBox_Z_calc7 = (gcnew System::Windows::Forms::TextBox());
 			this->textBox_L1_6 = (gcnew System::Windows::Forms::TextBox());
 			this->textBox_L1_5 = (gcnew System::Windows::Forms::TextBox());
@@ -710,7 +710,7 @@ internal:
 			this->textBox_L1_4 = (gcnew System::Windows::Forms::TextBox());
 			this->textBox_f_6 = (gcnew System::Windows::Forms::TextBox());
 			this->textBox_L1_3 = (gcnew System::Windows::Forms::TextBox());
-			this->textBox_С6 = (gcnew System::Windows::Forms::TextBox());
+			this->textBox_РЎ6 = (gcnew System::Windows::Forms::TextBox());
 			this->textBox_L1_2 = (gcnew System::Windows::Forms::TextBox());
 			this->textBox_Z_calc6 = (gcnew System::Windows::Forms::TextBox());
 			this->textBox_L2_5 = (gcnew System::Windows::Forms::TextBox());
@@ -720,12 +720,12 @@ internal:
 			this->textBox_L2_3 = (gcnew System::Windows::Forms::TextBox());
 			this->textBox_f_5 = (gcnew System::Windows::Forms::TextBox());
 			this->textBox_f_4 = (gcnew System::Windows::Forms::TextBox());
-			this->textBox_С2 = (gcnew System::Windows::Forms::TextBox());
+			this->textBox_РЎ2 = (gcnew System::Windows::Forms::TextBox());
 			this->textBox_Z_calc2 = (gcnew System::Windows::Forms::TextBox());
-			this->textBox_С5 = (gcnew System::Windows::Forms::TextBox());
-			this->textBox_С4 = (gcnew System::Windows::Forms::TextBox());
+			this->textBox_РЎ5 = (gcnew System::Windows::Forms::TextBox());
+			this->textBox_РЎ4 = (gcnew System::Windows::Forms::TextBox());
 			this->textBox_f_3 = (gcnew System::Windows::Forms::TextBox());
-			this->textBox_С3 = (gcnew System::Windows::Forms::TextBox());
+			this->textBox_РЎ3 = (gcnew System::Windows::Forms::TextBox());
 			this->textBox_Z_calc5 = (gcnew System::Windows::Forms::TextBox());
 			this->textBox_Z_calc4 = (gcnew System::Windows::Forms::TextBox());
 			this->textBox_Z_calc3 = (gcnew System::Windows::Forms::TextBox());
@@ -782,10 +782,10 @@ internal:
 			this->label4 = (gcnew System::Windows::Forms::Label());
 			this->checkBox_express = (gcnew System::Windows::Forms::CheckBox());
 			this->menuStrip1 = (gcnew System::Windows::Forms::MenuStrip());
-			this->сохранитьРапортRTFToolStripMenuItem = (gcnew System::Windows::Forms::ToolStripMenuItem());
+			this->СЃРѕС…СЂР°РЅРёС‚СЊР Р°РїРѕСЂС‚RTFToolStripMenuItem = (gcnew System::Windows::Forms::ToolStripMenuItem());
 			this->uploadToFTPToolStripMenuItem = (gcnew System::Windows::Forms::ToolStripMenuItem());
-			this->работаСФайломМетрологииToolStripMenuItem = (gcnew System::Windows::Forms::ToolStripMenuItem());
-			this->пОМОЩЬToolStripMenuItem = (gcnew System::Windows::Forms::ToolStripMenuItem());
+			this->СЂР°Р±РѕС‚Р°РЎР¤Р°Р№Р»РѕРјРњРµС‚СЂРѕР»РѕРіРёРёToolStripMenuItem = (gcnew System::Windows::Forms::ToolStripMenuItem());
+			this->РїРћРњРћР©Р¬ToolStripMenuItem = (gcnew System::Windows::Forms::ToolStripMenuItem());
 			this->saveFileDialog1 = (gcnew System::Windows::Forms::SaveFileDialog());
 			this->comboBox_trashhold = (gcnew System::Windows::Forms::ComboBox());
 			this->label9 = (gcnew System::Windows::Forms::Label());
@@ -832,10 +832,10 @@ internal:
 			this->button_auto->Name = L"button_auto";
 			this->button_auto->Size = System::Drawing::Size(107, 70);
 			this->button_auto->TabIndex = 3;
-			this->button_auto->Text = L"АВТО";
-			this->toolTip1->SetToolTip(this->button_auto, L"Поочередно переключает сопротивления на кольце\r\n и заносит данные о поверка в рап"
-				L"орт.\r\nПо окончании авто поверки можно заново произвести\r\n измерение для любого и"
-				L"з сопротивлений.\r\n");
+			this->button_auto->Text = L"РђР’РўРћ";
+			this->toolTip1->SetToolTip(this->button_auto, L"РџРѕРѕС‡РµСЂРµРґРЅРѕ РїРµСЂРµРєР»СЋС‡Р°РµС‚ СЃРѕРїСЂРѕС‚РёРІР»РµРЅРёСЏ РЅР° РєРѕР»СЊС†Рµ\r\n Рё Р·Р°РЅРѕСЃРёС‚ РґР°РЅРЅС‹Рµ Рѕ РїРѕРІРµСЂРєР° РІ СЂР°Рї"
+				L"РѕСЂС‚.\r\nРџРѕ РѕРєРѕРЅС‡Р°РЅРёРё Р°РІС‚Рѕ РїРѕРІРµСЂРєРё РјРѕР¶РЅРѕ Р·Р°РЅРѕРІРѕ РїСЂРѕРёР·РІРµСЃС‚Рё\r\n РёР·РјРµСЂРµРЅРёРµ РґР»СЏ Р»СЋР±РѕРіРѕ Рё"
+				L"Р· СЃРѕРїСЂРѕС‚РёРІР»РµРЅРёР№.\r\n");
 			this->button_auto->UseVisualStyleBackColor = true;
 			this->button_auto->Click += gcnew System::EventHandler(this, &WorkForm::button_auto_Click);
 			// 
@@ -846,9 +846,9 @@ internal:
 			this->button_local_metro->Name = L"button_local_metro";
 			this->button_local_metro->Size = System::Drawing::Size(128, 70);
 			this->button_local_metro->TabIndex = 2;
-			this->button_local_metro->Text = L"ЛОКАЛЬНЫЙ ВОЗДУХ ";
-			this->toolTip1->SetToolTip(this->button_local_metro, L"При нажатии измеряются и устанавливаются в\r\nпоправки на \"Воздух\" для данного мест"
-				L"а . \r\n При повторном нажатии локальные поправки обнуляются.");
+			this->button_local_metro->Text = L"Р›РћРљРђР›Р¬РќР«Р™ Р’РћР—Р”РЈРҐ ";
+			this->toolTip1->SetToolTip(this->button_local_metro, L"РџСЂРё РЅР°Р¶Р°С‚РёРё РёР·РјРµСЂСЏСЋС‚СЃСЏ Рё СѓСЃС‚Р°РЅР°РІР»РёРІР°СЋС‚СЃСЏ РІ\r\nРїРѕРїСЂР°РІРєРё РЅР° \"Р’РѕР·РґСѓС…\" РґР»СЏ РґР°РЅРЅРѕРіРѕ РјРµСЃС‚"
+				L"Р° . \r\n РџСЂРё РїРѕРІС‚РѕСЂРЅРѕРј РЅР°Р¶Р°С‚РёРё Р»РѕРєР°Р»СЊРЅС‹Рµ РїРѕРїСЂР°РІРєРё РѕР±РЅСѓР»СЏСЋС‚СЃСЏ.");
 			this->button_local_metro->UseVisualStyleBackColor = true;
 			this->button_local_metro->Click += gcnew System::EventHandler(this, &WorkForm::button_local_air_Click);
 			// 
@@ -859,9 +859,9 @@ internal:
 			this->button_BT_ON->Name = L"button_BT_ON";
 			this->button_BT_ON->Size = System::Drawing::Size(116, 70);
 			this->button_BT_ON->TabIndex = 1;
-			this->button_BT_ON->Text = L"ВКЛЮЧИТЬ КОЛЬЦО";
-			this->toolTip1->SetToolTip(this->button_BT_ON, L"Установка связи с иммитатором по Блютус или кабелю.\r\nПеред нажатием кнопки убедит"
-				L"есь, что тумблер питания\r\nна иммитаторе включен и горит зеленый светодиод\r\n");
+			this->button_BT_ON->Text = L"Р’РљР›Р®Р§РРўР¬ РљРћР›Р¬Р¦Рћ";
+			this->toolTip1->SetToolTip(this->button_BT_ON, L"РЈСЃС‚Р°РЅРѕРІРєР° СЃРІСЏР·Рё СЃ РёРјРјРёС‚Р°С‚РѕСЂРѕРј РїРѕ Р‘Р»СЋС‚СѓСЃ РёР»Рё РєР°Р±РµР»СЋ.\r\nРџРµСЂРµРґ РЅР°Р¶Р°С‚РёРµРј РєРЅРѕРїРєРё СѓР±РµРґРёС‚"
+				L"РµСЃСЊ, С‡С‚Рѕ С‚СѓРјР±Р»РµСЂ РїРёС‚Р°РЅРёСЏ\r\nРЅР° РёРјРјРёС‚Р°С‚РѕСЂРµ РІРєР»СЋС‡РµРЅ Рё РіРѕСЂРёС‚ Р·РµР»РµРЅС‹Р№ СЃРІРµС‚РѕРґРёРѕРґ\r\n");
 			this->button_BT_ON->UseVisualStyleBackColor = true;
 			this->button_BT_ON->Click += gcnew System::EventHandler(this, &WorkForm::BT_ON);
 			// 
@@ -872,9 +872,9 @@ internal:
 			this->button_ON_OFF->Name = L"button_ON_OFF";
 			this->button_ON_OFF->Size = System::Drawing::Size(140, 70);
 			this->button_ON_OFF->TabIndex = 0;
-			this->button_ON_OFF->Text = L"ВКЛЮЧИТЬ ПРИБОР";
-			this->toolTip1->SetToolTip(this->button_ON_OFF, L"Включение прибора. Перед нажатием кнопки\r\n подключите прибор ЭМК к компьютеру с п"
-				L"омощью\r\nУСИ и включите ");
+			this->button_ON_OFF->Text = L"Р’РљР›Р®Р§РРўР¬ РџР РР‘РћР ";
+			this->toolTip1->SetToolTip(this->button_ON_OFF, L"Р’РєР»СЋС‡РµРЅРёРµ РїСЂРёР±РѕСЂР°. РџРµСЂРµРґ РЅР°Р¶Р°С‚РёРµРј РєРЅРѕРїРєРё\r\n РїРѕРґРєР»СЋС‡РёС‚Рµ РїСЂРёР±РѕСЂ Р­РњРљ Рє РєРѕРјРїСЊСЋС‚РµСЂСѓ СЃ Рї"
+				L"РѕРјРѕС‰СЊСЋ\r\nРЈРЎР Рё РІРєР»СЋС‡РёС‚Рµ ");
 			this->button_ON_OFF->UseVisualStyleBackColor = true;
 			this->button_ON_OFF->Click += gcnew System::EventHandler(this, &WorkForm::button_ON_OFF_Click);
 			// 
@@ -2390,7 +2390,7 @@ internal:
 			this->label_ro->Name = L"label_ro";
 			this->label_ro->Size = System::Drawing::Size(85, 34);
 			this->label_ro->TabIndex = 33;
-			this->label_ro->Text = L"УЭС Om";
+			this->label_ro->Text = L"РЈР­РЎ Om";
 			this->label_ro->TextAlign = System::Drawing::ContentAlignment::MiddleCenter;
 			// 
 			// textBox_ro1
@@ -2565,8 +2565,8 @@ internal:
 			this->pictureBox_graf1->Size = System::Drawing::Size(445, 28);
 			this->pictureBox_graf1->TabIndex = 0;
 			this->pictureBox_graf1->TabStop = false;
-			this->toolTip1->SetToolTip(this->pictureBox_graf1, L"На графике отображаются  \r\nизмерянные значений сопротивления,\r\nустановленного на "
-				L"иммитаторе.\r\nЗеленым, желтым и красным показаны\r\n границы процентных коридоров.");
+			this->toolTip1->SetToolTip(this->pictureBox_graf1, L"РќР° РіСЂР°С„РёРєРµ РѕС‚РѕР±СЂР°Р¶Р°СЋС‚СЃСЏ  \r\nРёР·РјРµСЂСЏРЅРЅС‹Рµ Р·РЅР°С‡РµРЅРёР№ СЃРѕРїСЂРѕС‚РёРІР»РµРЅРёСЏ,\r\nСѓСЃС‚Р°РЅРѕРІР»РµРЅРЅРѕРіРѕ РЅР° "
+				L"РёРјРјРёС‚Р°С‚РѕСЂРµ.\r\nР—РµР»РµРЅС‹Рј, Р¶РµР»С‚С‹Рј Рё РєСЂР°СЃРЅС‹Рј РїРѕРєР°Р·Р°РЅС‹\r\n РіСЂР°РЅРёС†С‹ РїСЂРѕС†РµРЅС‚РЅС‹С… РєРѕСЂРёРґРѕСЂРѕРІ.");
 			// 
 			// pictureBox_graf2
 			// 
@@ -2580,8 +2580,8 @@ internal:
 			this->pictureBox_graf2->Size = System::Drawing::Size(445, 28);
 			this->pictureBox_graf2->TabIndex = 1;
 			this->pictureBox_graf2->TabStop = false;
-			this->toolTip1->SetToolTip(this->pictureBox_graf2, L"На графике отображаются  \r\nизмерянные значений сопротивления,\r\nустановленного на "
-				L"иммитаторе.\r\nЗеленым, желтым и красным показаны\r\n границы процентных коридоров.");
+			this->toolTip1->SetToolTip(this->pictureBox_graf2, L"РќР° РіСЂР°С„РёРєРµ РѕС‚РѕР±СЂР°Р¶Р°СЋС‚СЃСЏ  \r\nРёР·РјРµСЂСЏРЅРЅС‹Рµ Р·РЅР°С‡РµРЅРёР№ СЃРѕРїСЂРѕС‚РёРІР»РµРЅРёСЏ,\r\nСѓСЃС‚Р°РЅРѕРІР»РµРЅРЅРѕРіРѕ РЅР° "
+				L"РёРјРјРёС‚Р°С‚РѕСЂРµ.\r\nР—РµР»РµРЅС‹Рј, Р¶РµР»С‚С‹Рј Рё РєСЂР°СЃРЅС‹Рј РїРѕРєР°Р·Р°РЅС‹\r\n РіСЂР°РЅРёС†С‹ РїСЂРѕС†РµРЅС‚РЅС‹С… РєРѕСЂРёРґРѕСЂРѕРІ.");
 			// 
 			// pictureBox_graf3
 			// 
@@ -2595,8 +2595,8 @@ internal:
 			this->pictureBox_graf3->Size = System::Drawing::Size(445, 28);
 			this->pictureBox_graf3->TabIndex = 2;
 			this->pictureBox_graf3->TabStop = false;
-			this->toolTip1->SetToolTip(this->pictureBox_graf3, L"На графике отображаются  \r\nизмерянные значений сопротивления,\r\nустановленного на "
-				L"иммитаторе.\r\nЗеленым, желтым и красным показаны\r\n границы процентных коридоров.");
+			this->toolTip1->SetToolTip(this->pictureBox_graf3, L"РќР° РіСЂР°С„РёРєРµ РѕС‚РѕР±СЂР°Р¶Р°СЋС‚СЃСЏ  \r\nРёР·РјРµСЂСЏРЅРЅС‹Рµ Р·РЅР°С‡РµРЅРёР№ СЃРѕРїСЂРѕС‚РёРІР»РµРЅРёСЏ,\r\nСѓСЃС‚Р°РЅРѕРІР»РµРЅРЅРѕРіРѕ РЅР° "
+				L"РёРјРјРёС‚Р°С‚РѕСЂРµ.\r\nР—РµР»РµРЅС‹Рј, Р¶РµР»С‚С‹Рј Рё РєСЂР°СЃРЅС‹Рј РїРѕРєР°Р·Р°РЅС‹\r\n РіСЂР°РЅРёС†С‹ РїСЂРѕС†РµРЅС‚РЅС‹С… РєРѕСЂРёРґРѕСЂРѕРІ.");
 			// 
 			// pictureBox_graf4
 			// 
@@ -2610,8 +2610,8 @@ internal:
 			this->pictureBox_graf4->Size = System::Drawing::Size(445, 28);
 			this->pictureBox_graf4->TabIndex = 3;
 			this->pictureBox_graf4->TabStop = false;
-			this->toolTip1->SetToolTip(this->pictureBox_graf4, L"На графике отображаются  \r\nизмерянные значений сопротивления,\r\nустановленного на "
-				L"иммитаторе.\r\nЗеленым, желтым и красным показаны\r\n границы процентных коридоров.");
+			this->toolTip1->SetToolTip(this->pictureBox_graf4, L"РќР° РіСЂР°С„РёРєРµ РѕС‚РѕР±СЂР°Р¶Р°СЋС‚СЃСЏ  \r\nРёР·РјРµСЂСЏРЅРЅС‹Рµ Р·РЅР°С‡РµРЅРёР№ СЃРѕРїСЂРѕС‚РёРІР»РµРЅРёСЏ,\r\nСѓСЃС‚Р°РЅРѕРІР»РµРЅРЅРѕРіРѕ РЅР° "
+				L"РёРјРјРёС‚Р°С‚РѕСЂРµ.\r\nР—РµР»РµРЅС‹Рј, Р¶РµР»С‚С‹Рј Рё РєСЂР°СЃРЅС‹Рј РїРѕРєР°Р·Р°РЅС‹\r\n РіСЂР°РЅРёС†С‹ РїСЂРѕС†РµРЅС‚РЅС‹С… РєРѕСЂРёРґРѕСЂРѕРІ.");
 			// 
 			// pictureBox_graf5
 			// 
@@ -2625,8 +2625,8 @@ internal:
 			this->pictureBox_graf5->Size = System::Drawing::Size(445, 28);
 			this->pictureBox_graf5->TabIndex = 4;
 			this->pictureBox_graf5->TabStop = false;
-			this->toolTip1->SetToolTip(this->pictureBox_graf5, L"На графике отображаются  \r\nизмерянные значений сопротивления,\r\nустановленного на "
-				L"иммитаторе.\r\nЗеленым, желтым и красным показаны\r\n границы процентных коридоров.");
+			this->toolTip1->SetToolTip(this->pictureBox_graf5, L"РќР° РіСЂР°С„РёРєРµ РѕС‚РѕР±СЂР°Р¶Р°СЋС‚СЃСЏ  \r\nРёР·РјРµСЂСЏРЅРЅС‹Рµ Р·РЅР°С‡РµРЅРёР№ СЃРѕРїСЂРѕС‚РёРІР»РµРЅРёСЏ,\r\nСѓСЃС‚Р°РЅРѕРІР»РµРЅРЅРѕРіРѕ РЅР° "
+				L"РёРјРјРёС‚Р°С‚РѕСЂРµ.\r\nР—РµР»РµРЅС‹Рј, Р¶РµР»С‚С‹Рј Рё РєСЂР°СЃРЅС‹Рј РїРѕРєР°Р·Р°РЅС‹\r\n РіСЂР°РЅРёС†С‹ РїСЂРѕС†РµРЅС‚РЅС‹С… РєРѕСЂРёРґРѕСЂРѕРІ.");
 			// 
 			// pictureBox_graf6
 			// 
@@ -2640,8 +2640,8 @@ internal:
 			this->pictureBox_graf6->Size = System::Drawing::Size(445, 28);
 			this->pictureBox_graf6->TabIndex = 5;
 			this->pictureBox_graf6->TabStop = false;
-			this->toolTip1->SetToolTip(this->pictureBox_graf6, L"На графике отображаются  \r\nизмерянные значений сопротивления,\r\nустановленного на "
-				L"иммитаторе.\r\nЗеленым, желтым и красным показаны\r\n границы процентных коридоров.");
+			this->toolTip1->SetToolTip(this->pictureBox_graf6, L"РќР° РіСЂР°С„РёРєРµ РѕС‚РѕР±СЂР°Р¶Р°СЋС‚СЃСЏ  \r\nРёР·РјРµСЂСЏРЅРЅС‹Рµ Р·РЅР°С‡РµРЅРёР№ СЃРѕРїСЂРѕС‚РёРІР»РµРЅРёСЏ,\r\nСѓСЃС‚Р°РЅРѕРІР»РµРЅРЅРѕРіРѕ РЅР° "
+				L"РёРјРјРёС‚Р°С‚РѕСЂРµ.\r\nР—РµР»РµРЅС‹Рј, Р¶РµР»С‚С‹Рј Рё РєСЂР°СЃРЅС‹Рј РїРѕРєР°Р·Р°РЅС‹\r\n РіСЂР°РЅРёС†С‹ РїСЂРѕС†РµРЅС‚РЅС‹С… РєРѕСЂРёРґРѕСЂРѕРІ.");
 			// 
 			// pictureBox_graf7
 			// 
@@ -2655,8 +2655,8 @@ internal:
 			this->pictureBox_graf7->Size = System::Drawing::Size(445, 28);
 			this->pictureBox_graf7->TabIndex = 6;
 			this->pictureBox_graf7->TabStop = false;
-			this->toolTip1->SetToolTip(this->pictureBox_graf7, L"На графике отображаются  \r\nизмерянные значений сопротивления,\r\nустановленного на "
-				L"иммитаторе.\r\nЗеленым, желтым и красным показаны\r\n границы процентных коридоров.");
+			this->toolTip1->SetToolTip(this->pictureBox_graf7, L"РќР° РіСЂР°С„РёРєРµ РѕС‚РѕР±СЂР°Р¶Р°СЋС‚СЃСЏ  \r\nРёР·РјРµСЂСЏРЅРЅС‹Рµ Р·РЅР°С‡РµРЅРёР№ СЃРѕРїСЂРѕС‚РёРІР»РµРЅРёСЏ,\r\nСѓСЃС‚Р°РЅРѕРІР»РµРЅРЅРѕРіРѕ РЅР° "
+				L"РёРјРјРёС‚Р°С‚РѕСЂРµ.\r\nР—РµР»РµРЅС‹Рј, Р¶РµР»С‚С‹Рј Рё РєСЂР°СЃРЅС‹Рј РїРѕРєР°Р·Р°РЅС‹\r\n РіСЂР°РЅРёС†С‹ РїСЂРѕС†РµРЅС‚РЅС‹С… РєРѕСЂРёРґРѕСЂРѕРІ.");
 			// 
 			// pictureBox_graf8
 			// 
@@ -2670,8 +2670,8 @@ internal:
 			this->pictureBox_graf8->Size = System::Drawing::Size(445, 28);
 			this->pictureBox_graf8->TabIndex = 7;
 			this->pictureBox_graf8->TabStop = false;
-			this->toolTip1->SetToolTip(this->pictureBox_graf8, L"На графике отображаются  \r\nизмерянные значений сопротивления,\r\nустановленного на "
-				L"иммитаторе.\r\nЗеленым, желтым и красным показаны\r\n границы процентных коридоров.");
+			this->toolTip1->SetToolTip(this->pictureBox_graf8, L"РќР° РіСЂР°С„РёРєРµ РѕС‚РѕР±СЂР°Р¶Р°СЋС‚СЃСЏ  \r\nРёР·РјРµСЂСЏРЅРЅС‹Рµ Р·РЅР°С‡РµРЅРёР№ СЃРѕРїСЂРѕС‚РёРІР»РµРЅРёСЏ,\r\nСѓСЃС‚Р°РЅРѕРІР»РµРЅРЅРѕРіРѕ РЅР° "
+				L"РёРјРјРёС‚Р°С‚РѕСЂРµ.\r\nР—РµР»РµРЅС‹Рј, Р¶РµР»С‚С‹Рј Рё РєСЂР°СЃРЅС‹Рј РїРѕРєР°Р·Р°РЅС‹\r\n РіСЂР°РЅРёС†С‹ РїСЂРѕС†РµРЅС‚РЅС‹С… РєРѕСЂРёРґРѕСЂРѕРІ.");
 			// 
 			// pictureBox_graf9
 			// 
@@ -2685,8 +2685,8 @@ internal:
 			this->pictureBox_graf9->Size = System::Drawing::Size(445, 28);
 			this->pictureBox_graf9->TabIndex = 8;
 			this->pictureBox_graf9->TabStop = false;
-			this->toolTip1->SetToolTip(this->pictureBox_graf9, L"На графике отображаются  \r\nизмерянные значений сопротивления,\r\nустановленного на "
-				L"иммитаторе.\r\nЗеленым, желтым и красным показаны\r\n границы процентных коридоров.");
+			this->toolTip1->SetToolTip(this->pictureBox_graf9, L"РќР° РіСЂР°С„РёРєРµ РѕС‚РѕР±СЂР°Р¶Р°СЋС‚СЃСЏ  \r\nРёР·РјРµСЂСЏРЅРЅС‹Рµ Р·РЅР°С‡РµРЅРёР№ СЃРѕРїСЂРѕС‚РёРІР»РµРЅРёСЏ,\r\nСѓСЃС‚Р°РЅРѕРІР»РµРЅРЅРѕРіРѕ РЅР° "
+				L"РёРјРјРёС‚Р°С‚РѕСЂРµ.\r\nР—РµР»РµРЅС‹Рј, Р¶РµР»С‚С‹Рј Рё РєСЂР°СЃРЅС‹Рј РїРѕРєР°Р·Р°РЅС‹\r\n РіСЂР°РЅРёС†С‹ РїСЂРѕС†РµРЅС‚РЅС‹С… РєРѕСЂРёРґРѕСЂРѕРІ.");
 			// 
 			// pictureBox_graf10
 			// 
@@ -2700,8 +2700,8 @@ internal:
 			this->pictureBox_graf10->Size = System::Drawing::Size(445, 28);
 			this->pictureBox_graf10->TabIndex = 9;
 			this->pictureBox_graf10->TabStop = false;
-			this->toolTip1->SetToolTip(this->pictureBox_graf10, L"На графике отображаются  \r\nизмерянные значений сопротивления,\r\nустановленного на "
-				L"иммитаторе.\r\nЗеленым, желтым и красным показаны\r\n границы процентных коридоров.");
+			this->toolTip1->SetToolTip(this->pictureBox_graf10, L"РќР° РіСЂР°С„РёРєРµ РѕС‚РѕР±СЂР°Р¶Р°СЋС‚СЃСЏ  \r\nРёР·РјРµСЂСЏРЅРЅС‹Рµ Р·РЅР°С‡РµРЅРёР№ СЃРѕРїСЂРѕС‚РёРІР»РµРЅРёСЏ,\r\nСѓСЃС‚Р°РЅРѕРІР»РµРЅРЅРѕРіРѕ РЅР° "
+				L"РёРјРјРёС‚Р°С‚РѕСЂРµ.\r\nР—РµР»РµРЅС‹Рј, Р¶РµР»С‚С‹Рј Рё РєСЂР°СЃРЅС‹Рј РїРѕРєР°Р·Р°РЅС‹\r\n РіСЂР°РЅРёС†С‹ РїСЂРѕС†РµРЅС‚РЅС‹С… РєРѕСЂРёРґРѕСЂРѕРІ.");
 			// 
 			// textBox_dfi1
 			// 
@@ -2939,7 +2939,7 @@ internal:
 			this->button_R2->Size = System::Drawing::Size(85, 28);
 			this->button_R2->TabIndex = 35;
 			this->button_R2->Text = L"R2";
-			this->toolTip1->SetToolTip(this->button_R2, L"При включенном кольце устанавливает сопротивление R2\r\nна иммитаторе.");
+			this->toolTip1->SetToolTip(this->button_R2, L"РџСЂРё РІРєР»СЋС‡РµРЅРЅРѕРј РєРѕР»СЊС†Рµ СѓСЃС‚Р°РЅР°РІР»РёРІР°РµС‚ СЃРѕРїСЂРѕС‚РёРІР»РµРЅРёРµ R2\r\nРЅР° РёРјРјРёС‚Р°С‚РѕСЂРµ.");
 			this->button_R2->UseVisualStyleBackColor = true;
 			this->button_R2->Click += gcnew System::EventHandler(this, &WorkForm::button_R2_Click);
 			// 
@@ -2955,7 +2955,7 @@ internal:
 			this->button_R3->Size = System::Drawing::Size(85, 28);
 			this->button_R3->TabIndex = 36;
 			this->button_R3->Text = L"R3";
-			this->toolTip1->SetToolTip(this->button_R3, L"При включенном кольце устанавливает сопротивление R3 \r\nна иммитаторе.");
+			this->toolTip1->SetToolTip(this->button_R3, L"РџСЂРё РІРєР»СЋС‡РµРЅРЅРѕРј РєРѕР»СЊС†Рµ СѓСЃС‚Р°РЅР°РІР»РёРІР°РµС‚ СЃРѕРїСЂРѕС‚РёРІР»РµРЅРёРµ R3 \r\nРЅР° РёРјРјРёС‚Р°С‚РѕСЂРµ.");
 			this->button_R3->UseVisualStyleBackColor = true;
 			this->button_R3->Click += gcnew System::EventHandler(this, &WorkForm::button_R3_Click);
 			// 
@@ -2971,7 +2971,7 @@ internal:
 			this->button_R4->Size = System::Drawing::Size(85, 28);
 			this->button_R4->TabIndex = 36;
 			this->button_R4->Text = L"R4";
-			this->toolTip1->SetToolTip(this->button_R4, L"При включенном кольце устанавливает сопротивление R4 \r\nна иммитаторе.");
+			this->toolTip1->SetToolTip(this->button_R4, L"РџСЂРё РІРєР»СЋС‡РµРЅРЅРѕРј РєРѕР»СЊС†Рµ СѓСЃС‚Р°РЅР°РІР»РёРІР°РµС‚ СЃРѕРїСЂРѕС‚РёРІР»РµРЅРёРµ R4 \r\nРЅР° РёРјРјРёС‚Р°С‚РѕСЂРµ.");
 			this->button_R4->UseVisualStyleBackColor = true;
 			this->button_R4->Click += gcnew System::EventHandler(this, &WorkForm::button_R4_Click);
 			// 
@@ -2987,7 +2987,7 @@ internal:
 			this->button_R5->Size = System::Drawing::Size(85, 28);
 			this->button_R5->TabIndex = 36;
 			this->button_R5->Text = L"R5";
-			this->toolTip1->SetToolTip(this->button_R5, L"При включенном кольце устанавливает сопротивление R5\r\nна иммитаторе.");
+			this->toolTip1->SetToolTip(this->button_R5, L"РџСЂРё РІРєР»СЋС‡РµРЅРЅРѕРј РєРѕР»СЊС†Рµ СѓСЃС‚Р°РЅР°РІР»РёРІР°РµС‚ СЃРѕРїСЂРѕС‚РёРІР»РµРЅРёРµ R5\r\nРЅР° РёРјРјРёС‚Р°С‚РѕСЂРµ.");
 			this->button_R5->UseVisualStyleBackColor = true;
 			this->button_R5->Click += gcnew System::EventHandler(this, &WorkForm::button_R5_Click);
 			// 
@@ -3003,7 +3003,7 @@ internal:
 			this->button_R6->Size = System::Drawing::Size(85, 28);
 			this->button_R6->TabIndex = 36;
 			this->button_R6->Text = L"R6";
-			this->toolTip1->SetToolTip(this->button_R6, L"При включенном кольце устанавливает сопротивление R6 \r\nна иммитаторе.");
+			this->toolTip1->SetToolTip(this->button_R6, L"РџСЂРё РІРєР»СЋС‡РµРЅРЅРѕРј РєРѕР»СЊС†Рµ СѓСЃС‚Р°РЅР°РІР»РёРІР°РµС‚ СЃРѕРїСЂРѕС‚РёРІР»РµРЅРёРµ R6 \r\nРЅР° РёРјРјРёС‚Р°С‚РѕСЂРµ.");
 			this->button_R6->UseVisualStyleBackColor = true;
 			this->button_R6->Click += gcnew System::EventHandler(this, &WorkForm::button_R6_Click);
 			// 
@@ -3019,7 +3019,7 @@ internal:
 			this->button_R7->Size = System::Drawing::Size(85, 28);
 			this->button_R7->TabIndex = 36;
 			this->button_R7->Text = L"R7";
-			this->toolTip1->SetToolTip(this->button_R7, L"При включенном кольце устанавливает сопротивление R7\r\nна иммитаторе.");
+			this->toolTip1->SetToolTip(this->button_R7, L"РџСЂРё РІРєР»СЋС‡РµРЅРЅРѕРј РєРѕР»СЊС†Рµ СѓСЃС‚Р°РЅР°РІР»РёРІР°РµС‚ СЃРѕРїСЂРѕС‚РёРІР»РµРЅРёРµ R7\r\nРЅР° РёРјРјРёС‚Р°С‚РѕСЂРµ.");
 			this->button_R7->UseVisualStyleBackColor = true;
 			this->button_R7->Click += gcnew System::EventHandler(this, &WorkForm::button_R7_Click);
 			// 
@@ -3035,7 +3035,7 @@ internal:
 			this->button_R8->Size = System::Drawing::Size(85, 28);
 			this->button_R8->TabIndex = 36;
 			this->button_R8->Text = L"R8";
-			this->toolTip1->SetToolTip(this->button_R8, L"При включенном кольце устанавливает сопротивление R8 \r\nна иммитаторе.");
+			this->toolTip1->SetToolTip(this->button_R8, L"РџСЂРё РІРєР»СЋС‡РµРЅРЅРѕРј РєРѕР»СЊС†Рµ СѓСЃС‚Р°РЅР°РІР»РёРІР°РµС‚ СЃРѕРїСЂРѕС‚РёРІР»РµРЅРёРµ R8 \r\nРЅР° РёРјРјРёС‚Р°С‚РѕСЂРµ.");
 			this->button_R8->UseVisualStyleBackColor = true;
 			this->button_R8->Click += gcnew System::EventHandler(this, &WorkForm::button_R8_Click);
 			// 
@@ -3066,7 +3066,7 @@ internal:
 			this->button_R1->Size = System::Drawing::Size(85, 28);
 			this->button_R1->TabIndex = 34;
 			this->button_R1->Text = L"R1";
-			this->toolTip1->SetToolTip(this->button_R1, L"При включенном кольце устанавливает сопротивление R1 \r\nна иммитаторе.");
+			this->toolTip1->SetToolTip(this->button_R1, L"РџСЂРё РІРєР»СЋС‡РµРЅРЅРѕРј РєРѕР»СЊС†Рµ СѓСЃС‚Р°РЅР°РІР»РёРІР°РµС‚ СЃРѕРїСЂРѕС‚РёРІР»РµРЅРёРµ R1 \r\nРЅР° РёРјРјРёС‚Р°С‚РѕСЂРµ.");
 			this->button_R1->UseVisualStyleBackColor = true;
 			this->button_R1->Click += gcnew System::EventHandler(this, &WorkForm::button_R1_Click);
 			// 
@@ -3254,7 +3254,7 @@ internal:
 			this->label5->Name = L"label5";
 			this->label5->Size = System::Drawing::Size(103, 34);
 			this->label5->TabIndex = 47;
-			this->label5->Text = L"№ Зонда";
+			this->label5->Text = L"в„– Р—РѕРЅРґР°";
 			this->label5->TextAlign = System::Drawing::ContentAlignment::TopCenter;
 			// 
 			// tabControl1
@@ -3286,7 +3286,7 @@ internal:
 			this->tabPage1->Padding = System::Windows::Forms::Padding(3, 2, 3, 2);
 			this->tabPage1->Size = System::Drawing::Size(1521, 560);
 			this->tabPage1->TabIndex = 0;
-			this->tabPage1->Text = L"Главная";
+			this->tabPage1->Text = L"Р“Р»Р°РІРЅР°СЏ";
 			this->tabPage1->UseVisualStyleBackColor = true;
 			// 
 			// label8
@@ -3298,7 +3298,7 @@ internal:
 			this->label8->Name = L"label8";
 			this->label8->Size = System::Drawing::Size(326, 17);
 			this->label8->TabIndex = 46;
-			this->label8->Text = L"Помеченное галочкой  записываетсая в рапорт";
+			this->label8->Text = L"РџРѕРјРµС‡РµРЅРЅРѕРµ РіР°Р»РѕС‡РєРѕР№  Р·Р°РїРёСЃС‹РІР°РµС‚СЃР°СЏ РІ СЂР°РїРѕСЂС‚";
 			// 
 			// label7
 			// 
@@ -3309,7 +3309,7 @@ internal:
 			this->label7->Name = L"label7";
 			this->label7->Size = System::Drawing::Size(503, 17);
 			this->label7->TabIndex = 45;
-			this->label7->Text = L"Таблица: процентная разница рассчетного и измерянного сопротивлений";
+			this->label7->Text = L"РўР°Р±Р»РёС†Р°: РїСЂРѕС†РµРЅС‚РЅР°СЏ СЂР°Р·РЅРёС†Р° СЂР°СЃСЃС‡РµС‚РЅРѕРіРѕ Рё РёР·РјРµСЂСЏРЅРЅРѕРіРѕ СЃРѕРїСЂРѕС‚РёРІР»РµРЅРёР№";
 			// 
 			// label6
 			// 
@@ -3320,7 +3320,7 @@ internal:
 			this->label6->Name = L"label6";
 			this->label6->Size = System::Drawing::Size(263, 17);
 			this->label6->TabIndex = 44;
-			this->label6->Text = L"Кнопка: сопротивления на кольце  Ом";
+			this->label6->Text = L"РљРЅРѕРїРєР°: СЃРѕРїСЂРѕС‚РёРІР»РµРЅРёСЏ РЅР° РєРѕР»СЊС†Рµ  РћРј";
 			// 
 			// button_raport
 			// 
@@ -3329,11 +3329,11 @@ internal:
 			this->button_raport->Name = L"button_raport";
 			this->button_raport->Size = System::Drawing::Size(153, 46);
 			this->button_raport->TabIndex = 44;
-			this->button_raport->Text = L"РАПОРТ";
-			this->toolTip1->SetToolTip(this->button_raport, L"При нажатии отправляет данные оизмерений, помеченных галочкой\r\nв рапорт.  Данные "
-				L"в таблице обнуляются.");
+			this->button_raport->Text = L"Р РђРџРћР Рў";
+			this->toolTip1->SetToolTip(this->button_raport, L"РџСЂРё РЅР°Р¶Р°С‚РёРё РѕС‚РїСЂР°РІР»СЏРµС‚ РґР°РЅРЅС‹Рµ РѕРёР·РјРµСЂРµРЅРёР№, РїРѕРјРµС‡РµРЅРЅС‹С… РіР°Р»РѕС‡РєРѕР№\r\nРІ СЂР°РїРѕСЂС‚.  Р”Р°РЅРЅС‹Рµ "
+				L"РІ С‚Р°Р±Р»РёС†Рµ РѕР±РЅСѓР»СЏСЋС‚СЃСЏ.");
 			this->button_raport->UseVisualStyleBackColor = true;
-			this->button_raport->Click += gcnew System::EventHandler(this, &WorkForm::сохранитьРапортRtfToolStripMenuItem_Click);
+			this->button_raport->Click += gcnew System::EventHandler(this, &WorkForm::СЃРѕС…СЂР°РЅРёС‚СЊР Р°РїРѕСЂС‚RtfToolStripMenuItem_Click);
 			// 
 			// tabPage2
 			// 
@@ -3353,7 +3353,7 @@ internal:
 			this->tabPage2->Padding = System::Windows::Forms::Padding(3, 2, 3, 2);
 			this->tabPage2->Size = System::Drawing::Size(1521, 560);
 			this->tabPage2->TabIndex = 1;
-			this->tabPage2->Text = L"Поверка кольца";
+			this->tabPage2->Text = L"РџРѕРІРµСЂРєР° РєРѕР»СЊС†Р°";
 			this->tabPage2->UseVisualStyleBackColor = true;
 			// 
 			// checkBox_Re_red
@@ -3364,7 +3364,7 @@ internal:
 			this->checkBox_Re_red->Name = L"checkBox_Re_red";
 			this->checkBox_Re_red->Size = System::Drawing::Size(188, 29);
 			this->checkBox_Re_red->TabIndex = 89;
-			this->checkBox_Re_red->Text = L"редактировать";
+			this->checkBox_Re_red->Text = L"СЂРµРґР°РєС‚РёСЂРѕРІР°С‚СЊ";
 			this->checkBox_Re_red->UseVisualStyleBackColor = true;
 			this->checkBox_Re_red->CheckedChanged += gcnew System::EventHandler(this, &WorkForm::checkBox_Re_red_CheckedChanged);
 			// 
@@ -3376,7 +3376,7 @@ internal:
 			this->checkBox_R_red->Name = L"checkBox_R_red";
 			this->checkBox_R_red->Size = System::Drawing::Size(188, 29);
 			this->checkBox_R_red->TabIndex = 88;
-			this->checkBox_R_red->Text = L"редактировать";
+			this->checkBox_R_red->Text = L"СЂРµРґР°РєС‚РёСЂРѕРІР°С‚СЊ";
 			this->checkBox_R_red->UseVisualStyleBackColor = true;
 			this->checkBox_R_red->CheckedChanged += gcnew System::EventHandler(this, &WorkForm::checkBox_r_red_CheckedChanged);
 			// 
@@ -3388,7 +3388,7 @@ internal:
 			this->checkBox_param_red->Name = L"checkBox_param_red";
 			this->checkBox_param_red->Size = System::Drawing::Size(188, 29);
 			this->checkBox_param_red->TabIndex = 87;
-			this->checkBox_param_red->Text = L"редактировать";
+			this->checkBox_param_red->Text = L"СЂРµРґР°РєС‚РёСЂРѕРІР°С‚СЊ";
 			this->checkBox_param_red->UseVisualStyleBackColor = true;
 			this->checkBox_param_red->CheckedChanged += gcnew System::EventHandler(this, &WorkForm::checkBox_param_red_CheckedChanged);
 			// 
@@ -3424,7 +3424,7 @@ internal:
 			this->tableLayoutPanel11->Controls->Add(this->textBox_L1_10, 10, 0);
 			this->tableLayoutPanel11->Controls->Add(this->textBox_L2_10, 10, 1);
 			this->tableLayoutPanel11->Controls->Add(this->textBox_f_10, 10, 2);
-			this->tableLayoutPanel11->Controls->Add(this->textBox_С10, 10, 3);
+			this->tableLayoutPanel11->Controls->Add(this->textBox_РЎ10, 10, 3);
 			this->tableLayoutPanel11->Controls->Add(this->textBox_signature, 7, 8);
 			this->tableLayoutPanel11->Controls->Add(this->textBox_Z_calc10, 10, 4);
 			this->tableLayoutPanel11->Controls->Add(this->label15, 0, 0);
@@ -3434,23 +3434,23 @@ internal:
 			this->tableLayoutPanel11->Controls->Add(this->label12, 0, 4);
 			this->tableLayoutPanel11->Controls->Add(this->textBox_Z_calc9, 9, 4);
 			this->tableLayoutPanel11->Controls->Add(this->textBox_L1_1, 1, 0);
-			this->tableLayoutPanel11->Controls->Add(this->textBox_С9, 9, 3);
+			this->tableLayoutPanel11->Controls->Add(this->textBox_РЎ9, 9, 3);
 			this->tableLayoutPanel11->Controls->Add(this->textBox_L2_1, 1, 1);
 			this->tableLayoutPanel11->Controls->Add(this->textBox_f_1, 1, 2);
 			this->tableLayoutPanel11->Controls->Add(this->textBox_f_9, 9, 2);
-			this->tableLayoutPanel11->Controls->Add(this->textBox_С1, 1, 3);
+			this->tableLayoutPanel11->Controls->Add(this->textBox_РЎ1, 1, 3);
 			this->tableLayoutPanel11->Controls->Add(this->textBox_Z_calc1, 1, 4);
 			this->tableLayoutPanel11->Controls->Add(this->textBox_L2_9, 9, 1);
 			this->tableLayoutPanel11->Controls->Add(this->textBox_L1_9, 9, 0);
 			this->tableLayoutPanel11->Controls->Add(this->textBox_Z_calc8, 8, 4);
-			this->tableLayoutPanel11->Controls->Add(this->textBox_С8, 8, 3);
+			this->tableLayoutPanel11->Controls->Add(this->textBox_РЎ8, 8, 3);
 			this->tableLayoutPanel11->Controls->Add(this->textBox_f_8, 8, 2);
 			this->tableLayoutPanel11->Controls->Add(this->textBox_L2_8, 8, 1);
 			this->tableLayoutPanel11->Controls->Add(this->textBox_L1_8, 8, 0);
 			this->tableLayoutPanel11->Controls->Add(this->textBox_L1_7, 7, 0);
 			this->tableLayoutPanel11->Controls->Add(this->textBox_L2_7, 7, 1);
 			this->tableLayoutPanel11->Controls->Add(this->textBox_f_7, 7, 2);
-			this->tableLayoutPanel11->Controls->Add(this->textBox_С7, 7, 3);
+			this->tableLayoutPanel11->Controls->Add(this->textBox_РЎ7, 7, 3);
 			this->tableLayoutPanel11->Controls->Add(this->textBox_Z_calc7, 7, 4);
 			this->tableLayoutPanel11->Controls->Add(this->textBox_L1_6, 6, 0);
 			this->tableLayoutPanel11->Controls->Add(this->textBox_L1_5, 5, 0);
@@ -3458,7 +3458,7 @@ internal:
 			this->tableLayoutPanel11->Controls->Add(this->textBox_L1_4, 4, 0);
 			this->tableLayoutPanel11->Controls->Add(this->textBox_f_6, 6, 2);
 			this->tableLayoutPanel11->Controls->Add(this->textBox_L1_3, 3, 0);
-			this->tableLayoutPanel11->Controls->Add(this->textBox_С6, 6, 3);
+			this->tableLayoutPanel11->Controls->Add(this->textBox_РЎ6, 6, 3);
 			this->tableLayoutPanel11->Controls->Add(this->textBox_L1_2, 2, 0);
 			this->tableLayoutPanel11->Controls->Add(this->textBox_Z_calc6, 6, 4);
 			this->tableLayoutPanel11->Controls->Add(this->textBox_L2_5, 5, 1);
@@ -3468,12 +3468,12 @@ internal:
 			this->tableLayoutPanel11->Controls->Add(this->textBox_L2_3, 3, 1);
 			this->tableLayoutPanel11->Controls->Add(this->textBox_f_5, 5, 2);
 			this->tableLayoutPanel11->Controls->Add(this->textBox_f_4, 4, 2);
-			this->tableLayoutPanel11->Controls->Add(this->textBox_С2, 2, 3);
+			this->tableLayoutPanel11->Controls->Add(this->textBox_РЎ2, 2, 3);
 			this->tableLayoutPanel11->Controls->Add(this->textBox_Z_calc2, 2, 4);
-			this->tableLayoutPanel11->Controls->Add(this->textBox_С5, 5, 3);
-			this->tableLayoutPanel11->Controls->Add(this->textBox_С4, 4, 3);
+			this->tableLayoutPanel11->Controls->Add(this->textBox_РЎ5, 5, 3);
+			this->tableLayoutPanel11->Controls->Add(this->textBox_РЎ4, 4, 3);
 			this->tableLayoutPanel11->Controls->Add(this->textBox_f_3, 3, 2);
-			this->tableLayoutPanel11->Controls->Add(this->textBox_С3, 3, 3);
+			this->tableLayoutPanel11->Controls->Add(this->textBox_РЎ3, 3, 3);
 			this->tableLayoutPanel11->Controls->Add(this->textBox_Z_calc5, 5, 4);
 			this->tableLayoutPanel11->Controls->Add(this->textBox_Z_calc4, 4, 4);
 			this->tableLayoutPanel11->Controls->Add(this->textBox_Z_calc3, 3, 4);
@@ -3637,20 +3637,20 @@ internal:
 			this->textBox_f_10->TabIndex = 47;
 			this->textBox_f_10->TextAlign = System::Windows::Forms::HorizontalAlignment::Center;
 			// 
-			// textBox_С10
+			// textBox_РЎ10
 			// 
-			this->textBox_С10->Anchor = static_cast<System::Windows::Forms::AnchorStyles>((((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Bottom)
+			this->textBox_РЎ10->Anchor = static_cast<System::Windows::Forms::AnchorStyles>((((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Bottom)
 				| System::Windows::Forms::AnchorStyles::Left)
 				| System::Windows::Forms::AnchorStyles::Right));
-			this->textBox_С10->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 10.2F, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
+			this->textBox_РЎ10->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 10.2F, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
 				static_cast<System::Byte>(204)));
-			this->textBox_С10->Location = System::Drawing::Point(843, 119);
-			this->textBox_С10->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
-			this->textBox_С10->Name = L"textBox_С10";
-			this->textBox_С10->ReadOnly = true;
-			this->textBox_С10->Size = System::Drawing::Size(77, 27);
-			this->textBox_С10->TabIndex = 47;
-			this->textBox_С10->TextAlign = System::Windows::Forms::HorizontalAlignment::Center;
+			this->textBox_РЎ10->Location = System::Drawing::Point(843, 119);
+			this->textBox_РЎ10->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
+			this->textBox_РЎ10->Name = L"textBox_РЎ10";
+			this->textBox_РЎ10->ReadOnly = true;
+			this->textBox_РЎ10->Size = System::Drawing::Size(77, 27);
+			this->textBox_РЎ10->TabIndex = 47;
+			this->textBox_РЎ10->TextAlign = System::Windows::Forms::HorizontalAlignment::Center;
 			// 
 			// textBox_signature
 			// 
@@ -3785,20 +3785,20 @@ internal:
 			this->textBox_L1_1->TabIndex = 2;
 			this->textBox_L1_1->TextAlign = System::Windows::Forms::HorizontalAlignment::Center;
 			// 
-			// textBox_С9
+			// textBox_РЎ9
 			// 
-			this->textBox_С9->Anchor = static_cast<System::Windows::Forms::AnchorStyles>((((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Bottom)
+			this->textBox_РЎ9->Anchor = static_cast<System::Windows::Forms::AnchorStyles>((((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Bottom)
 				| System::Windows::Forms::AnchorStyles::Left)
 				| System::Windows::Forms::AnchorStyles::Right));
-			this->textBox_С9->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 10.2F, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
+			this->textBox_РЎ9->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 10.2F, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
 				static_cast<System::Byte>(204)));
-			this->textBox_С9->Location = System::Drawing::Point(763, 119);
-			this->textBox_С9->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
-			this->textBox_С9->Name = L"textBox_С9";
-			this->textBox_С9->ReadOnly = true;
-			this->textBox_С9->Size = System::Drawing::Size(74, 27);
-			this->textBox_С9->TabIndex = 47;
-			this->textBox_С9->TextAlign = System::Windows::Forms::HorizontalAlignment::Center;
+			this->textBox_РЎ9->Location = System::Drawing::Point(763, 119);
+			this->textBox_РЎ9->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
+			this->textBox_РЎ9->Name = L"textBox_РЎ9";
+			this->textBox_РЎ9->ReadOnly = true;
+			this->textBox_РЎ9->Size = System::Drawing::Size(74, 27);
+			this->textBox_РЎ9->TabIndex = 47;
+			this->textBox_РЎ9->TextAlign = System::Windows::Forms::HorizontalAlignment::Center;
 			// 
 			// textBox_L2_1
 			// 
@@ -3845,20 +3845,20 @@ internal:
 			this->textBox_f_9->TabIndex = 47;
 			this->textBox_f_9->TextAlign = System::Windows::Forms::HorizontalAlignment::Center;
 			// 
-			// textBox_С1
+			// textBox_РЎ1
 			// 
-			this->textBox_С1->Anchor = static_cast<System::Windows::Forms::AnchorStyles>((((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Bottom)
+			this->textBox_РЎ1->Anchor = static_cast<System::Windows::Forms::AnchorStyles>((((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Bottom)
 				| System::Windows::Forms::AnchorStyles::Left)
 				| System::Windows::Forms::AnchorStyles::Right));
-			this->textBox_С1->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 10.2F, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
+			this->textBox_РЎ1->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 10.2F, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
 				static_cast<System::Byte>(204)));
-			this->textBox_С1->Location = System::Drawing::Point(123, 119);
-			this->textBox_С1->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
-			this->textBox_С1->Name = L"textBox_С1";
-			this->textBox_С1->ReadOnly = true;
-			this->textBox_С1->Size = System::Drawing::Size(74, 27);
-			this->textBox_С1->TabIndex = 48;
-			this->textBox_С1->TextAlign = System::Windows::Forms::HorizontalAlignment::Center;
+			this->textBox_РЎ1->Location = System::Drawing::Point(123, 119);
+			this->textBox_РЎ1->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
+			this->textBox_РЎ1->Name = L"textBox_РЎ1";
+			this->textBox_РЎ1->ReadOnly = true;
+			this->textBox_РЎ1->Size = System::Drawing::Size(74, 27);
+			this->textBox_РЎ1->TabIndex = 48;
+			this->textBox_РЎ1->TextAlign = System::Windows::Forms::HorizontalAlignment::Center;
 			// 
 			// textBox_Z_calc1
 			// 
@@ -3920,20 +3920,20 @@ internal:
 			this->textBox_Z_calc8->TabIndex = 63;
 			this->textBox_Z_calc8->TextAlign = System::Windows::Forms::HorizontalAlignment::Center;
 			// 
-			// textBox_С8
+			// textBox_РЎ8
 			// 
-			this->textBox_С8->Anchor = static_cast<System::Windows::Forms::AnchorStyles>((((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Bottom)
+			this->textBox_РЎ8->Anchor = static_cast<System::Windows::Forms::AnchorStyles>((((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Bottom)
 				| System::Windows::Forms::AnchorStyles::Left)
 				| System::Windows::Forms::AnchorStyles::Right));
-			this->textBox_С8->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 10.2F, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
+			this->textBox_РЎ8->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 10.2F, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
 				static_cast<System::Byte>(204)));
-			this->textBox_С8->Location = System::Drawing::Point(683, 119);
-			this->textBox_С8->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
-			this->textBox_С8->Name = L"textBox_С8";
-			this->textBox_С8->ReadOnly = true;
-			this->textBox_С8->Size = System::Drawing::Size(74, 27);
-			this->textBox_С8->TabIndex = 55;
-			this->textBox_С8->TextAlign = System::Windows::Forms::HorizontalAlignment::Center;
+			this->textBox_РЎ8->Location = System::Drawing::Point(683, 119);
+			this->textBox_РЎ8->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
+			this->textBox_РЎ8->Name = L"textBox_РЎ8";
+			this->textBox_РЎ8->ReadOnly = true;
+			this->textBox_РЎ8->Size = System::Drawing::Size(74, 27);
+			this->textBox_РЎ8->TabIndex = 55;
+			this->textBox_РЎ8->TextAlign = System::Windows::Forms::HorizontalAlignment::Center;
 			// 
 			// textBox_f_8
 			// 
@@ -4025,20 +4025,20 @@ internal:
 			this->textBox_f_7->TabIndex = 45;
 			this->textBox_f_7->TextAlign = System::Windows::Forms::HorizontalAlignment::Center;
 			// 
-			// textBox_С7
+			// textBox_РЎ7
 			// 
-			this->textBox_С7->Anchor = static_cast<System::Windows::Forms::AnchorStyles>((((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Bottom)
+			this->textBox_РЎ7->Anchor = static_cast<System::Windows::Forms::AnchorStyles>((((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Bottom)
 				| System::Windows::Forms::AnchorStyles::Left)
 				| System::Windows::Forms::AnchorStyles::Right));
-			this->textBox_С7->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 10.2F, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
+			this->textBox_РЎ7->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 10.2F, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
 				static_cast<System::Byte>(204)));
-			this->textBox_С7->Location = System::Drawing::Point(603, 119);
-			this->textBox_С7->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
-			this->textBox_С7->Name = L"textBox_С7";
-			this->textBox_С7->ReadOnly = true;
-			this->textBox_С7->Size = System::Drawing::Size(74, 27);
-			this->textBox_С7->TabIndex = 54;
-			this->textBox_С7->TextAlign = System::Windows::Forms::HorizontalAlignment::Center;
+			this->textBox_РЎ7->Location = System::Drawing::Point(603, 119);
+			this->textBox_РЎ7->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
+			this->textBox_РЎ7->Name = L"textBox_РЎ7";
+			this->textBox_РЎ7->ReadOnly = true;
+			this->textBox_РЎ7->Size = System::Drawing::Size(74, 27);
+			this->textBox_РЎ7->TabIndex = 54;
+			this->textBox_РЎ7->TextAlign = System::Windows::Forms::HorizontalAlignment::Center;
 			// 
 			// textBox_Z_calc7
 			// 
@@ -4145,20 +4145,20 @@ internal:
 			this->textBox_L1_3->TabIndex = 4;
 			this->textBox_L1_3->TextAlign = System::Windows::Forms::HorizontalAlignment::Center;
 			// 
-			// textBox_С6
+			// textBox_РЎ6
 			// 
-			this->textBox_С6->Anchor = static_cast<System::Windows::Forms::AnchorStyles>((((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Bottom)
+			this->textBox_РЎ6->Anchor = static_cast<System::Windows::Forms::AnchorStyles>((((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Bottom)
 				| System::Windows::Forms::AnchorStyles::Left)
 				| System::Windows::Forms::AnchorStyles::Right));
-			this->textBox_С6->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 10.2F, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
+			this->textBox_РЎ6->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 10.2F, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
 				static_cast<System::Byte>(204)));
-			this->textBox_С6->Location = System::Drawing::Point(523, 119);
-			this->textBox_С6->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
-			this->textBox_С6->Name = L"textBox_С6";
-			this->textBox_С6->ReadOnly = true;
-			this->textBox_С6->Size = System::Drawing::Size(74, 27);
-			this->textBox_С6->TabIndex = 53;
-			this->textBox_С6->TextAlign = System::Windows::Forms::HorizontalAlignment::Center;
+			this->textBox_РЎ6->Location = System::Drawing::Point(523, 119);
+			this->textBox_РЎ6->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
+			this->textBox_РЎ6->Name = L"textBox_РЎ6";
+			this->textBox_РЎ6->ReadOnly = true;
+			this->textBox_РЎ6->Size = System::Drawing::Size(74, 27);
+			this->textBox_РЎ6->TabIndex = 53;
+			this->textBox_РЎ6->TextAlign = System::Windows::Forms::HorizontalAlignment::Center;
 			// 
 			// textBox_L1_2
 			// 
@@ -4295,20 +4295,20 @@ internal:
 			this->textBox_f_4->TabIndex = 42;
 			this->textBox_f_4->TextAlign = System::Windows::Forms::HorizontalAlignment::Center;
 			// 
-			// textBox_С2
+			// textBox_РЎ2
 			// 
-			this->textBox_С2->Anchor = static_cast<System::Windows::Forms::AnchorStyles>((((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Bottom)
+			this->textBox_РЎ2->Anchor = static_cast<System::Windows::Forms::AnchorStyles>((((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Bottom)
 				| System::Windows::Forms::AnchorStyles::Left)
 				| System::Windows::Forms::AnchorStyles::Right));
-			this->textBox_С2->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 10.2F, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
+			this->textBox_РЎ2->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 10.2F, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
 				static_cast<System::Byte>(204)));
-			this->textBox_С2->Location = System::Drawing::Point(203, 119);
-			this->textBox_С2->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
-			this->textBox_С2->Name = L"textBox_С2";
-			this->textBox_С2->ReadOnly = true;
-			this->textBox_С2->Size = System::Drawing::Size(74, 27);
-			this->textBox_С2->TabIndex = 49;
-			this->textBox_С2->TextAlign = System::Windows::Forms::HorizontalAlignment::Center;
+			this->textBox_РЎ2->Location = System::Drawing::Point(203, 119);
+			this->textBox_РЎ2->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
+			this->textBox_РЎ2->Name = L"textBox_РЎ2";
+			this->textBox_РЎ2->ReadOnly = true;
+			this->textBox_РЎ2->Size = System::Drawing::Size(74, 27);
+			this->textBox_РЎ2->TabIndex = 49;
+			this->textBox_РЎ2->TextAlign = System::Windows::Forms::HorizontalAlignment::Center;
 			// 
 			// textBox_Z_calc2
 			// 
@@ -4325,35 +4325,35 @@ internal:
 			this->textBox_Z_calc2->TabIndex = 57;
 			this->textBox_Z_calc2->TextAlign = System::Windows::Forms::HorizontalAlignment::Center;
 			// 
-			// textBox_С5
+			// textBox_РЎ5
 			// 
-			this->textBox_С5->Anchor = static_cast<System::Windows::Forms::AnchorStyles>((((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Bottom)
+			this->textBox_РЎ5->Anchor = static_cast<System::Windows::Forms::AnchorStyles>((((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Bottom)
 				| System::Windows::Forms::AnchorStyles::Left)
 				| System::Windows::Forms::AnchorStyles::Right));
-			this->textBox_С5->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 10.2F, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
+			this->textBox_РЎ5->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 10.2F, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
 				static_cast<System::Byte>(204)));
-			this->textBox_С5->Location = System::Drawing::Point(443, 119);
-			this->textBox_С5->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
-			this->textBox_С5->Name = L"textBox_С5";
-			this->textBox_С5->ReadOnly = true;
-			this->textBox_С5->Size = System::Drawing::Size(74, 27);
-			this->textBox_С5->TabIndex = 52;
-			this->textBox_С5->TextAlign = System::Windows::Forms::HorizontalAlignment::Center;
+			this->textBox_РЎ5->Location = System::Drawing::Point(443, 119);
+			this->textBox_РЎ5->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
+			this->textBox_РЎ5->Name = L"textBox_РЎ5";
+			this->textBox_РЎ5->ReadOnly = true;
+			this->textBox_РЎ5->Size = System::Drawing::Size(74, 27);
+			this->textBox_РЎ5->TabIndex = 52;
+			this->textBox_РЎ5->TextAlign = System::Windows::Forms::HorizontalAlignment::Center;
 			// 
-			// textBox_С4
+			// textBox_РЎ4
 			// 
-			this->textBox_С4->Anchor = static_cast<System::Windows::Forms::AnchorStyles>((((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Bottom)
+			this->textBox_РЎ4->Anchor = static_cast<System::Windows::Forms::AnchorStyles>((((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Bottom)
 				| System::Windows::Forms::AnchorStyles::Left)
 				| System::Windows::Forms::AnchorStyles::Right));
-			this->textBox_С4->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 10.2F, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
+			this->textBox_РЎ4->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 10.2F, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
 				static_cast<System::Byte>(204)));
-			this->textBox_С4->Location = System::Drawing::Point(363, 119);
-			this->textBox_С4->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
-			this->textBox_С4->Name = L"textBox_С4";
-			this->textBox_С4->ReadOnly = true;
-			this->textBox_С4->Size = System::Drawing::Size(74, 27);
-			this->textBox_С4->TabIndex = 51;
-			this->textBox_С4->TextAlign = System::Windows::Forms::HorizontalAlignment::Center;
+			this->textBox_РЎ4->Location = System::Drawing::Point(363, 119);
+			this->textBox_РЎ4->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
+			this->textBox_РЎ4->Name = L"textBox_РЎ4";
+			this->textBox_РЎ4->ReadOnly = true;
+			this->textBox_РЎ4->Size = System::Drawing::Size(74, 27);
+			this->textBox_РЎ4->TabIndex = 51;
+			this->textBox_РЎ4->TextAlign = System::Windows::Forms::HorizontalAlignment::Center;
 			// 
 			// textBox_f_3
 			// 
@@ -4370,20 +4370,20 @@ internal:
 			this->textBox_f_3->TabIndex = 41;
 			this->textBox_f_3->TextAlign = System::Windows::Forms::HorizontalAlignment::Center;
 			// 
-			// textBox_С3
+			// textBox_РЎ3
 			// 
-			this->textBox_С3->Anchor = static_cast<System::Windows::Forms::AnchorStyles>((((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Bottom)
+			this->textBox_РЎ3->Anchor = static_cast<System::Windows::Forms::AnchorStyles>((((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Bottom)
 				| System::Windows::Forms::AnchorStyles::Left)
 				| System::Windows::Forms::AnchorStyles::Right));
-			this->textBox_С3->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 10.2F, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
+			this->textBox_РЎ3->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 10.2F, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
 				static_cast<System::Byte>(204)));
-			this->textBox_С3->Location = System::Drawing::Point(283, 119);
-			this->textBox_С3->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
-			this->textBox_С3->Name = L"textBox_С3";
-			this->textBox_С3->ReadOnly = true;
-			this->textBox_С3->Size = System::Drawing::Size(74, 27);
-			this->textBox_С3->TabIndex = 50;
-			this->textBox_С3->TextAlign = System::Windows::Forms::HorizontalAlignment::Center;
+			this->textBox_РЎ3->Location = System::Drawing::Point(283, 119);
+			this->textBox_РЎ3->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
+			this->textBox_РЎ3->Name = L"textBox_РЎ3";
+			this->textBox_РЎ3->ReadOnly = true;
+			this->textBox_РЎ3->Size = System::Drawing::Size(74, 27);
+			this->textBox_РЎ3->TabIndex = 50;
+			this->textBox_РЎ3->TextAlign = System::Windows::Forms::HorizontalAlignment::Center;
 			// 
 			// textBox_Z_calc5
 			// 
@@ -4929,7 +4929,7 @@ internal:
 			this->button_calk_C_need->Name = L"button_calk_C_need";
 			this->button_calk_C_need->Size = System::Drawing::Size(179, 66);
 			this->button_calk_C_need->TabIndex = 85;
-			this->button_calk_C_need->Text = L"РАССЧИТАТЬ ЕМКОСТИ";
+			this->button_calk_C_need->Text = L"Р РђРЎРЎР§РРўРђРўР¬ Р•РњРљРћРЎРўР";
 			this->button_calk_C_need->UseVisualStyleBackColor = true;
 			this->button_calk_C_need->Click += gcnew System::EventHandler(this, &WorkForm::button_calk_C_need_Click);
 			// 
@@ -4943,7 +4943,7 @@ internal:
 			this->button_signature->Name = L"button_signature";
 			this->button_signature->Size = System::Drawing::Size(137, 59);
 			this->button_signature->TabIndex = 84;
-			this->button_signature->Text = L"ЗАПИСАТЬ  СИГНАТУРУ";
+			this->button_signature->Text = L"Р—РђРџРРЎРђРўР¬  РЎРР“РќРђРўРЈР РЈ";
 			this->button_signature->UseVisualStyleBackColor = true;
 			this->button_signature->Click += gcnew System::EventHandler(this, &WorkForm::button_signature_Click);
 			// 
@@ -4969,7 +4969,7 @@ internal:
 			this->button_read_loop_Z->Name = L"button_read_loop_Z";
 			this->button_read_loop_Z->Size = System::Drawing::Size(167, 39);
 			this->button_read_loop_Z->TabIndex = 76;
-			this->button_read_loop_Z->Text = L"ПРОЧИТАТЬ";
+			this->button_read_loop_Z->Text = L"РџР РћР§РРўРђРўР¬";
 			this->button_read_loop_Z->UseVisualStyleBackColor = true;
 			this->button_read_loop_Z->Click += gcnew System::EventHandler(this, &WorkForm::button_read_loop_Z_Click);
 			// 
@@ -4983,7 +4983,7 @@ internal:
 			this->button_calc_z_to_loop->Name = L"button_calc_z_to_loop";
 			this->button_calc_z_to_loop->Size = System::Drawing::Size(269, 39);
 			this->button_calc_z_to_loop->TabIndex = 81;
-			this->button_calc_z_to_loop->Text = L"записать_Z_расчетное";
+			this->button_calc_z_to_loop->Text = L"Р·Р°РїРёСЃР°С‚СЊ_Z_СЂР°СЃС‡РµС‚РЅРѕРµ";
 			this->button_calc_z_to_loop->UseVisualStyleBackColor = true;
 			this->button_calc_z_to_loop->Click += gcnew System::EventHandler(this, &WorkForm::button_calc_z_to_loop_Click);
 			// 
@@ -4997,7 +4997,7 @@ internal:
 			this->button_write_Z->Name = L"button_write_Z";
 			this->button_write_Z->Size = System::Drawing::Size(141, 39);
 			this->button_write_Z->TabIndex = 79;
-			this->button_write_Z->Text = L"ЗАПИСАТЬ ";
+			this->button_write_Z->Text = L"Р—РђРџРРЎРђРўР¬ ";
 			this->button_write_Z->UseVisualStyleBackColor = true;
 			this->button_write_Z->Click += gcnew System::EventHandler(this, &WorkForm::button_write_Z_Click);
 			// 
@@ -5011,7 +5011,7 @@ internal:
 			this->button_erase->Name = L"button_erase";
 			this->button_erase->Size = System::Drawing::Size(141, 39);
 			this->button_erase->TabIndex = 80;
-			this->button_erase->Text = L"СТЕРЕТЬ";
+			this->button_erase->Text = L"РЎРўР•Р Р•РўР¬";
 			this->button_erase->UseVisualStyleBackColor = true;
 			this->button_erase->Click += gcnew System::EventHandler(this, &WorkForm::button_erase_Click);
 			// 
@@ -5031,7 +5031,7 @@ internal:
 			this->button_calk->Name = L"button_calk";
 			this->button_calk->Size = System::Drawing::Size(140, 46);
 			this->button_calk->TabIndex = 34;
-			this->button_calk->Text = L"РАССЧИТАТЬ";
+			this->button_calk->Text = L"Р РђРЎРЎР§РРўРђРўР¬";
 			this->button_calk->UseVisualStyleBackColor = true;
 			this->button_calk->Click += gcnew System::EventHandler(this, &WorkForm::button_calk_Click);
 			// 
@@ -5053,7 +5053,7 @@ internal:
 			this->comboBox_sonde_com->Name = L"comboBox_sonde_com";
 			this->comboBox_sonde_com->Size = System::Drawing::Size(100, 24);
 			this->comboBox_sonde_com->TabIndex = 35;
-			this->toolTip1->SetToolTip(this->comboBox_sonde_com, L"Установка СОМ порта подключения прибора.");
+			this->toolTip1->SetToolTip(this->comboBox_sonde_com, L"РЈСЃС‚Р°РЅРѕРІРєР° РЎРћРњ РїРѕСЂС‚Р° РїРѕРґРєР»СЋС‡РµРЅРёСЏ РїСЂРёР±РѕСЂР°.");
 			this->comboBox_sonde_com->DropDown += gcnew System::EventHandler(this, &WorkForm::comboBox_sonde_com_DropDown);
 			this->comboBox_sonde_com->SelectedValueChanged += gcnew System::EventHandler(this, &WorkForm::comboBox_sonde_com_SelectedValueChanged);
 			this->comboBox_sonde_com->TextChanged += gcnew System::EventHandler(this, &WorkForm::comboBox_sonde_com_SelectedValueChanged);
@@ -5066,7 +5066,7 @@ internal:
 			this->comboBox_loop_com->Name = L"comboBox_loop_com";
 			this->comboBox_loop_com->Size = System::Drawing::Size(100, 24);
 			this->comboBox_loop_com->TabIndex = 36;
-			this->toolTip1->SetToolTip(this->comboBox_loop_com, L"Установка исходящего СОМ порта на Blurtooth соединении для кольца.");
+			this->toolTip1->SetToolTip(this->comboBox_loop_com, L"РЈСЃС‚Р°РЅРѕРІРєР° РёСЃС…РѕРґСЏС‰РµРіРѕ РЎРћРњ РїРѕСЂС‚Р° РЅР° Blurtooth СЃРѕРµРґРёРЅРµРЅРёРё РґР»СЏ РєРѕР»СЊС†Р°.");
 			this->comboBox_loop_com->DropDown += gcnew System::EventHandler(this, &WorkForm::comboBox_loop_com_DropDown);
 			this->comboBox_loop_com->SelectedValueChanged += gcnew System::EventHandler(this, &WorkForm::comboBox_loop_com_SelectedValueChanged);
 			this->comboBox_loop_com->TextChanged += gcnew System::EventHandler(this, &WorkForm::comboBox_loop_com_SelectedValueChanged);
@@ -5078,7 +5078,7 @@ internal:
 			this->label1->Name = L"label1";
 			this->label1->Size = System::Drawing::Size(66, 17);
 			this->label1->TabIndex = 37;
-			this->label1->Text = L"ПРИБОР";
+			this->label1->Text = L"РџР РР‘РћР ";
 			// 
 			// label2
 			// 
@@ -5087,7 +5087,7 @@ internal:
 			this->label2->Name = L"label2";
 			this->label2->Size = System::Drawing::Size(69, 17);
 			this->label2->TabIndex = 38;
-			this->label2->Text = L"КОЛЬЦО";
+			this->label2->Text = L"РљРћР›Р¬Р¦Рћ";
 			// 
 			// label3
 			// 
@@ -5107,8 +5107,8 @@ internal:
 			this->comboBox_aver->Name = L"comboBox_aver";
 			this->comboBox_aver->Size = System::Drawing::Size(100, 24);
 			this->comboBox_aver->TabIndex = 40;
-			this->toolTip1->SetToolTip(this->comboBox_aver, L"Количество измерений для усреднения.\r\nЕсли наблюдается большой разбос значений \r\n"
-				L"на высоких сопротивлениях - увеличте.");
+			this->toolTip1->SetToolTip(this->comboBox_aver, L"РљРѕР»РёС‡РµСЃС‚РІРѕ РёР·РјРµСЂРµРЅРёР№ РґР»СЏ СѓСЃСЂРµРґРЅРµРЅРёСЏ.\r\nР•СЃР»Рё РЅР°Р±Р»СЋРґР°РµС‚СЃСЏ Р±РѕР»СЊС€РѕР№ СЂР°Р·Р±РѕСЃ Р·РЅР°С‡РµРЅРёР№ \r\n"
+				L"РЅР° РІС‹СЃРѕРєРёС… СЃРѕРїСЂРѕС‚РёРІР»РµРЅРёСЏС… - СѓРІРµР»РёС‡С‚Рµ.");
 			this->comboBox_aver->SelectedIndexChanged += gcnew System::EventHandler(this, &WorkForm::comboBox_aver_SelectedValueChanged);
 			// 
 			// label4
@@ -5118,7 +5118,7 @@ internal:
 			this->label4->Name = L"label4";
 			this->label4->Size = System::Drawing::Size(103, 17);
 			this->label4->TabIndex = 41;
-			this->label4->Text = L"УСРЕДНЕНИЕ";
+			this->label4->Text = L"РЈРЎР Р•Р”РќР•РќРР•";
 			// 
 			// checkBox_express
 			// 
@@ -5128,15 +5128,15 @@ internal:
 			this->checkBox_express->Name = L"checkBox_express";
 			this->checkBox_express->Size = System::Drawing::Size(103, 21);
 			this->checkBox_express->TabIndex = 42;
-			this->checkBox_express->Text = L"ЭКСПРЕСС";
-			this->toolTip1->SetToolTip(this->checkBox_express, L"Быстрые измерения на сопротивлениях от 20 ом и выше.\r\nВключено по умолчанию. При "
-				L"отключеном увеличивается точность \r\nи возрастает время измерений.");
+			this->checkBox_express->Text = L"Р­РљРЎРџР Р•РЎРЎ";
+			this->toolTip1->SetToolTip(this->checkBox_express, L"Р‘С‹СЃС‚СЂС‹Рµ РёР·РјРµСЂРµРЅРёСЏ РЅР° СЃРѕРїСЂРѕС‚РёРІР»РµРЅРёСЏС… РѕС‚ 20 РѕРј Рё РІС‹С€Рµ.\r\nР’РєР»СЋС‡РµРЅРѕ РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ. РџСЂРё "
+				L"РѕС‚РєР»СЋС‡РµРЅРѕРј СѓРІРµР»РёС‡РёРІР°РµС‚СЃСЏ С‚РѕС‡РЅРѕСЃС‚СЊ \r\nРё РІРѕР·СЂР°СЃС‚Р°РµС‚ РІСЂРµРјСЏ РёР·РјРµСЂРµРЅРёР№.");
 			this->checkBox_express->UseVisualStyleBackColor = true;
 			// 
 			// menuStrip1
 			// 
 			this->menuStrip1->ImageScalingSize = System::Drawing::Size(20, 20);
-			this->menuStrip1->Items->AddRange(gcnew cli::array< System::Windows::Forms::ToolStripItem^  >(1) { this->сохранитьРапортRTFToolStripMenuItem });
+			this->menuStrip1->Items->AddRange(gcnew cli::array< System::Windows::Forms::ToolStripItem^  >(1) { this->СЃРѕС…СЂР°РЅРёС‚СЊР Р°РїРѕСЂС‚RTFToolStripMenuItem });
 			this->menuStrip1->Location = System::Drawing::Point(0, 0);
 			this->menuStrip1->Name = L"menuStrip1";
 			this->menuStrip1->Padding = System::Windows::Forms::Padding(5, 2, 0, 2);
@@ -5144,15 +5144,15 @@ internal:
 			this->menuStrip1->TabIndex = 43;
 			this->menuStrip1->Text = L"menuStrip1";
 			// 
-			// сохранитьРапортRTFToolStripMenuItem
+			// СЃРѕС…СЂР°РЅРёС‚СЊР Р°РїРѕСЂС‚RTFToolStripMenuItem
 			// 
-			this->сохранитьРапортRTFToolStripMenuItem->DropDownItems->AddRange(gcnew cli::array< System::Windows::Forms::ToolStripItem^  >(3) {
+			this->СЃРѕС…СЂР°РЅРёС‚СЊР Р°РїРѕСЂС‚RTFToolStripMenuItem->DropDownItems->AddRange(gcnew cli::array< System::Windows::Forms::ToolStripItem^  >(3) {
 				this->uploadToFTPToolStripMenuItem,
-					this->работаСФайломМетрологииToolStripMenuItem, this->пОМОЩЬToolStripMenuItem
+					this->СЂР°Р±РѕС‚Р°РЎР¤Р°Р№Р»РѕРјРњРµС‚СЂРѕР»РѕРіРёРёToolStripMenuItem, this->РїРћРњРћР©Р¬ToolStripMenuItem
 			});
-			this->сохранитьРапортRTFToolStripMenuItem->Name = L"сохранитьРапортRTFToolStripMenuItem";
-			this->сохранитьРапортRTFToolStripMenuItem->Size = System::Drawing::Size(68, 24);
-			this->сохранитьРапортRTFToolStripMenuItem->Text = L"МЕНЮ";
+			this->СЃРѕС…СЂР°РЅРёС‚СЊР Р°РїРѕСЂС‚RTFToolStripMenuItem->Name = L"СЃРѕС…СЂР°РЅРёС‚СЊР Р°РїРѕСЂС‚RTFToolStripMenuItem";
+			this->СЃРѕС…СЂР°РЅРёС‚СЊР Р°РїРѕСЂС‚RTFToolStripMenuItem->Size = System::Drawing::Size(68, 24);
+			this->СЃРѕС…СЂР°РЅРёС‚СЊР Р°РїРѕСЂС‚RTFToolStripMenuItem->Text = L"РњР•РќР®";
 			// 
 			// uploadToFTPToolStripMenuItem
 			// 
@@ -5161,19 +5161,19 @@ internal:
 			this->uploadToFTPToolStripMenuItem->Text = L"Upload to FTP";
 			this->uploadToFTPToolStripMenuItem->Click += gcnew System::EventHandler(this, &WorkForm::uploadToFTPToolStripMenuItem_Click);
 			// 
-			// работаСФайломМетрологииToolStripMenuItem
+			// СЂР°Р±РѕС‚Р°РЎР¤Р°Р№Р»РѕРјРњРµС‚СЂРѕР»РѕРіРёРёToolStripMenuItem
 			// 
-			this->работаСФайломМетрологииToolStripMenuItem->Name = L"работаСФайломМетрологииToolStripMenuItem";
-			this->работаСФайломМетрологииToolStripMenuItem->Size = System::Drawing::Size(290, 26);
-			this->работаСФайломМетрологииToolStripMenuItem->Text = L"Работа с файлом метрологии";
-			this->работаСФайломМетрологииToolStripMenuItem->Click += gcnew System::EventHandler(this, &WorkForm::работаСФайломМетрологииToolStripMenuItem_Click);
+			this->СЂР°Р±РѕС‚Р°РЎР¤Р°Р№Р»РѕРјРњРµС‚СЂРѕР»РѕРіРёРёToolStripMenuItem->Name = L"СЂР°Р±РѕС‚Р°РЎР¤Р°Р№Р»РѕРјРњРµС‚СЂРѕР»РѕРіРёРёToolStripMenuItem";
+			this->СЂР°Р±РѕС‚Р°РЎР¤Р°Р№Р»РѕРјРњРµС‚СЂРѕР»РѕРіРёРёToolStripMenuItem->Size = System::Drawing::Size(290, 26);
+			this->СЂР°Р±РѕС‚Р°РЎР¤Р°Р№Р»РѕРјРњРµС‚СЂРѕР»РѕРіРёРёToolStripMenuItem->Text = L"Р Р°Р±РѕС‚Р° СЃ С„Р°Р№Р»РѕРј РјРµС‚СЂРѕР»РѕРіРёРё";
+			this->СЂР°Р±РѕС‚Р°РЎР¤Р°Р№Р»РѕРјРњРµС‚СЂРѕР»РѕРіРёРёToolStripMenuItem->Click += gcnew System::EventHandler(this, &WorkForm::СЂР°Р±РѕС‚Р°РЎР¤Р°Р№Р»РѕРјРњРµС‚СЂРѕР»РѕРіРёРёToolStripMenuItem_Click);
 			// 
-			// пОМОЩЬToolStripMenuItem
+			// РїРћРњРћР©Р¬ToolStripMenuItem
 			// 
-			this->пОМОЩЬToolStripMenuItem->Name = L"пОМОЩЬToolStripMenuItem";
-			this->пОМОЩЬToolStripMenuItem->Size = System::Drawing::Size(290, 26);
-			this->пОМОЩЬToolStripMenuItem->Text = L"ПОМОЩЬ";
-			this->пОМОЩЬToolStripMenuItem->Click += gcnew System::EventHandler(this, &WorkForm::пОМОЩЬToolStripMenuItem_Click);
+			this->РїРћРњРћР©Р¬ToolStripMenuItem->Name = L"РїРћРњРћР©Р¬ToolStripMenuItem";
+			this->РїРћРњРћР©Р¬ToolStripMenuItem->Size = System::Drawing::Size(290, 26);
+			this->РїРћРњРћР©Р¬ToolStripMenuItem->Text = L"РџРћРњРћР©Р¬";
+			this->РїРћРњРћР©Р¬ToolStripMenuItem->Click += gcnew System::EventHandler(this, &WorkForm::РїРћРњРћР©Р¬ToolStripMenuItem_Click);
 			// 
 			// comboBox_trashhold
 			// 
@@ -5192,7 +5192,7 @@ internal:
 			this->label9->Name = L"label9";
 			this->label9->Size = System::Drawing::Size(73, 17);
 			this->label9->TabIndex = 45;
-			this->label9->Text = L"ПОРОГ %";
+			this->label9->Text = L"РџРћР РћР“ %";
 			// 
 			// comboBox_tool_type
 			// 
@@ -5212,7 +5212,7 @@ internal:
 			this->label10->Name = L"label10";
 			this->label10->Size = System::Drawing::Size(108, 17);
 			this->label10->TabIndex = 48;
-			this->label10->Text = L"ТИП ПРИБОРА";
+			this->label10->Text = L"РўРРџ РџР РР‘РћР Рђ";
 			// 
 			// toolTip1
 			// 
@@ -5277,7 +5277,7 @@ internal:
 		}
 #pragma endregion
 
-    // инициализация 
+    // РёРЅРёС†РёР°Р»РёР·Р°С†РёСЏ 
 #define AIR_MODE 0
 #define MEAS_MODE 1
 	int tool_type = 0;
@@ -5304,7 +5304,7 @@ internal:
 	uint32_t sonde_kojuh_serial = 0;
 	int air_data_aver = 20;
 	int trashhold = 5;
-	int N_R_for_express = 2;//до какого сопротивления измеряем на всех конденсаторах
+	int N_R_for_express = 2;//РґРѕ РєР°РєРѕРіРѕ СЃРѕРїСЂРѕС‚РёРІР»РµРЅРёСЏ РёР·РјРµСЂСЏРµРј РЅР° РІСЃРµС… РєРѕРЅРґРµРЅСЃР°С‚РѕСЂР°С…
 	//bool express = false;
 	int R_IDX = 0;
 	int C_IDX = 0;
@@ -5316,46 +5316,46 @@ internal:
 	int air_set_cntr = 0;
 	
 	
-	//функции
+	//С„СѓРЅРєС†РёРё
 
 	
 void do_legend( int trashhold, int mode ) {
 	pictureBox_legend_up;
-	int width = pictureBox_legend_up->Width / 6;//ширина 5%
-	int height = pictureBox_legend_up->Height;//высота полоски
+	int width = pictureBox_legend_up->Width / 6;//С€РёСЂРёРЅР° 5%
+	int height = pictureBox_legend_up->Height;//РІС‹СЃРѕС‚Р° РїРѕР»РѕСЃРєРё
 	Bitmap^ bmp = gcnew Bitmap(6 * width, height, PixelFormat::Format32bppArgb);
 	Graphics ^ g = Graphics::FromImage(bmp);
 	String^ Text = "";
-	Brush^ Кисть = gcnew SolidBrush(Color::Black);
+	Brush^ РљРёСЃС‚СЊ = gcnew SolidBrush(Color::Black);
 	Font  = gcnew System::Drawing::Font("Microsoft Sans Serif", 8, FontStyle::Regular);
 	//air
 	if (mode == AIR_MODE) {
 		Text = "-90mG";
-		g->DrawString(Text, Font, Кисть, 0, 0); // Координаты размещения текста
+		g->DrawString(Text, Font, РљРёСЃС‚СЊ, 0, 0); // РљРѕРѕСЂРґРёРЅР°С‚С‹ СЂР°Р·РјРµС‰РµРЅРёСЏ С‚РµРєСЃС‚Р°
 		Text = "-60mG";
-		g->DrawString(Text, Font, Кисть, width + 2, 0);
+		g->DrawString(Text, Font, РљРёСЃС‚СЊ, width + 2, 0);
 		Text = "-30mG";
-		g->DrawString(Text, Font, Кисть, 2 * width + 2, 0);
+		g->DrawString(Text, Font, РљРёСЃС‚СЊ, 2 * width + 2, 0);
 		Text = "30mG";
-		g->DrawString(Text, Font, Кисть, 4 * width - 30, 0);
+		g->DrawString(Text, Font, РљРёСЃС‚СЊ, 4 * width - 30, 0);
 		Text = Text = "60mG";
-		g->DrawString(Text, Font, Кисть, 5 * width - 30, 0);
+		g->DrawString(Text, Font, РљРёСЃС‚СЊ, 5 * width - 30, 0);
 		Text = Text = "90mG";
-		g->DrawString(Text, Font, Кисть, 6 * width - 30, 0);
+		g->DrawString(Text, Font, РљРёСЃС‚СЊ, 6 * width - 30, 0);
 	}
 	if (mode == MEAS_MODE) {
 		Text = "-" + 3 * trashhold + "%";
-		g->DrawString(Text, Font, Кисть, 0, 0); // Координаты размещения текста
+		g->DrawString(Text, Font, РљРёСЃС‚СЊ, 0, 0); // РљРѕРѕСЂРґРёРЅР°С‚С‹ СЂР°Р·РјРµС‰РµРЅРёСЏ С‚РµРєСЃС‚Р°
 		Text = "-" + 2 * trashhold + "%";
-		g->DrawString(Text, Font, Кисть, width + 2, 0);
+		g->DrawString(Text, Font, РљРёСЃС‚СЊ, width + 2, 0);
 		Text = "-" + 1 * trashhold + "%";
-		g->DrawString(Text, Font, Кисть, 2 * width + 2, 0);
+		g->DrawString(Text, Font, РљРёСЃС‚СЊ, 2 * width + 2, 0);
 		Text = "" + 1 * trashhold + "%";
-		g->DrawString(Text, Font, Кисть, 4 * width - 20, 0);
+		g->DrawString(Text, Font, РљРёСЃС‚СЊ, 4 * width - 20, 0);
 		Text = Text = "" + 2 * trashhold + "%";
-		g->DrawString(Text, Font, Кисть, 5 * width - 24, 0);
+		g->DrawString(Text, Font, РљРёСЃС‚СЊ, 5 * width - 24, 0);
 		Text = Text = "" + 3 * trashhold + "%";
-		g->DrawString(Text, Font, Кисть, 6 * width - 24, 0);
+		g->DrawString(Text, Font, РљРёСЃС‚СЊ, 6 * width - 24, 0);
 	}
 	
 	
@@ -5371,8 +5371,8 @@ void do_graf(int N_graf, int *X, int N, int trashhold) {
 			//cout << "N_graf " << N_graf << endl;;
 		//if (N_graf == 5)
 			//cout << "N last points " << N << endl;
-		// граф выводит первые N  процентные разницы из массива Х 
-		//trashhold - процентный порог цвет
+		// РіСЂР°С„ РІС‹РІРѕРґРёС‚ РїРµСЂРІС‹Рµ N  РїСЂРѕС†РµРЅС‚РЅС‹Рµ СЂР°Р·РЅРёС†С‹ РёР· РјР°СЃСЃРёРІР° РҐ 
+		//trashhold - РїСЂРѕС†РµРЅС‚РЅС‹Р№ РїРѕСЂРѕРі С†РІРµС‚
 		extern vector <V10> PH_computed;
 		extern vector <V10> Ro_computed;
 		extern int PH_percent_from_sonde[10][20];
@@ -5380,27 +5380,27 @@ void do_graf(int N_graf, int *X, int N, int trashhold) {
 		extern vector <SONDE_PARAM> sonde_param;
 		PictureBox^ GRAF = (PictureBox^)this->tableLayoutPanel1->Controls["pictureBox_graf" + (N_graf).ToString()];
 		int cursor_width = 5;
-		int width = GRAF->Width / 6;//ширина 5%
-		int height = GRAF->Height;//высота полоски
+		int width = GRAF->Width / 6;//С€РёСЂРёРЅР° 5%
+		int height = GRAF->Height;//РІС‹СЃРѕС‚Р° РїРѕР»РѕСЃРєРё
 		Bitmap^ bmp = gcnew Bitmap(6 * width, height, PixelFormat::Format32bppArgb);
 		Graphics ^ g = Graphics::FromImage(bmp);
-		Brush ^ Заливка;
-		//если не воздух заливаем цветом	
+		Brush ^ Р—Р°Р»РёРІРєР°;
+		//РµСЃР»Рё РЅРµ РІРѕР·РґСѓС… Р·Р°Р»РёРІР°РµРј С†РІРµС‚РѕРј	
 		//if (R_IDX != 0 && C_IDX != 0) {
-		Заливка = gcnew SolidBrush(Color::Red);
-		g->FillRectangle(Заливка, 0, 0, width, height);
-		Заливка = gcnew SolidBrush(Color::Yellow);
-		g->FillRectangle(Заливка, width + 1, 0, width, height);
-		Заливка = gcnew SolidBrush(Color::LimeGreen);
-		g->FillRectangle(Заливка, 2 * width + 1, 0, 2 * width, height);
-		Заливка = gcnew SolidBrush(Color::Yellow);
-		g->FillRectangle(Заливка, 4 * width + 1, 0, width, height);
-		Заливка = gcnew SolidBrush(Color::Red);
-		g->FillRectangle(Заливка, 5 * width + 1, 0, width, height);
+		Р—Р°Р»РёРІРєР° = gcnew SolidBrush(Color::Red);
+		g->FillRectangle(Р—Р°Р»РёРІРєР°, 0, 0, width, height);
+		Р—Р°Р»РёРІРєР° = gcnew SolidBrush(Color::Yellow);
+		g->FillRectangle(Р—Р°Р»РёРІРєР°, width + 1, 0, width, height);
+		Р—Р°Р»РёРІРєР° = gcnew SolidBrush(Color::LimeGreen);
+		g->FillRectangle(Р—Р°Р»РёРІРєР°, 2 * width + 1, 0, 2 * width, height);
+		Р—Р°Р»РёРІРєР° = gcnew SolidBrush(Color::Yellow);
+		g->FillRectangle(Р—Р°Р»РёРІРєР°, 4 * width + 1, 0, width, height);
+		Р—Р°Р»РёРІРєР° = gcnew SolidBrush(Color::Red);
+		g->FillRectangle(Р—Р°Р»РёРІРєР°, 5 * width + 1, 0, width, height);
 		//}
 
 		////////////////////////////////////////////////////////
-		//среднее выводимых	процентов			
+		//СЃСЂРµРґРЅРµРµ РІС‹РІРѕРґРёРјС‹С…	РїСЂРѕС†РµРЅС‚РѕРІ			
 		float summ = 0;
 		
 		for (int i = 0; i < N; i++) {
@@ -5408,10 +5408,10 @@ void do_graf(int N_graf, int *X, int N, int trashhold) {
 			int x = width * X[i] / trashhold;
 			if (x < -3 * width) x = -3 * width;
 			if (x > 3 * width) x = 3 * width - 3;
-			//серым выводим N измерений
-			Заливка = gcnew SolidBrush(Color::RoyalBlue);
+			//СЃРµСЂС‹Рј РІС‹РІРѕРґРёРј N РёР·РјРµСЂРµРЅРёР№
+			Р—Р°Р»РёРІРєР° = gcnew SolidBrush(Color::RoyalBlue);
 			if (R_IDX != 0 && C_IDX != 0)
-				g->FillRectangle(Заливка, x + 3 * width, 0, cursor_width / 1, height);
+				g->FillRectangle(Р—Р°Р»РёРІРєР°, x + 3 * width, 0, cursor_width / 1, height);
 			//if (N_graf == 5)
 				//cout << i << " " << X[i] << endl;
 		}
@@ -5424,14 +5424,14 @@ void do_graf(int N_graf, int *X, int N, int trashhold) {
 		int x_aver = width * summ / trashhold;
 		if (x_aver <= -3 * width) x_aver = -3 * width;
 		if (x_aver >= 3 * width) x_aver = 3 * width - 5;
-		Заливка = gcnew SolidBrush(Color::Black);
-		//черным выводим  среднее
-		g->FillRectangle(Заливка, x_aver + 3*width, 0, cursor_width, height);
+		Р—Р°Р»РёРІРєР° = gcnew SolidBrush(Color::Black);
+		//С‡РµСЂРЅС‹Рј РІС‹РІРѕРґРёРј  СЃСЂРµРґРЅРµРµ
+		g->FillRectangle(Р—Р°Р»РёРІРєР°, x_aver + 3*width, 0, cursor_width, height);
 
 		GRAF->Refresh();
 		GRAF->Image = bmp;
 
-		//выводим номера передатчиков
+		//РІС‹РІРѕРґРёРј РЅРѕРјРµСЂР° РїРµСЂРµРґР°С‚С‡РёРєРѕРІ
 		Label^ LABEL_T = (Label^)this->tableLayoutPanel1->Controls["labelT" + (N_graf).ToString()];
 		if (N_graf <= sonde_param.size() / 2) {
 			LABEL_T->Text = "T" + N_graf + "  " + (sonde_param[N_graf - 1].F / 1000).ToString("F0");
@@ -5440,7 +5440,7 @@ void do_graf(int N_graf, int *X, int N, int trashhold) {
 			LABEL_T->Text = "T" + (N_graf - sonde_param.size() / 2) + "  " + (sonde_param[N_graf - 1].F / 1000).ToString("F0");
 		}
 
-        //выводим проценты для R кольца
+        //РІС‹РІРѕРґРёРј РїСЂРѕС†РµРЅС‚С‹ РґР»СЏ R РєРѕР»СЊС†Р°
 		if (R_IDX != 0) {
 			TextBox^ TEXTBOX_R_T = (TextBox^)this->tableLayoutPanel1->Controls["textBox_R" + R_IDX + "_T" + (N_graf).ToString()];
 			if (fabs(summ) <= float(trashhold))
@@ -5464,15 +5464,15 @@ private: System::Void button_ON_OFF_Click(System::Object^  sender, System::Event
 		int stop = 0, stop_ = 0;
 		extern string Com_LWD_Name;
 		extern vector <SONDE_PARAM> sonde_param;
-		//длина вектора равна количеству сопротивлений
+		//РґР»РёРЅР° РІРµРєС‚РѕСЂР° СЂР°РІРЅР° РєРѕР»РёС‡РµСЃС‚РІСѓ СЃРѕРїСЂРѕС‚РёРІР»РµРЅРёР№
 		extern vector <V10> PH_computed;
 		extern vector <V10> Ro_computed;
-		//длина вектора равна количеству зондов
-		//отладка
+		//РґР»РёРЅР° РІРµРєС‚РѕСЂР° СЂР°РІРЅР° РєРѕР»РёС‡РµСЃС‚РІСѓ Р·РѕРЅРґРѕРІ
+		//РѕС‚Р»Р°РґРєР°
 		extern vector <LOOP_PARAM> loop_param;
 
 		if (on_off == false) {
-			AMK_DLL = LoadLibrary(TEXT("AMK_1DDS_AUTONOM.dll"));// Загружаем библиотеку EMK_90_1dds
+			AMK_DLL = LoadLibrary(TEXT("AMK_1DDS_AUTONOM.dll"));// Р—Р°РіСЂСѓР¶Р°РµРј Р±РёР±Р»РёРѕС‚РµРєСѓ EMK_90_1dds
 			METROLOGY metrology_struct;
 			_controlfp(_CW_DEFAULT, 0xfffff);
 			AMK_StartComPort = (StartComPort)GetProcAddress(AMK_DLL, "AMK_StartComPort");
@@ -5493,12 +5493,12 @@ private: System::Void button_ON_OFF_Click(System::Object^  sender, System::Event
 			AMK_GetMetroData = (GetMetroData)GetProcAddress(AMK_DLL, "AMK_GetMetroData");
 			AMK_SetMetroData = (SetMetroData)GetProcAddress(AMK_DLL, "AMK_SetMetroData");
 
-			if (AMK_DLL == NULL)MessageBox::Show("Положите файл 'DllProject.dll' в каталог программы!");
+			if (AMK_DLL == NULL)MessageBox::Show("РџРѕР»РѕР¶РёС‚Рµ С„Р°Р№Р» 'DllProject.dll' РІ РєР°С‚Р°Р»РѕРі РїСЂРѕРіСЂР°РјРјС‹!");
 			if (!AMK_StartComPort || !AMK_GetCurrState || !AMK_Init || !AMK_BeginCyclogram || !AMK_GetData
 				|| !AMK_SetIdle || !AMK_PwrOn || !AMK_PwrOff || !AMK_DeleteComPort
 				//|| !AMK_CheckConnect
 				|| !AMK_GetSerial || !AMK_GetMetroData || !AMK_SetMetroData) {
-				MessageBox::Show("Файл 'DllProject.dll' испорчен !");
+				MessageBox::Show("Р¤Р°Р№Р» 'DllProject.dll' РёСЃРїРѕСЂС‡РµРЅ !");
 			}
 			else {
 				Sleep(2000);
@@ -5523,11 +5523,11 @@ private: System::Void button_ON_OFF_Click(System::Object^  sender, System::Event
 										AMK_PwrOff(ComPort);
 										AMK_DeleteComPort(ComPort);
 										FreeLibrary(AMK_DLL);
-										MessageBox::Show(" Файл метрологии не выгружен, попробуйте еще раз!");
+										MessageBox::Show(" Р¤Р°Р№Р» РјРµС‚СЂРѕР»РѕРіРёРё РЅРµ РІС‹РіСЂСѓР¶РµРЅ, РїРѕРїСЂРѕР±СѓР№С‚Рµ РµС‰Рµ СЂР°Р·!");
 									}
 								}
 							}
-							//файл метрологии выгружен
+							//С„Р°Р№Р» РјРµС‚СЂРѕР»РѕРіРёРё РІС‹РіСЂСѓР¶РµРЅ
 
 							metro_convert(&metrology_struct, sonde_param);
 
@@ -5539,16 +5539,16 @@ private: System::Void button_ON_OFF_Click(System::Object^  sender, System::Event
 								on_off = true;
 								this->button_ON_OFF->BackColor = System::Drawing::Color::Coral;
 								Sonde_Read_Timer->Enabled = true;
-								this->button_ON_OFF->Text = "ВЫКЛЮЧИТЬ АВТОНОМНИК";
+								this->button_ON_OFF->Text = "Р’Р«РљР›Р®Р§РРўР¬ РђР’РўРћРќРћРњРќРРљ";
 								comboBox_tool_type->SelectedIndex = 2;//AUTONOM
 							}
-							else { AMK_PwrOff(ComPort); AMK_DeleteComPort(ComPort); FreeLibrary(AMK_DLL);  MessageBox::Show(" прибор не стартовал, попробуйте еще раз!"); }
+							else { AMK_PwrOff(ComPort); AMK_DeleteComPort(ComPort); FreeLibrary(AMK_DLL);  MessageBox::Show(" РїСЂРёР±РѕСЂ РЅРµ СЃС‚Р°СЂС‚РѕРІР°Р», РїРѕРїСЂРѕР±СѓР№С‚Рµ РµС‰Рµ СЂР°Р·!"); }
 						}
-						else { AMK_PwrOff(ComPort); AMK_DeleteComPort(ComPort); FreeLibrary(AMK_DLL);  MessageBox::Show(" прибор неиницилизирован, попробуйте еще раз!"); }
+						else { AMK_PwrOff(ComPort); AMK_DeleteComPort(ComPort); FreeLibrary(AMK_DLL);  MessageBox::Show(" РїСЂРёР±РѕСЂ РЅРµРёРЅРёС†РёР»РёР·РёСЂРѕРІР°РЅ, РїРѕРїСЂРѕР±СѓР№С‚Рµ РµС‰Рµ СЂР°Р·!"); }
 					}
-					else { AMK_DeleteComPort(ComPort);  FreeLibrary(AMK_DLL);  MessageBox::Show("Проверьте правильность подключения прибора!"); }
+					else { AMK_DeleteComPort(ComPort);  FreeLibrary(AMK_DLL);  MessageBox::Show("РџСЂРѕРІРµСЂСЊС‚Рµ РїСЂР°РІРёР»СЊРЅРѕСЃС‚СЊ РїРѕРґРєР»СЋС‡РµРЅРёСЏ РїСЂРёР±РѕСЂР°!"); }
 				}
-				else { FreeLibrary(AMK_DLL);   MessageBox::Show("Подключите УСИ!"); }
+				else { FreeLibrary(AMK_DLL);   MessageBox::Show("РџРѕРґРєР»СЋС‡РёС‚Рµ РЈРЎР!"); }
 
 			}
 
@@ -5560,7 +5560,7 @@ private: System::Void button_ON_OFF_Click(System::Object^  sender, System::Event
 			serialPort_sonde->Close();
 			Sonde_Read_Timer->Enabled = false;
 			Sleep(100);
-			this->button_ON_OFF->Text = "ВКЛЮЧИТЬ АВТОНОМНИК";
+			this->button_ON_OFF->Text = "Р’РљР›Р®Р§РРўР¬ РђР’РўРћРќРћРњРќРРљ";
 		}
 
 	}
@@ -5570,11 +5570,11 @@ private: System::Void button_ON_OFF_Click(System::Object^  sender, System::Event
 		extern string Com_LWD_Name;
 		extern string Com_Name;
 		extern vector <SONDE_PARAM> sonde_param;
-		//длина вектора равна количеству сопротивлений
+		//РґР»РёРЅР° РІРµРєС‚РѕСЂР° СЂР°РІРЅР° РєРѕР»РёС‡РµСЃС‚РІСѓ СЃРѕРїСЂРѕС‚РёРІР»РµРЅРёР№
 		extern vector <V10> PH_computed;
 		extern vector <V10> Ro_computed;
-		//длина вектора равна количеству зондов
-		//отладка
+		//РґР»РёРЅР° РІРµРєС‚РѕСЂР° СЂР°РІРЅР° РєРѕР»РёС‡РµСЃС‚РІСѓ Р·РѕРЅРґРѕРІ
+		//РѕС‚Р»Р°РґРєР°
 		extern vector <LOOP_PARAM> loop_param;
 
 		if (on_off == false) {
@@ -5593,10 +5593,10 @@ private: System::Void button_ON_OFF_Click(System::Object^  sender, System::Event
 				serialPort_sonde->Open();
 				serialPort_sonde->DiscardOutBuffer();
 				Sleep(150);
-				//читаем метрологию
+				//С‡РёС‚Р°РµРј РјРµС‚СЂРѕР»РѕРіРёСЋ
 				if (tool_type == SDR) {
 					uint8_t DATA[2] = { 0x05 ,0x00 };
-					uint8_t CMD; uint8_t DATA_IN[242];
+					uint8_t CMD = 0; uint8_t DATA_IN[242];
 					if (send_to_tool(serialPort_sonde, 0x13, DATA, 2) == 0) {
 						Sleep(50);
 						receive_from_tool(serialPort_sonde, CMD, DATA_IN, 242);
@@ -5616,7 +5616,7 @@ private: System::Void button_ON_OFF_Click(System::Object^  sender, System::Event
 					DATA[0] = 0x00; DATA[1] = 0x04; DATA[2] = 240;
 					send_to_tool(serialPort_sonde, CMD_READ_EE, DATA, 3);
 					Sleep(150);
-					uint8_t CMD; uint8_t DATA_IN[256];
+					uint8_t CMD = 0; uint8_t DATA_IN[256];
 					receive_from_tool(serialPort_sonde, CMD, DATA_IN, 240);
 					metro_convert(DATA_IN, sonde_param);
 					sonde_kojuh_serial = *(uint32_t*)(DATA_IN + 4);
@@ -5634,9 +5634,9 @@ private: System::Void button_ON_OFF_Click(System::Object^  sender, System::Event
 				on_off = true;
 				this->button_ON_OFF->BackColor = System::Drawing::Color::Coral;
 				Sonde_Read_Timer->Enabled = true;
-				this->button_ON_OFF->Text = "ВЫКЛЮЧИТЬ ПРИБОР";
+				this->button_ON_OFF->Text = "Р’Р«РљР›Р®Р§РРўР¬ РџР РР‘РћР ";
 			}
-			else MessageBox::Show("Не удется открыть порт !");
+			else MessageBox::Show("РќРµ СѓРґРµС‚СЃСЏ РѕС‚РєСЂС‹С‚СЊ РїРѕСЂС‚ !");
 		}
 		else {
 			on_off = false;
@@ -5644,7 +5644,7 @@ private: System::Void button_ON_OFF_Click(System::Object^  sender, System::Event
 			serialPort_sonde->Close();
 			Sonde_Read_Timer->Enabled = false;
 			Sleep(100);
-			this->button_ON_OFF->Text = "ВКЛЮЧИТЬ ПРИБОР";
+			this->button_ON_OFF->Text = "Р’РљР›Р®Р§РРўР¬ РџР РР‘РћР ";
 		}
 	}
 	
@@ -5652,7 +5652,7 @@ private: System::Void button_ON_OFF_Click(System::Object^  sender, System::Event
 }
 
 private: System::Void button_local_air_Click(System::Object^  sender, System::EventArgs^  e) {
-	//eсли прибор работает отсчитываем 20 измерений и забираем 
+	//eСЃР»Рё РїСЂРёР±РѕСЂ СЂР°Р±РѕС‚Р°РµС‚ РѕС‚СЃС‡РёС‚С‹РІР°РµРј 20 РёР·РјРµСЂРµРЅРёР№ Рё Р·Р°Р±РёСЂР°РµРј 
 	if (on_off == true && bt_on == true) {
 		button_AIR->PerformClick();
 		if (local_air_is_set == false) {
@@ -5665,7 +5665,7 @@ private: System::Void button_local_air_Click(System::Object^  sender, System::Ev
 			local_air_reset = true;
 		}
 	}
-	else MessageBox::Show("Включите прибор и кольцо!");
+	else MessageBox::Show("Р’РєР»СЋС‡РёС‚Рµ РїСЂРёР±РѕСЂ Рё РєРѕР»СЊС†Рѕ!");
 }
 
 private:  System::Void  Sonde_Read() {
@@ -5680,12 +5680,12 @@ private:void sonde_read_timer(System::Object^ source, ElapsedEventArgs^ e) {
 	
 	if (metro_check == false) {
 		extern string Com_Name;
-		//длина вектора равна количеству сопротивлений
+		//РґР»РёРЅР° РІРµРєС‚РѕСЂР° СЂР°РІРЅР° РєРѕР»РёС‡РµСЃС‚РІСѓ СЃРѕРїСЂРѕС‚РёРІР»РµРЅРёР№
 		extern vector <V10> PH_computed;
 		extern vector <V10> Ro_computed;
-		//длина вектора равна количеству зондов
+		//РґР»РёРЅР° РІРµРєС‚РѕСЂР° СЂР°РІРЅР° РєРѕР»РёС‡РµСЃС‚РІСѓ Р·РѕРЅРґРѕРІ
 		extern vector <SONDE_PARAM> sonde_param;
-		// 10 - зонды 20 - усреднение
+		// 10 - Р·РѕРЅРґС‹ 20 - СѓСЃСЂРµРґРЅРµРЅРёРµ
 		extern int PH_percent_from_sonde[10][20];
 		extern int Ro_percent_from_sonde[10][20];
 		extern V10 AIR;
@@ -5694,7 +5694,7 @@ private:void sonde_read_timer(System::Object^ source, ElapsedEventArgs^ e) {
 
 		bool stop = false;
 		int res = 0;
-		//получаем набор фаз от прибора
+		//РїРѕР»СѓС‡Р°РµРј РЅР°Р±РѕСЂ С„Р°Р· РѕС‚ РїСЂРёР±РѕСЂР°
 
 		int mode = 0;
 		if (tool_type == SDR)
@@ -5708,11 +5708,11 @@ private:void sonde_read_timer(System::Object^ source, ElapsedEventArgs^ e) {
 			global_cntr++;
 		//Console::WriteLine("global_cntr " + global_cntr);
 
-		/*/отладка ////////////////////////////////////////
+		/*/РѕС‚Р»Р°РґРєР° ////////////////////////////////////////
 		if (global_cntr > 20)global_cntr = 0;
 		int add;
-		if (global_cntr % 2 == 0)add = global_cntr;// чет
-		else add = -global_cntr;// нечет
+		if (global_cntr % 2 == 0)add = global_cntr;// С‡РµС‚
+		else add = -global_cntr;// РЅРµС‡РµС‚
 		//Console::WriteLine( "add " + add + " " + (1.0f + 0.01f*add));
 		for (int N_sonde = 0; N_sonde < sonde_param.size(); N_sonde++) {
 			if (R_IDX != 0)
@@ -5723,8 +5723,8 @@ private:void sonde_read_timer(System::Object^ source, ElapsedEventArgs^ e) {
 
 		*////////////////////////////////////////////////
 
-		// локальный воздух ////////////////////////////////////
-		// собираем данные и усредняем
+		// Р»РѕРєР°Р»СЊРЅС‹Р№ РІРѕР·РґСѓС… ////////////////////////////////////
+		// СЃРѕР±РёСЂР°РµРј РґР°РЅРЅС‹Рµ Рё СѓСЃСЂРµРґРЅСЏРµРј
 		if (res == 0 && collect_air_data == true) {
 			if (air_set_cntr < air_data_aver) {
 				for (int N_sonde = 0; N_sonde < sonde_param.size(); N_sonde++) {
@@ -5738,7 +5738,7 @@ private:void sonde_read_timer(System::Object^ source, ElapsedEventArgs^ e) {
 				air_set_cntr = 0;
 			}
 		}
-		//сброс локального воздуха
+		//СЃР±СЂРѕСЃ Р»РѕРєР°Р»СЊРЅРѕРіРѕ РІРѕР·РґСѓС…Р°
 		if (local_air_reset == true) {
 			for (int N_sonde = 0; N_sonde < sonde_param.size(); N_sonde++) {
 				AIR.VALUE[N_sonde] = 0;
@@ -5751,12 +5751,12 @@ private:void sonde_read_timer(System::Object^ source, ElapsedEventArgs^ e) {
 		//Console::WriteLine("air_set_cntr " + air_set_cntr);
 		//////////////////////////////////////////////////////////
 
-		//вычитаем локальный воздух из фаз
+		//РІС‹С‡РёС‚Р°РµРј Р»РѕРєР°Р»СЊРЅС‹Р№ РІРѕР·РґСѓС… РёР· С„Р°Р·
 		for (int N_sonde = 0; N_sonde < sonde_param.size(); N_sonde++) {
 			ph_data.VALUE[N_sonde] -= AIR.VALUE[N_sonde];
 		}
 
-		//проталкиваем буфер на единицу
+		//РїСЂРѕС‚Р°Р»РєРёРІР°РµРј Р±СѓС„РµСЂ РЅР° РµРґРёРЅРёС†Сѓ
 
 		for (int N_sonde = 0; N_sonde < sonde_param.size(); N_sonde++) {
 			for (int aver = 19; aver > 0; aver--) {
@@ -5765,13 +5765,13 @@ private:void sonde_read_timer(System::Object^ source, ElapsedEventArgs^ e) {
 			}
 		}
 
-		//вычисляем процентную разницу между вычисленными значениями фаз всех зондов VALUE[N_sonde] 
-		//для включенного сейчас сопротивления R_IDX и записываем в начало буфера PH_percent_from_sonde[N_sonde][0]
+		//РІС‹С‡РёСЃР»СЏРµРј РїСЂРѕС†РµРЅС‚РЅСѓСЋ СЂР°Р·РЅРёС†Сѓ РјРµР¶РґСѓ РІС‹С‡РёСЃР»РµРЅРЅС‹РјРё Р·РЅР°С‡РµРЅРёСЏРјРё С„Р°Р· РІСЃРµС… Р·РѕРЅРґРѕРІ VALUE[N_sonde] 
+		//РґР»СЏ РІРєР»СЋС‡РµРЅРЅРѕРіРѕ СЃРµР№С‡Р°СЃ СЃРѕРїСЂРѕС‚РёРІР»РµРЅРёСЏ R_IDX Рё Р·Р°РїРёСЃС‹РІР°РµРј РІ РЅР°С‡Р°Р»Рѕ Р±СѓС„РµСЂР° PH_percent_from_sonde[N_sonde][0]
 		for (int N_sonde = 0; N_sonde < sonde_param.size(); N_sonde++)
 			PH_percent_from_sonde[N_sonde][0] =
 			100 * (ph_data.VALUE[N_sonde] - PH_computed[R_IDX].VALUE[N_sonde]) / (PH_computed[R_IDX].VALUE[N_sonde] + 0.000000001f);
 
-		/*/отладка////
+		/*/РѕС‚Р»Р°РґРєР°////
 		for (int N_sonde = 0; N_sonde < sonde_param.size(); N_sonde++) {
 			cout << "aver arr "<< N_sonde << " ";
 			for (int i = 0; i < 20; i++)
@@ -5780,17 +5780,17 @@ private:void sonde_read_timer(System::Object^ source, ElapsedEventArgs^ e) {
 		}
 		/*////////////////
 
-		//вычисляем кажущееся УЭС от сигналов прибора
+		//РІС‹С‡РёСЃР»СЏРµРј РєР°Р¶СѓС‰РµРµСЃСЏ РЈР­РЎ РѕС‚ СЃРёРіРЅР°Р»РѕРІ РїСЂРёР±РѕСЂР°
 		ro_data = ro_dfi(sonde_param, ph_data);
 		for (int N_sonde = 0; N_sonde < sonde_param.size(); N_sonde++)
 			Ro_percent_from_sonde[N_sonde][0] =
 			100 * (ro_data.VALUE[N_sonde] - Ro_computed[R_IDX].VALUE[N_sonde]) / (Ro_computed[R_IDX].VALUE[N_sonde] + 0.000000001f);
 
 
-		//измерения от конкретного сопротивления
-		//переключаем конденсаторы  через N_averaging точек изм.
+		//РёР·РјРµСЂРµРЅРёСЏ РѕС‚ РєРѕРЅРєСЂРµС‚РЅРѕРіРѕ СЃРѕРїСЂРѕС‚РёРІР»РµРЅРёСЏ
+		//РїРµСЂРµРєР»СЋС‡Р°РµРј РєРѕРЅРґРµРЅСЃР°С‚РѕСЂС‹  С‡РµСЂРµР· N_averaging С‚РѕС‡РµРє РёР·Рј.
 		if (res == 0 && start_R_measure == true) {
-			//переключение конденсатора для каждого зонда 
+			//РїРµСЂРµРєР»СЋС‡РµРЅРёРµ РєРѕРЅРґРµРЅСЃР°С‚РѕСЂР° РґР»СЏ РєР°Р¶РґРѕРіРѕ Р·РѕРЅРґР° 
 			if (checkBox_express->Checked == false ||
 				(checkBox_express->Checked == true && R_IDX <= N_R_for_express)
 				) {
@@ -5826,7 +5826,7 @@ private:void sonde_read_timer(System::Object^ source, ElapsedEventArgs^ e) {
 				}
 
 			}
-			//переключение конденсатора для всех зондов, начиная с 3go сопротивления
+			//РїРµСЂРµРєР»СЋС‡РµРЅРёРµ РєРѕРЅРґРµРЅСЃР°С‚РѕСЂР° РґР»СЏ РІСЃРµС… Р·РѕРЅРґРѕРІ, РЅР°С‡РёРЅР°СЏ СЃ 3go СЃРѕРїСЂРѕС‚РёРІР»РµРЅРёСЏ
 			if (checkBox_express->Checked == true && R_IDX > N_R_for_express) {
 				if (C_IDX <= sonde_param.size()) {
 					skip_cntr++;
@@ -5873,7 +5873,7 @@ private: System::Void BT_ON(System::Object^  sender, System::EventArgs^  e) {
 	
 	if (serialPort_loop->IsOpen == true) {
 		serialPort_loop->Close();		
-			//MessageBox::Show("уже включен");
+			//MessageBox::Show("СѓР¶Рµ РІРєР»СЋС‡РµРЅ");
 	}			
 
 	//serialPort_loop->PortName = gcnew String(Com_Name.c_str());
@@ -5894,16 +5894,16 @@ private: System::Void BT_ON(System::Object^  sender, System::EventArgs^  e) {
 				bt_on = true;
 				button_AIR->PerformClick();
 				this->button_BT_ON->BackColor = Color::DodgerBlue;
-				this->button_BT_ON->Text = "КОЛЬЦО ВКЛЮЧЕНО";
+				this->button_BT_ON->Text = "РљРћР›Р¬Р¦Рћ Р’РљР›Р®Р§Р•РќРћ";
 				Loop_Check_Timer->Enabled = true;
 			}
-			else { serialPort_loop->Close(); MessageBox::Show("Не удается установить соединение !"); }
+			else { serialPort_loop->Close(); MessageBox::Show("РќРµ СѓРґР°РµС‚СЃСЏ СѓСЃС‚Р°РЅРѕРІРёС‚СЊ СЃРѕРµРґРёРЅРµРЅРёРµ !"); }
 		}
 		else {
-			serialPort_loop->Close(); MessageBox::Show("Нет ответа от кольца !");
+			serialPort_loop->Close(); MessageBox::Show("РќРµС‚ РѕС‚РІРµС‚Р° РѕС‚ РєРѕР»СЊС†Р° !");
 		}	
 	}
-	else MessageBox::Show("Не удается открыть порт кольца!");
+	else MessageBox::Show("РќРµ СѓРґР°РµС‚СЃСЏ РѕС‚РєСЂС‹С‚СЊ РїРѕСЂС‚ РєРѕР»СЊС†Р°!");
 	
 }
 
@@ -5956,7 +5956,7 @@ private:  System::Void  Loop_check() {
 	Loop_Check_Timer->Elapsed += gcnew ElapsedEventHandler(this, &WorkForm::loop_check_timer);
 	Loop_Check_Timer->AutoReset = true;			
 }
-//проверка работы кольца		  		  
+//РїСЂРѕРІРµСЂРєР° СЂР°Р±РѕС‚С‹ РєРѕР»СЊС†Р°		  		  
 private:void loop_check_timer(System::Object^ source, ElapsedEventArgs^ e) {
 	bool stop = 0; 
 	String^ Str = "";	
@@ -5969,7 +5969,7 @@ private:void loop_check_timer(System::Object^ source, ElapsedEventArgs^ e) {
 		stop = 1; 
 		//Loop_Check_Timer->Enabled = false;
 		this->button_BT_ON->BackColor = DefaultBackColor;
-		this->button_BT_ON->Text = " ВКЛЮЧИТЬ КОЛЬЦО";
+		this->button_BT_ON->Text = " Р’РљР›Р®Р§РРўР¬ РљРћР›Р¬Р¦Рћ";
 		bt_on = false;
 		//Console::WriteLine("no_BT_port");		
 		try {
@@ -5978,7 +5978,7 @@ private:void loop_check_timer(System::Object^ source, ElapsedEventArgs^ e) {
 			serialPort_loop->Open();
 			if (serialPort_loop->IsOpen == true) {
 				this->button_BT_ON->BackColor = Color::DodgerBlue;
-				this->button_BT_ON->Text = "КОЛЬЦО ВКЛЮЧЕНО";
+				this->button_BT_ON->Text = "РљРћР›Р¬Р¦Рћ Р’РљР›Р®Р§Р•РќРћ";
 				bt_on = true;
 				//Console::WriteLine("BT_port_is_on");
 			}
@@ -5987,7 +5987,7 @@ private:void loop_check_timer(System::Object^ source, ElapsedEventArgs^ e) {
 	}
 	if (!stop){ 
 		this->button_BT_ON->BackColor = Color::DodgerBlue;
-		this->button_BT_ON->Text = "КОЛЬЦО ВКЛЮЧЕНО";
+		this->button_BT_ON->Text = "РљРћР›Р¬Р¦Рћ Р’РљР›Р®Р§Р•РќРћ";
 		bt_on = true;
 		//Console::WriteLine("BT_port_is_on");
 	}	
@@ -6031,7 +6031,7 @@ void R_Click(int R_idx, int C_idx) {
 
 			CheckBox^ CHECKBOX_R = (CheckBox^)this->tableLayoutPanel1->Controls["checkBox_R" + (R_idx).ToString()];
 			CHECKBOX_R->Checked = false;
-			//очищаем графики
+			//РѕС‡РёС‰Р°РµРј РіСЂР°С„РёРєРё
 			for (int N_sonde = 1; N_sonde <= 10; N_sonde++) {
 				Label^ LABEL_T = (Label^)this->tableLayoutPanel1->Controls["labelT" + (N_sonde).ToString()];
 				LABEL_T->Text = "Tx ";
@@ -6169,7 +6169,7 @@ private: System::Void textBox_Z_loop9_KeyUp(System::Object^  sender, System::Win
 private: System::Void textBox_Z_loop10_KeyUp(System::Object^  sender, System::Windows::Forms::KeyEventArgs^  e) {
 	textBox_Z_loop10->BackColor = Color::LightYellow;
 }
-//загрузить параметры кольца
+//Р·Р°РіСЂСѓР·РёС‚СЊ РїР°СЂР°РјРµС‚СЂС‹ РєРѕР»СЊС†Р°
 private: System::Void button_read_loop_Z_Click(System::Object^  sender, System::EventArgs^  e) {
 	int stop = 0;
 	String^ Str = "";
@@ -6212,17 +6212,17 @@ private: System::Void button_read_loop_Z_Click(System::Object^  sender, System::
 				else {
 					Z_downloaded_from_loop = false;
 					//button_read_loop->BackColor = DefaultBackColor;
-					//this->button_read_loop->Text = L"ПОЛУЧИТЬ НАСТРОЙКИ КОЛЬЦА";
-					MessageBox::Show("Нет ответа от кольца " + n);
+					//this->button_read_loop->Text = L"РџРћР›РЈР§РРўР¬ РќРђРЎРўР РћР™РљР РљРћР›Р¬Р¦Рђ";
+					MessageBox::Show("РќРµС‚ РѕС‚РІРµС‚Р° РѕС‚ РєРѕР»СЊС†Р° " + n);
 
 				}
 			}
-			//else { this->button_BT_ON->BackColor = DefaultBackColor; MessageBox::Show("Соединение с кольцом прервано переподключите BT_ON 3!"); }
+			//else { this->button_BT_ON->BackColor = DefaultBackColor; MessageBox::Show("РЎРѕРµРґРёРЅРµРЅРёРµ СЃ РєРѕР»СЊС†РѕРј РїСЂРµСЂРІР°РЅРѕ РїРµСЂРµРїРѕРґРєР»СЋС‡РёС‚Рµ BT_ON 3!"); }
 		}
 		Loop_Check_Timer->Enabled = true;
 	}
-	if (bt_on == false) { MessageBox::Show("ВКЛЮЧИТЬ КОЛЬЦО"); }
-	//заполняем вектор параметров кольца
+	if (bt_on == false) { MessageBox::Show("Р’РљР›Р®Р§РРўР¬ РљРћР›Р¬Р¦Рћ"); }
+	//Р·Р°РїРѕР»РЅСЏРµРј РІРµРєС‚РѕСЂ РїР°СЂР°РјРµС‚СЂРѕРІ РєРѕР»СЊС†Р°
 	if (Z_downloaded_from_loop == true) {
 		loop_param.clear();
 		for (int n = 0; n < 10; n++) {
@@ -6235,7 +6235,7 @@ private: System::Void button_read_loop_Z_Click(System::Object^  sender, System::
 				loop_param.push_back(buff);
 			}
 		}
-		//если прибор включен рассчитываем фазы и УЭС от всех сопротивлений кольца для всех зондов
+		//РµСЃР»Рё РїСЂРёР±РѕСЂ РІРєР»СЋС‡РµРЅ СЂР°СЃСЃС‡РёС‚С‹РІР°РµРј С„Р°Р·С‹ Рё РЈР­РЎ РѕС‚ РІСЃРµС… СЃРѕРїСЂРѕС‚РёРІР»РµРЅРёР№ РєРѕР»СЊС†Р° РґР»СЏ РІСЃРµС… Р·РѕРЅРґРѕРІ
 	}
 
 }
@@ -6249,8 +6249,8 @@ private: System::Void button_write_Z_Click(System::Object^  sender, System::Even
 	Byte resive = 0;
 	double R[32] = { 1.0, };
 	double Re[32] = { 0.0, };
-	//Команда: ZWRITE 0 1.0 2.0\r\n
-	//Ответ : WRITE Z0 OK!\r\n
+	//РљРѕРјР°РЅРґР°: ZWRITE 0 1.0 2.0\r\n
+	//РћС‚РІРµС‚ : WRITE Z0 OK!\r\n
 	if (bt_on == true) {
 		Loop_Check_Timer->Enabled = false;
 		Sleep(200);
@@ -6276,7 +6276,7 @@ private: System::Void button_write_Z_Click(System::Object^  sender, System::Even
 				}
 				else { 
 					write_ok = false;
-					MessageBox::Show("Нет ответа от кольца , нажмите  еще раз !"); 
+					MessageBox::Show("РќРµС‚ РѕС‚РІРµС‚Р° РѕС‚ РєРѕР»СЊС†Р° , РЅР°Р¶РјРёС‚Рµ  РµС‰Рµ СЂР°Р· !"); 
 				}
 			}
 			else { write_ok = false; }
@@ -6286,13 +6286,13 @@ private: System::Void button_write_Z_Click(System::Object^  sender, System::Even
 
 
 		if(write_ok == true )
-			MessageBox::Show("запись прошла успешно");
+			MessageBox::Show("Р·Р°РїРёСЃСЊ РїСЂРѕС€Р»Р° СѓСЃРїРµС€РЅРѕ");
 		else
-			MessageBox::Show("ошибка, перезапишите");
+			MessageBox::Show("РѕС€РёР±РєР°, РїРµСЂРµР·Р°РїРёС€РёС‚Рµ");
 		
 		Loop_Check_Timer->Enabled = true;
 	}
-	if (bt_on == false) { MessageBox::Show("Включите кольцо"); }
+	if (bt_on == false) { MessageBox::Show("Р’РєР»СЋС‡РёС‚Рµ РєРѕР»СЊС†Рѕ"); }
 }
 
 private: System::Void button_erase_Click(System::Object^  sender, System::EventArgs^  e) {
@@ -6304,8 +6304,8 @@ private: System::Void button_erase_Click(System::Object^  sender, System::EventA
 	Byte resive = 0;
 	double R = 1.0;
 	double Re = 0.0;
-	//Команда: ZERASE\r\n
-	//Ответ : ERASE OK!\r\n
+	//РљРѕРјР°РЅРґР°: ZERASE\r\n
+	//РћС‚РІРµС‚ : ERASE OK!\r\n
 	if (bt_on == true) {
 		Loop_Check_Timer->Enabled = false;
 		Sleep(200);
@@ -6325,22 +6325,22 @@ private: System::Void button_erase_Click(System::Object^  sender, System::EventA
 				erase_ok = true;
 			}
 			else { 
-				MessageBox::Show("ошибка, сотрите еще раз"); 
+				MessageBox::Show("РѕС€РёР±РєР°, СЃРѕС‚СЂРёС‚Рµ РµС‰Рµ СЂР°Р·"); 
 				erase_ok = false;
 			}
 		}
 		else {  
-			MessageBox::Show("Соединение с кольцом прервано "); 
+			MessageBox::Show("РЎРѕРµРґРёРЅРµРЅРёРµ СЃ РєРѕР»СЊС†РѕРј РїСЂРµСЂРІР°РЅРѕ "); 
 			erase_ok = false;
 		}		
 		if (erase_ok == true)
-			MessageBox::Show("запись прошла успешно");
+			MessageBox::Show("Р·Р°РїРёСЃСЊ РїСЂРѕС€Р»Р° СѓСЃРїРµС€РЅРѕ");
 		else
-			MessageBox::Show("ошибка, перезапишите");
+			MessageBox::Show("РѕС€РёР±РєР°, РїРµСЂРµР·Р°РїРёС€РёС‚Рµ");
 	
 		Loop_Check_Timer->Enabled = true;
 	}
-	if (bt_on == false) { MessageBox::Show("Включите кольцо"); }
+	if (bt_on == false) { MessageBox::Show("Р’РєР»СЋС‡РёС‚Рµ РєРѕР»СЊС†Рѕ"); }
 }
 
 private: System::Void button_signature_Click(System::Object^  sender, System::EventArgs^  e) {
@@ -6368,15 +6368,15 @@ private: System::Void button_signature_Click(System::Object^  sender, System::Ev
 		catch (...) { stop = 1; }
 		if (!stop) {
 			if (resive->StartsWith(resive_Z)) {
-					MessageBox::Show("сигнатура записана успешно");
+					MessageBox::Show("СЃРёРіРЅР°С‚СѓСЂР° Р·Р°РїРёСЃР°РЅР° СѓСЃРїРµС€РЅРѕ");
 			}
-			else MessageBox::Show("ошибка, перезапишите");
+			else MessageBox::Show("РѕС€РёР±РєР°, РїРµСЂРµР·Р°РїРёС€РёС‚Рµ");
 		}
-		else {  MessageBox::Show("ошибка, перезапишите"); }
+		else {  MessageBox::Show("РѕС€РёР±РєР°, РїРµСЂРµР·Р°РїРёС€РёС‚Рµ"); }
 
 		Loop_Check_Timer->Enabled = true;
 	}
-	if (bt_on == false) { MessageBox::Show("Включите кольцо"); }
+	if (bt_on == false) { MessageBox::Show("Р’РєР»СЋС‡РёС‚Рµ РєРѕР»СЊС†Рѕ"); }
 
 
 }
@@ -6394,10 +6394,10 @@ private: System::Void button_calc_z_to_loop_Click(System::Object^  sender, Syste
 			calc_z_exist = false;
 	}
 	if(!calc_z_exist)
-		MessageBox::Show("Требуется рассчитать реактивные сопротивления");
+		MessageBox::Show("РўСЂРµР±СѓРµС‚СЃСЏ СЂР°СЃСЃС‡РёС‚Р°С‚СЊ СЂРµР°РєС‚РёРІРЅС‹Рµ СЃРѕРїСЂРѕС‚РёРІР»РµРЅРёСЏ");
 	else {
 		button_write_Z->PerformClick();
-		//MessageBox::Show("теперь запишите");
+		//MessageBox::Show("С‚РµРїРµСЂСЊ Р·Р°РїРёС€РёС‚Рµ");
 	}
 }
 
@@ -6419,7 +6419,7 @@ private: System::Void button_calk_C_need_Click(System::Object^  sender, System::
 			metro_in.close();
 			metro_convert(&metrology_struct, param);
 			
-			//расчетные значения емкостей и резонансных частот для кольца
+			//СЂР°СЃС‡РµС‚РЅС‹Рµ Р·РЅР°С‡РµРЅРёСЏ РµРјРєРѕСЃС‚РµР№ Рё СЂРµР·РѕРЅР°РЅСЃРЅС‹С… С‡Р°СЃС‚РѕС‚ РґР»СЏ РєРѕР»СЊС†Р°
 			for (int i = 0; i < param.size(); i++) {
 				//F_rez[i] = (int(F(param[i].F, 0.5, L_loop, param[i].L1, param[i].L2)));
 				C[i] = (C_max_fi(param[i].F, 0.5, L_loop, param[i].L1, param[i].L2));
@@ -6430,7 +6430,7 @@ private: System::Void button_calk_C_need_Click(System::Object^  sender, System::
 				TEXTBOX_L2->Text = (param[i].L2).ToString("F3");
 				TextBox^ TEXTBOX_F = (TextBox^)this->tableLayoutPanel11->Controls["textBox_f_" + (i + 1).ToString()];
 				TEXTBOX_F->Text = (param[i].F / 1000).ToString();
-				TextBox^ TEXTBOX_C = (TextBox^)this->tableLayoutPanel11->Controls["textBox_С" + (i + 1).ToString()];
+				TextBox^ TEXTBOX_C = (TextBox^)this->tableLayoutPanel11->Controls["textBox_РЎ" + (i + 1).ToString()];
 				TEXTBOX_C->Text = ((int)(1e12*C[i])).ToString("F0");
 				TextBox^ TEXTBOX_Z_CALC = (TextBox^)this->tableLayoutPanel11->Controls["textBox_Z_calc" + (i + 1).ToString()];
 				TEXTBOX_Z_CALC->Text = (imag(Z(1.0, L_loop, C[i], param[i].F))).ToString("F3");
@@ -6444,7 +6444,7 @@ private: System::Void button_calk_C_need_Click(System::Object^  sender, System::
 				TEXTBOX_L2->Text = "";
 				TextBox^ TEXTBOX_F = (TextBox^)this->tableLayoutPanel11->Controls["textBox_f_" + (i + 1).ToString()];
 				TEXTBOX_F->Text = "";
-				TextBox^ TEXTBOX_C = (TextBox^)this->tableLayoutPanel11->Controls["textBox_С" + (i + 1).ToString()];
+				TextBox^ TEXTBOX_C = (TextBox^)this->tableLayoutPanel11->Controls["textBox_РЎ" + (i + 1).ToString()];
 				TEXTBOX_C->Text = "";
 				TextBox^ TEXTBOX_Z_CALC = (TextBox^)this->tableLayoutPanel11->Controls["textBox_Z_calc" + (i + 1).ToString()];
 				TEXTBOX_Z_CALC->Text = "";
@@ -6461,7 +6461,7 @@ private: System::Void button_calk_C_need_Click(System::Object^  sender, System::
 			TextBox^ TEXTBOX_F = (TextBox^)this->tableLayoutPanel11->Controls["textBox_f_" + (i + 1).ToString()];
 			if (TEXTBOX_F->Text != "") param[i].F = 1000*System::Double::Parse((TEXTBOX_F->Text));
 			C[i] = (C_max_fi(param[i].F, 0.5, L_loop, param[i].L1, param[i].L2));
-			TextBox^ TEXTBOX_C = (TextBox^)this->tableLayoutPanel11->Controls["textBox_С" + (i + 1).ToString()];
+			TextBox^ TEXTBOX_C = (TextBox^)this->tableLayoutPanel11->Controls["textBox_РЎ" + (i + 1).ToString()];
 			TEXTBOX_C->Text = ((int)(1e12*C[i])).ToString("F0");
 			TextBox^ TEXTBOX_Z_CALC = (TextBox^)this->tableLayoutPanel11->Controls["textBox_Z_calc" + (i + 1).ToString()];
 			TEXTBOX_Z_CALC->Text = (imag(Z(1.0, L_loop, C[i], param[i].F))).ToString("F3");			
@@ -6520,7 +6520,7 @@ private: System::Void checkBox_param_red_CheckedChanged(System::Object^  sender,
 		}
 	}
 }
-//убрать после отладки
+//СѓР±СЂР°С‚СЊ РїРѕСЃР»Рµ РѕС‚Р»Р°РґРєРё
 private: System::Void button_calk_Click(System::Object^  sender, System::EventArgs^  e) {
 	extern bool metro_check;
 	extern vector <V10> PH_computed;
@@ -6617,46 +6617,46 @@ private: System::Void button_auto_Click(System::Object^  sender, System::EventAr
 	}
 
 }
-//отображение графиков и текста		 
+//РѕС‚РѕР±СЂР°Р¶РµРЅРёРµ РіСЂР°С„РёРєРѕРІ Рё С‚РµРєСЃС‚Р°		 
 private: System::Void timer1_Tick(System::Object^  sender, System::EventArgs^  e) {
 	extern V10 ph_data;
 	extern V10 ro_data;
-	//длина вектора равна количеству зондов
+	//РґР»РёРЅР° РІРµРєС‚РѕСЂР° СЂР°РІРЅР° РєРѕР»РёС‡РµСЃС‚РІСѓ Р·РѕРЅРґРѕРІ
 	extern vector <SONDE_PARAM> sonde_param;
-	//длина вектора равна количеству сопротивлений
+	//РґР»РёРЅР° РІРµРєС‚РѕСЂР° СЂР°РІРЅР° РєРѕР»РёС‡РµСЃС‚РІСѓ СЃРѕРїСЂРѕС‚РёРІР»РµРЅРёР№
 	extern vector <LOOP_PARAM> loop_param;
-	// 10 - зонды 20 - усреднение
+	// 10 - Р·РѕРЅРґС‹ 20 - СѓСЃСЂРµРґРЅРµРЅРёРµ
 	extern int PH_percent_from_sonde[10][20];
 	extern int Ro_percent_from_sonde[10][20];
 	extern vector <V10> PH_computed;
 	extern vector <V10> Ro_computed;
 
-	//кнопка локального воздуха////////////
+	//РєРЅРѕРїРєР° Р»РѕРєР°Р»СЊРЅРѕРіРѕ РІРѕР·РґСѓС…Р°////////////
 	int countdown = air_data_aver - air_set_cntr;
 	if (countdown < 0) countdown = 0;
 	if (collect_air_data == true) {
 		this->button_local_metro->BackColor = System::Drawing::Color::Coral;
-		button_local_metro->Text = "Идет сбор данных " + countdown + "C";
+		button_local_metro->Text = "РРґРµС‚ СЃР±РѕСЂ РґР°РЅРЅС‹С… " + countdown + "C";
 	}
 	else {
 		if (local_air_is_set == true) {
 			this->button_local_metro->BackColor = System::Drawing::Color::Coral;
-			this->button_local_metro->Text = "Локальный воздух установлен";
+			this->button_local_metro->Text = "Р›РѕРєР°Р»СЊРЅС‹Р№ РІРѕР·РґСѓС… СѓСЃС‚Р°РЅРѕРІР»РµРЅ";
 		}
 		else {
 			this->button_local_metro->BackColor = DefaultBackColor;
-			this->button_local_metro->Text = L"ЛОКАЛЬНЫЙ ВОЗДУХ ";
+			this->button_local_metro->Text = L"Р›РћРљРђР›Р¬РќР«Р™ Р’РћР—Р”РЈРҐ ";
 		}
 	}
 	//////////////////////////////////////////////////////////////////////////
 	
-	// выводим фазы - воздух
+	// РІС‹РІРѕРґРёРј С„Р°Р·С‹ - РІРѕР·РґСѓС…
 	for (int N_sonde = 0; N_sonde < sonde_param.size(); N_sonde++) {
 		TextBox^ TEXTBOX_DFI = (TextBox^)this->tableLayoutPanel1->Controls["textBox_dfi" + (N_sonde + 1).ToString()];
 		TEXTBOX_DFI->Text = ((ph_data.VALUE[N_sonde])*mG).ToString("F0");
 	}
 
-	//выводим фазы на графики
+	//РІС‹РІРѕРґРёРј С„Р°Р·С‹ РЅР° РіСЂР°С„РёРєРё
 	if (R_IDX == 0 && C_IDX == 0 && on_off == 1) {
 		pictureBox_legend_up->Image = nullptr;
 		do_legend(trashhold, AIR_MODE);
@@ -6666,7 +6666,7 @@ private: System::Void timer1_Tick(System::Object^  sender, System::EventArgs^  e
 		}
 	}
 
-	//если не на воздухе,то выводим УЭС
+	//РµСЃР»Рё РЅРµ РЅР° РІРѕР·РґСѓС…Рµ,С‚Рѕ РІС‹РІРѕРґРёРј РЈР­РЎ
 	if (R_IDX != 0 && C_IDX != 0) {
 		pictureBox_legend_up->Image = nullptr;
 		do_legend(trashhold, MEAS_MODE);
@@ -6684,7 +6684,7 @@ private: System::Void timer1_Tick(System::Object^  sender, System::EventArgs^  e
 	int N_last_points = aver_cntr;
 	if (N_last_points > 20)N_last_points = 20;
 
-	//переключение конденсатора для каждого зонда - отображаем по одному графику
+	//РїРµСЂРµРєР»СЋС‡РµРЅРёРµ РєРѕРЅРґРµРЅСЃР°С‚РѕСЂР° РґР»СЏ РєР°Р¶РґРѕРіРѕ Р·РѕРЅРґР° - РѕС‚РѕР±СЂР°Р¶Р°РµРј РїРѕ РѕРґРЅРѕРјСѓ РіСЂР°С„РёРєСѓ
 	if (checkBox_express->Checked == false ||
 		(checkBox_express->Checked == true && R_IDX <= N_R_for_express)) {
 		if (C_IDX != 0 ) {
@@ -6692,9 +6692,9 @@ private: System::Void timer1_Tick(System::Object^  sender, System::EventArgs^  e
 		}
 			
 	}
-	//переключение конденсатора для всех зондов, начиная с 3го сопротивления
+	//РїРµСЂРµРєР»СЋС‡РµРЅРёРµ РєРѕРЅРґРµРЅСЃР°С‚РѕСЂР° РґР»СЏ РІСЃРµС… Р·РѕРЅРґРѕРІ, РЅР°С‡РёРЅР°СЏ СЃ 3РіРѕ СЃРѕРїСЂРѕС‚РёРІР»РµРЅРёСЏ
 	if (checkBox_express->Checked == true && R_IDX > N_R_for_express) {
-		//отображаем 1е 4 или 5
+		//РѕС‚РѕР±СЂР°Р¶Р°РµРј 1Рµ 4 РёР»Рё 5
 		if (C_IDX == 1 ){
 			for (int N_sonde = 1; N_sonde <= (int)((sonde_param.size() / 2)); N_sonde++) {
 				do_graf(N_sonde, &PH_percent_from_sonde[N_sonde-1][0], N_last_points, trashhold);
@@ -6708,10 +6708,10 @@ private: System::Void timer1_Tick(System::Object^  sender, System::EventArgs^  e
 	}
 	////////////////////////////////////////////////////////////////////
 
-	//рассчет фазы и УЭС от всех сопротивлений кольца для всех зондов 
+	//СЂР°СЃСЃС‡РµС‚ С„Р°Р·С‹ Рё РЈР­РЎ РѕС‚ РІСЃРµС… СЃРѕРїСЂРѕС‚РёРІР»РµРЅРёР№ РєРѕР»СЊС†Р° РґР»СЏ РІСЃРµС… Р·РѕРЅРґРѕРІ 
 	//
 	if (on_off == true && bt_on == true && PH_Ro_is_calculated == false) {
-		//получаем параметры от кольца//////////////////////////////////////////////////////////////////////////////
+		//РїРѕР»СѓС‡Р°РµРј РїР°СЂР°РјРµС‚СЂС‹ РѕС‚ РєРѕР»СЊС†Р°//////////////////////////////////////////////////////////////////////////////
 		int stop = 0;
 		String^ Str = "";
 		String^ send_Z = "";
@@ -6748,15 +6748,15 @@ private: System::Void timer1_Tick(System::Object^  sender, System::EventArgs^  e
 					}
 					else {
 						Z_downloaded_from_loop = false;				
-						MessageBox::Show("Нет ответа от кольца " + n);
+						MessageBox::Show("РќРµС‚ РѕС‚РІРµС‚Р° РѕС‚ РєРѕР»СЊС†Р° " + n);
 					}
 				}
-				//else { this->button_BT_ON->BackColor = DefaultBackColor; MessageBox::Show("Соединение с кольцом прервано переподключите BT_ON 3!"); }
+				//else { this->button_BT_ON->BackColor = DefaultBackColor; MessageBox::Show("РЎРѕРµРґРёРЅРµРЅРёРµ СЃ РєРѕР»СЊС†РѕРј РїСЂРµСЂРІР°РЅРѕ РїРµСЂРµРїРѕРґРєР»СЋС‡РёС‚Рµ BT_ON 3!"); }
 			}
 			Loop_Check_Timer->Enabled = true;
 		}
-		if (bt_on == false) { MessageBox::Show("ВКЛЮЧИТЬ КОЛЬЦО"); }
-		//заполняем вектор параметров кольца
+		if (bt_on == false) { MessageBox::Show("Р’РљР›Р®Р§РРўР¬ РљРћР›Р¬Р¦Рћ"); }
+		//Р·Р°РїРѕР»РЅСЏРµРј РІРµРєС‚РѕСЂ РїР°СЂР°РјРµС‚СЂРѕРІ РєРѕР»СЊС†Р°
 		if (Z_downloaded_from_loop == true) {
 			loop_param.clear();
 			for (int n = 0; n < 10; n++) {
@@ -6771,7 +6771,7 @@ private: System::Void timer1_Tick(System::Object^  sender, System::EventArgs^  e
 			}
 		}
 		else
-			MessageBox::Show("Параметры от кольца не получены");
+			MessageBox::Show("РџР°СЂР°РјРµС‚СЂС‹ РѕС‚ РєРѕР»СЊС†Р° РЅРµ РїРѕР»СѓС‡РµРЅС‹");
 /////////////////////////////////////////////////////////////////////////////////
 		if(Z_downloaded_from_loop == true){
 			calc_PH_from_loop(sonde_param, loop_param, PH_computed);
@@ -6783,7 +6783,7 @@ private: System::Void timer1_Tick(System::Object^  sender, System::EventArgs^  e
 			}
 
 
-			//отладка/////////////////////////////////////////
+			//РѕС‚Р»Р°РґРєР°/////////////////////////////////////////
 			for (int R_idx = 0; R_idx < 8; R_idx++) {
 				cout << "PH ";
 				for (int n_sonde = 0; n_sonde < sonde_param.size(); n_sonde++)
@@ -6801,12 +6801,12 @@ private: System::Void timer1_Tick(System::Object^  sender, System::EventArgs^  e
 			PH_Ro_is_calculated = true;
         }	
 	}
-	//если был выключен прибор или кольцо - заново читаем параметры кольца при следующем включении
+	//РµСЃР»Рё Р±С‹Р» РІС‹РєР»СЋС‡РµРЅ РїСЂРёР±РѕСЂ РёР»Рё РєРѕР»СЊС†Рѕ - Р·Р°РЅРѕРІРѕ С‡РёС‚Р°РµРј РїР°СЂР°РјРµС‚СЂС‹ РєРѕР»СЊС†Р° РїСЂРё СЃР»РµРґСѓСЋС‰РµРј РІРєР»СЋС‡РµРЅРёРё
 	if (on_off == false || bt_on == false) {
 		PH_Ro_is_calculated = false;
 	}
 
-	// автоматические измерения
+	// Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРёРµ РёР·РјРµСЂРµРЅРёСЏ
 	if(auto_vork == true){
 		if (start_R_measure == false) {
 			Sleep(200);
@@ -6822,7 +6822,7 @@ private: System::Void timer1_Tick(System::Object^  sender, System::EventArgs^  e
 		}
 	}
 
-	//ставим галочку, если измерения в пределах нормы
+	//СЃС‚Р°РІРёРј РіР°Р»РѕС‡РєСѓ, РµСЃР»Рё РёР·РјРµСЂРµРЅРёСЏ РІ РїСЂРµРґРµР»Р°С… РЅРѕСЂРјС‹
 	if (end_R_measure == true) {
 		for (int R_idx = 1; R_idx <= 8; R_idx++){
 
@@ -6858,8 +6858,8 @@ private: System::Void timer1_Tick(System::Object^  sender, System::EventArgs^  e
 
 }
 
-//сохранить рапорт
-private: System::Void сохранитьРапортRtfToolStripMenuItem_Click(System::Object^  sender, System::EventArgs^  e) {
+//СЃРѕС…СЂР°РЅРёС‚СЊ СЂР°РїРѕСЂС‚
+private: System::Void СЃРѕС…СЂР°РЅРёС‚СЊР Р°РїРѕСЂС‚RtfToolStripMenuItem_Click(System::Object^  sender, System::EventArgs^  e) {
 	extern vector <LOOP_PARAM> loop_param;
 	extern vector <SONDE_PARAM> sonde_param;
 	extern int Ro_percent_from_sonde[10][20];
@@ -6876,40 +6876,40 @@ private: System::Void сохранитьРапортRtfToolStripMenuItem_Click(System::Object^ 
 			Sonde_Read_Timer->Enabled = false;
 		}
 
-		if (t.tm_mon + 1 == 1)month = " Января ";
-		else if (t.tm_mon + 1 == 2)month = " Февраля ";
-		else if (t.tm_mon + 1 == 3)month = " Марта ";
-		else if (t.tm_mon + 1 == 4)month = " Апреля ";
-		else if (t.tm_mon + 1 == 5)month = " Мая ";
-		else if (t.tm_mon + 1 == 6)month = " Июня ";
-		else if (t.tm_mon + 1 == 7)month = " Июля ";
-		else if (t.tm_mon + 1 == 8)month = " Августа ";
-		else if (t.tm_mon + 1 == 9)month = " Сентября ";
-		else if (t.tm_mon + 1 == 10)month = " Октября ";
-		else if (t.tm_mon + 1 == 11)month = " Ноября ";
-		else if (t.tm_mon + 1 == 12)month = " Декабря ";
+		if (t.tm_mon + 1 == 1)month = " РЇРЅРІР°СЂСЏ ";
+		else if (t.tm_mon + 1 == 2)month = " Р¤РµРІСЂР°Р»СЏ ";
+		else if (t.tm_mon + 1 == 3)month = " РњР°СЂС‚Р° ";
+		else if (t.tm_mon + 1 == 4)month = " РђРїСЂРµР»СЏ ";
+		else if (t.tm_mon + 1 == 5)month = " РњР°СЏ ";
+		else if (t.tm_mon + 1 == 6)month = " РСЋРЅСЏ ";
+		else if (t.tm_mon + 1 == 7)month = " РСЋР»СЏ ";
+		else if (t.tm_mon + 1 == 8)month = " РђРІРіСѓСЃС‚Р° ";
+		else if (t.tm_mon + 1 == 9)month = " РЎРµРЅС‚СЏР±СЂСЏ ";
+		else if (t.tm_mon + 1 == 10)month = " РћРєС‚СЏР±СЂСЏ ";
+		else if (t.tm_mon + 1 == 11)month = " РќРѕСЏР±СЂСЏ ";
+		else if (t.tm_mon + 1 == 12)month = " Р”РµРєР°Р±СЂСЏ ";
 		auto font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 20.2F, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point, static_cast<System::Byte>(204)));
 		richTextBox1->SelectionFont = font;
 		richTextBox1->SelectionColor = Color::Red;
-		richTextBox1->AppendText("Протокол проверки прибора ЭМК-90 № " + serial + Environment::NewLine);
+		richTextBox1->AppendText("РџСЂРѕС‚РѕРєРѕР» РїСЂРѕРІРµСЂРєРё РїСЂРёР±РѕСЂР° Р­РњРљ-90 в„– " + serial + Environment::NewLine);
 		font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 10.2F, System::Drawing::FontStyle::Regular, System::Drawing::GraphicsUnit::Point, static_cast<System::Byte>(204)));
 		richTextBox1->SelectionFont = font;
 		richTextBox1->SelectionColor = Color::Black;
 
-		richTextBox1->AppendText("\r\n \r\n Расчет НЕсимметризованных фаз и УЭС на компьютере " + Environment::NewLine);
+		richTextBox1->AppendText("\r\n \r\n Р Р°СЃС‡РµС‚ РќР•СЃРёРјРјРµС‚СЂРёР·РѕРІР°РЅРЅС‹С… С„Р°Р· Рё РЈР­РЎ РЅР° РєРѕРјРїСЊСЋС‚РµСЂРµ " + Environment::NewLine);
 
-		//УЭС
-		richTextBox1->AppendText("\r\n  ЗОНД        Погрешность % " + Environment::NewLine);
-		//номер сопротивления 
+		//РЈР­РЎ
+		richTextBox1->AppendText("\r\n  Р—РћРќР”        РџРѕРіСЂРµС€РЅРѕСЃС‚СЊ % " + Environment::NewLine);
+		//РЅРѕРјРµСЂ СЃРѕРїСЂРѕС‚РёРІР»РµРЅРёСЏ 
 		for (int R_idx = 1; R_idx <= 8; R_idx++) {
-			if (R_idx <= 8)R_index = "\r\n Мера импеданса № " + R_idx.ToString() + "  " + loop_param[R_idx-1].R + " Ом  \r\n";
-			else R_index = "\r\n Воздух________________________________________________________________________________ \r\n";
+			if (R_idx <= 8)R_index = "\r\n РњРµСЂР° РёРјРїРµРґР°РЅСЃР° в„– " + R_idx.ToString() + "  " + loop_param[R_idx-1].R + " РћРј  \r\n";
+			else R_index = "\r\n Р’РѕР·РґСѓС…________________________________________________________________________________ \r\n";
 			richTextBox1->AppendText(R_index + Environment::NewLine);
 
 			CheckBox^ CHECKBOX_R = (CheckBox^)this->tableLayoutPanel1->Controls["checkBox_R" + (R_idx).ToString()];
 			if (CHECKBOX_R->Checked == true) {
 				String^ frq; String^ nomer;
-				//номер передатчика 
+				//РЅРѕРјРµСЂ РїРµСЂРµРґР°С‚С‡РёРєР° 
 				for (int N_sonde = 1; N_sonde <= sonde_param.size(); N_sonde++) {
 					TextBox^ TEXTBOX_R_T = (TextBox^)this->tableLayoutPanel1->Controls["textBox_R" + R_idx + "_T" + (N_sonde).ToString()];
 
@@ -6929,27 +6929,27 @@ private: System::Void сохранитьРапортRtfToolStripMenuItem_Click(System::Object^ 
 					}
 					else {
 						richTextBox1->SelectionColor = Color::Black;
-						richTextBox1->AppendText("Нет данных \r\n");
+						richTextBox1->AppendText("РќРµС‚ РґР°РЅРЅС‹С… \r\n");
 					}
 				}
 
 			}
 			else {
 				richTextBox1->SelectionColor = Color::Black;
-				richTextBox1->AppendText("Нет данных \r\n");
+				richTextBox1->AppendText("РќРµС‚ РґР°РЅРЅС‹С… \r\n");
 			}
 		}
 
 		richTextBox1->SelectionColor = Color::Black;
 		richTextBox1->AppendText("\r\n\r\n\r\n");
-		richTextBox1->AppendText("Заключение ____________________________________________________________________________\r\n");
+		richTextBox1->AppendText("Р—Р°РєР»СЋС‡РµРЅРёРµ ____________________________________________________________________________\r\n");
 		richTextBox1->AppendText(" ______________________________________________________________________________________\r\n");
 		richTextBox1->AppendText(" ______________________________________________________________________________________\r\n");
 		richTextBox1->AppendText(" ______________________________________________________________________________________\r\n");
 
-		richTextBox1->AppendText("Ф И О, должность, подпись______________________________________________________" + t.tm_mday + month + (t.tm_year + 1900) + " г. " + t.tm_hour + " :" + t.tm_min);
+		richTextBox1->AppendText("Р¤ Р Рћ, РґРѕР»Р¶РЅРѕСЃС‚СЊ, РїРѕРґРїРёСЃСЊ______________________________________________________" + t.tm_mday + month + (t.tm_year + 1900) + " Рі. " + t.tm_hour + " :" + t.tm_min);
 
-		// сохраняем рапорт	
+		// СЃРѕС…СЂР°РЅСЏРµРј СЂР°РїРѕСЂС‚	
 		saveFileDialog1->Filter = "text files (*.rtf)|*.rtf";
 		if (saveFileDialog1->ShowDialog() == System::Windows::Forms::DialogResult::OK) {
 			try {
@@ -6957,7 +6957,7 @@ private: System::Void сохранитьРапортRtfToolStripMenuItem_Click(System::Object^ 
 
 			}
 			catch (Exception^ e) {
-				MessageBox::Show(L"Ошибка сохранения файла");
+				MessageBox::Show(L"РћС€РёР±РєР° СЃРѕС…СЂР°РЅРµРЅРёСЏ С„Р°Р№Р»Р°");
 			}
 			for (int R_idx = 1; R_idx <= 8; R_idx++) {
 				for (int N_sonde = 1; N_sonde <= sonde_param.size(); N_sonde++) {
@@ -6977,7 +6977,7 @@ private: System::Void сохранитьРапортRtfToolStripMenuItem_Click(System::Object^ 
     }
 
 }
-//выбор com портов
+//РІС‹Р±РѕСЂ com РїРѕСЂС‚РѕРІ
 private: System::Void comboBox_sonde_com_DropDown(System::Object^  sender, System::EventArgs^  e) {
 	comboBox_sonde_com->Items->Clear();
 	cli::array<String^>^ ports = nullptr;
@@ -7017,7 +7017,7 @@ private: System::Void WorkForm_FormClosing(System::Object^  sender, System::Wind
 }
 //update
 private: System::Void MyForm_Load(System::Object^  sender, System::EventArgs^  e) {
-	start = 1;//убрать 
+	start = 1;//СѓР±СЂР°С‚СЊ 
 	if (start == 0) {
 		remove("LOOP_TEST.exe");
 		MoveFile("LOOP_TEST_NEW.exe", "LOOP_TEST.exe");
@@ -7041,8 +7041,8 @@ private: System::Void MyForm_Load(System::Object^  sender, System::EventArgs^  e
 		}
 		fin.close();
 
-		HINTERNET hInet, hUrl;
-		ULONG timeout = 2000; // миллисекунды.
+		HINTERNET hInet = NULL, hUrl;
+		ULONG timeout = 2000; // РјРёР»Р»РёСЃРµРєСѓРЅРґС‹.
 		HRESULT res = -1;
 		InternetSetOption(hInet, INTERNET_OPTION_CONNECT_TIMEOUT, &timeout, sizeof(timeout));
 		hInet = InternetOpen(
@@ -7060,7 +7060,7 @@ private: System::Void MyForm_Load(System::Object^  sender, System::EventArgs^  e
 
 		cout << "hInet " << hInet << " hUrl " << hUrl << endl;
 		if (hUrl != 0) {
-			res = DeleteUrlCacheEntryA("ftp://89.189.156.184/VORONEJ_FTP/UPDATE/LOOP_TEST/version.txt");//вводить без пароля
+			res = DeleteUrlCacheEntryA("ftp://89.189.156.184/VORONEJ_FTP/UPDATE/LOOP_TEST/version.txt");//РІРІРѕРґРёС‚СЊ Р±РµР· РїР°СЂРѕР»СЏ
 			cout << "DeleteUrlCache " << res << endl;
 			res = URLDownloadToFile(NULL, "ftp://AMK_VORONEJ:DaJa1305@89.189.156.184/VORONEJ_FTP/UPDATE/LOOP_TEST/version.txt", "version_url.txt", BINDF_GETNEWESTVERSION, NULL);
 
@@ -7074,8 +7074,8 @@ private: System::Void MyForm_Load(System::Object^  sender, System::EventArgs^  e
 			cout << "version_new " << version_new << endl;
 			if (version_new - version_now > 0) {
 
-				if (MessageBox::Show("Появилось обновление, скачать? ", "", MessageBoxButtons::YesNo) == System::Windows::Forms::DialogResult::Yes) {
-					MessageBox::Show("В папке программы старые \r\n файлы будут заменены на новые");
+				if (MessageBox::Show("РџРѕСЏРІРёР»РѕСЃСЊ РѕР±РЅРѕРІР»РµРЅРёРµ, СЃРєР°С‡Р°С‚СЊ? ", "", MessageBoxButtons::YesNo) == System::Windows::Forms::DialogResult::Yes) {
+					MessageBox::Show("Р’ РїР°РїРєРµ РїСЂРѕРіСЂР°РјРјС‹ СЃС‚Р°СЂС‹Рµ \r\n С„Р°Р№Р»С‹ Р±СѓРґСѓС‚ Р·Р°РјРµРЅРµРЅС‹ РЅР° РЅРѕРІС‹Рµ");
 
 					String ^download_path = gcnew System::String(path_str.c_str());
 					Console::WriteLine("Path " + download_path);
@@ -7106,7 +7106,7 @@ private: System::Void MyForm_Load(System::Object^  sender, System::EventArgs^  e
 					cout << "res " << res0 << " " << res1 << " " << res2 << endl;
 
 					if (res0 == 0 && res1 == 0 && res2 == 0) {
-						MessageBox::Show("обновленные файлы скачаны в папку программы");
+						MessageBox::Show("РѕР±РЅРѕРІР»РµРЅРЅС‹Рµ С„Р°Р№Р»С‹ СЃРєР°С‡Р°РЅС‹ РІ РїР°РїРєСѓ РїСЂРѕРіСЂР°РјРјС‹");
 						version_now = version_new;
 						time_t seconds = time(NULL);
 						fout.open("version.txt", ios::out);
@@ -7119,7 +7119,7 @@ private: System::Void MyForm_Load(System::Object^  sender, System::EventArgs^  e
 					}
 
 					else
-						MessageBox::Show("скачивание не удалось попробуйте в следующий раз!");
+						MessageBox::Show("СЃРєР°С‡РёРІР°РЅРёРµ РЅРµ СѓРґР°Р»РѕСЃСЊ РїРѕРїСЂРѕР±СѓР№С‚Рµ РІ СЃР»РµРґСѓСЋС‰РёР№ СЂР°Р·!");
 
 
 
@@ -7141,7 +7141,7 @@ private: System::Void MyForm_Load(System::Object^  sender, System::EventArgs^  e
 			fin >> v >> version_now >> v >> seconds;
 			fin.close();
 			if (seconds_now - seconds > 700000)
-				MessageBox::Show("Давно не было информации об обновлениях проверьте подключение к интернету!");
+				MessageBox::Show("Р”Р°РІРЅРѕ РЅРµ Р±С‹Р»Рѕ РёРЅС„РѕСЂРјР°С†РёРё РѕР± РѕР±РЅРѕРІР»РµРЅРёСЏС… РїСЂРѕРІРµСЂСЊС‚Рµ РїРѕРґРєР»СЋС‡РµРЅРёРµ Рє РёРЅС‚РµСЂРЅРµС‚Сѓ!");
 
 			fout.open("version.txt", ios::out);
 			fout << "version " << version_now << endl;
@@ -7153,7 +7153,7 @@ private: System::Void MyForm_Load(System::Object^  sender, System::EventArgs^  e
 
 }
 private: System::Void uploadToFTPToolStripMenuItem_Click(System::Object^  sender, System::EventArgs^  e) {
-	if (MessageBox::Show("если вы не разработчик, нажмите 'Нет' ", "", MessageBoxButtons::YesNo) == System::Windows::Forms::DialogResult::Yes) {
+	if (MessageBox::Show("РµСЃР»Рё РІС‹ РЅРµ СЂР°Р·СЂР°Р±РѕС‚С‡РёРє, РЅР°Р¶РјРёС‚Рµ 'РќРµС‚' ", "", MessageBoxButtons::YesNo) == System::Windows::Forms::DialogResult::Yes) {
 		int version_now;
 		string v;
 		ifstream fin;
@@ -7185,9 +7185,9 @@ private: System::Void uploadToFTPToolStripMenuItem_Click(System::Object^  sender
 		BOOL Transfer1 = FtpPutFile(hFtpSession, "C:\\WORK\\repos\\LOOP_NEW\\Release\\LOOP.exe", "LOOP_TEST.exe", FTP_TRANSFER_TYPE_BINARY, INTERNET_FLAG_RELOAD);
 		BOOL Transfer2 = FtpPutFile(hFtpSession, "C:\\WORK\\repos\\LOOP_NEW\\Release\\AMK_1DDS_AUTONOM.dll", "AMK_1DDS_AUTONOM.dll", FTP_TRANSFER_TYPE_BINARY, INTERNET_FLAG_RELOAD);
 		if (Transfer0 == 1 && Transfer1 == 1 && Transfer2 == 1)
-			MessageBox::Show("файлы программы записаны на FTP сервер");
+			MessageBox::Show("С„Р°Р№Р»С‹ РїСЂРѕРіСЂР°РјРјС‹ Р·Р°РїРёСЃР°РЅС‹ РЅР° FTP СЃРµСЂРІРµСЂ");
 		else
-			MessageBox::Show("файлы НЕ БЫЛИ записаны, попробуйте еще раз");
+			MessageBox::Show("С„Р°Р№Р»С‹ РќР• Р‘Р«Р›Р Р·Р°РїРёСЃР°РЅС‹, РїРѕРїСЂРѕР±СѓР№С‚Рµ РµС‰Рµ СЂР°Р·");
 
 		InternetCloseHandle(hFtpSession);
 		InternetCloseHandle(hInternet);
@@ -7197,11 +7197,11 @@ private: System::Void uploadToFTPToolStripMenuItem_Click(System::Object^  sender
 
 
 }
-private: System::Void работаСФайломМетрологииToolStripMenuItem_Click(System::Object^  sender, System::EventArgs^  e) {
+private: System::Void СЂР°Р±РѕС‚Р°РЎР¤Р°Р№Р»РѕРјРњРµС‚СЂРѕР»РѕРіРёРёToolStripMenuItem_Click(System::Object^  sender, System::EventArgs^  e) {
 	AIRTEMP10::MyForm1^ Metro = gcnew AIRTEMP10::MyForm1;
 	Metro->Show();
 }
-private: System::Void пОМОЩЬToolStripMenuItem_Click(System::Object^  sender, System::EventArgs^  e) {
+private: System::Void РїРћРњРћР©Р¬ToolStripMenuItem_Click(System::Object^  sender, System::EventArgs^  e) {
 	LOOP::Help_form^ Help = gcnew LOOP::Help_form;
 	Help->Show();
 }

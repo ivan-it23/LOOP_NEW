@@ -1,4 +1,4 @@
-#pragma once
+п»ї#pragma once
 #include "windows.h"
 #include <fstream>
 #include <iostream>
@@ -13,7 +13,7 @@
 #include "MyForm1.h"
 #include "MyForm2.h"
 #include "MyForm3.h"
-#include <typeinfo.h>
+#include <typeinfo>
 #include <winuser.h>
 #include <locale.h>
 
@@ -28,7 +28,7 @@ namespace LOOP {
 	using namespace System::Drawing;
 	
 	/// <summary>
-	/// Сводка для MyForm3
+	/// РЎРІРѕРґРєР° РґР»СЏ MyForm3
 	/// </summary>
 	public ref class MyForm3 : public System::Windows::Forms::Form
 	{
@@ -37,7 +37,7 @@ namespace LOOP {
 		{
 			InitializeComponent();
 			//
-			//TODO: добавьте код конструктора
+			//TODO: РґРѕР±Р°РІСЊС‚Рµ РєРѕРґ РєРѕРЅСЃС‚СЂСѓРєС‚РѕСЂР°
 			//
 			extern vector <DAT> Temp_data;
 			extern int min_n, max_n;
@@ -59,7 +59,7 @@ namespace LOOP {
 
 	protected:
 		/// <summary>
-		/// Освободить все используемые ресурсы.
+		/// РћСЃРІРѕР±РѕРґРёС‚СЊ РІСЃРµ РёСЃРїРѕР»СЊР·СѓРµРјС‹Рµ СЂРµСЃСѓСЂСЃС‹.
 		/// </summary>
 		~MyForm3()
 		{
@@ -98,14 +98,14 @@ namespace LOOP {
 
 	private:
 		/// <summary>
-		/// Обязательная переменная конструктора.
+		/// РћР±СЏР·Р°С‚РµР»СЊРЅР°СЏ РїРµСЂРµРјРµРЅРЅР°СЏ РєРѕРЅСЃС‚СЂСѓРєС‚РѕСЂР°.
 		/// </summary>
 
 
 #pragma region Windows Form Designer generated code
 		/// <summary>
-		/// Требуемый метод для поддержки конструктора — не изменяйте 
-		/// содержимое этого метода с помощью редактора кода.
+		/// РўСЂРµР±СѓРµРјС‹Р№ РјРµС‚РѕРґ РґР»СЏ РїРѕРґРґРµСЂР¶РєРё РєРѕРЅСЃС‚СЂСѓРєС‚РѕСЂР° вЂ” РЅРµ РёР·РјРµРЅСЏР№С‚Рµ 
+		/// СЃРѕРґРµСЂР¶РёРјРѕРµ СЌС‚РѕРіРѕ РјРµС‚РѕРґР° СЃ РїРѕРјРѕС‰СЊСЋ СЂРµРґР°РєС‚РѕСЂР° РєРѕРґР°.
 		/// </summary>
 		void InitializeComponent(void)
 		{
@@ -205,7 +205,7 @@ namespace LOOP {
 			this->label6->Name = L"label6";
 			this->label6->Size = System::Drawing::Size(53, 17);
 			this->label6->TabIndex = 82;
-			this->label6->Text = L"курсор";
+			this->label6->Text = L"РєСѓСЂСЃРѕСЂ";
 			this->label6->TextAlign = System::Drawing::ContentAlignment::MiddleRight;
 			// 
 			// button5
@@ -299,7 +299,7 @@ namespace LOOP {
 			this->button1->Name = L"button1";
 			this->button1->Size = System::Drawing::Size(300, 28);
 			this->button1->TabIndex = 83;
-			this->button1->Text = L" ТЕМПЕРАТУРНАЯ  ПОГРЕШНОСТЬ";
+			this->button1->Text = L" РўР•РњРџР•Р РђРўРЈР РќРђРЇ  РџРћР“Р Р•РЁРќРћРЎРўР¬";
 			this->button1->UseVisualStyleBackColor = true;
 			this->button1->Click += gcnew System::EventHandler(this, &MyForm3::button1_Click);
 			// 
@@ -312,7 +312,7 @@ namespace LOOP {
 			this->button2->Name = L"button2";
 			this->button2->Size = System::Drawing::Size(210, 28);
 			this->button2->TabIndex = 91;
-			this->button2->Text = L"ФАЗЫ НА ВОЗДУХЕ";
+			this->button2->Text = L"Р¤РђР—Р« РќРђ Р’РћР—Р”РЈРҐР•";
 			this->button2->UseVisualStyleBackColor = true;
 			this->button2->Click += gcnew System::EventHandler(this, &MyForm3::Air_Phase_Click);
 			// 
@@ -471,7 +471,7 @@ namespace LOOP {
 				}
 
 
-				for (int n = min_n; n < max_n; n++)// количество циклов n, равное кол-ву кадров Co
+				for (int n = min_n; n < max_n; n++)// РєРѕР»РёС‡РµСЃС‚РІРѕ С†РёРєР»РѕРІ n, СЂР°РІРЅРѕРµ РєРѕР»-РІСѓ РєР°РґСЂРѕРІ Co
 				{
 
 					double N;
@@ -481,11 +481,11 @@ namespace LOOP {
 						//else N = 200;
 					}
 					if (checkBox1->Checked == false) { N = n; }
-					// выводим графики
+					// РІС‹РІРѕРґРёРј РіСЂР°С„РёРєРё
 					
 					//PH Z2-Z1
 					if (index_curve_1 == 0) {
-						//this->label10->Text = L"Фаза";
+						//this->label10->Text = L"Р¤Р°Р·Р°";
 						int k;
 						if (index_freq_1 == 0)k = 1;
 						if (index_freq_1 == 1)k = 6;

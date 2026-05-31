@@ -1,4 +1,4 @@
-
+п»ї
 //#include <windows.h>
 //#include <tchar.h>
 //#include <fstream>
@@ -33,13 +33,13 @@ V10 AIR = {0.0f,};
 V10 ph_data;
 V10 ro_data;
 
-// 10 - зонды 20 - усреднение
+// 10 - Р·РѕРЅРґС‹ 20 - СѓСЃСЂРµРґРЅРµРЅРёРµ
 int PH_percent_from_sonde[10][20];
 int Ro_percent_from_sonde[10][20];
 
 
-HINSTANCE AMK_DLL;// Объявляем идентификатор библиотеки
-StartComPort  AMK_StartComPort;  // Объявляем указатель на  функцию AMK_StartComPort
+HINSTANCE AMK_DLL;// РћР±СЉСЏРІР»СЏРµРј РёРґРµРЅС‚РёС„РёРєР°С‚РѕСЂ Р±РёР±Р»РёРѕС‚РµРєРё
+StartComPort  AMK_StartComPort;  // РћР±СЉСЏРІР»СЏРµРј СѓРєР°Р·Р°С‚РµР»СЊ РЅР°  С„СѓРЅРєС†РёСЋ AMK_StartComPort
 GetCurrState AMK_GetCurrState;
 Init AMK_Init;
 BeginCyclogram AMK_BeginCyclogram;
@@ -98,11 +98,11 @@ bool PH_to_raport;
 bool param_form_closed;
 bool metro_check;
 
-int min_n;//начальная и конечная точки на первом графике
+int min_n;//РЅР°С‡Р°Р»СЊРЅР°СЏ Рё РєРѕРЅРµС‡РЅР°СЏ С‚РѕС‡РєРё РЅР° РїРµСЂРІРѕРј РіСЂР°С„РёРєРµ
 int max_n;//
 void *ComPort = NULL;
 const char* Metrology1 = "Metrology.bin";
-int N_aver ;// количество точек для сбора данных
+int N_aver ;// РєРѕР»РёС‡РµСЃС‚РІРѕ С‚РѕС‡РµРє РґР»СЏ СЃР±РѕСЂР° РґР°РЅРЅС‹С…
 ///////////////////////////////////////////////////////////////
 int freq0;
 int D_freq;

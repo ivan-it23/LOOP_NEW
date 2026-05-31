@@ -1,11 +1,11 @@
-#include <fstream>
+п»ї#include <fstream>
 #include <iostream>
 #include "function.h"
 #include <vector>
 using namespace System;
 
-//для новой программы
-//извлекаем из файла метрологии длинны и частоты зондов
+//РґР»СЏ РЅРѕРІРѕР№ РїСЂРѕРіСЂР°РјРјС‹
+//РёР·РІР»РµРєР°РµРј РёР· С„Р°Р№Р»Р° РјРµС‚СЂРѕР»РѕРіРёРё РґР»РёРЅРЅС‹ Рё С‡Р°СЃС‚РѕС‚С‹ Р·РѕРЅРґРѕРІ
 void metro_convert(void *metrology_struct, vector <SONDE_PARAM> &sonde_param) {
 	uint32_t sign = *(uint32_t*)metrology_struct ;
 	uint32_t buff = *(uint32_t*)metrology_struct << 12;
@@ -50,7 +50,7 @@ void metro_convert(void *metrology_struct, vector <SONDE_PARAM> &sonde_param) {
 
 }
 
-//фаза от кольца
+//С„Р°Р·Р° РѕС‚ РєРѕР»СЊС†Р°
 float dfi_from_loop(SONDE_PARAM *param, LOOP_PARAM *loop_param) {
 	complex<float>ZFull;
 	if(param->F < 1000000)
@@ -61,8 +61,8 @@ float dfi_from_loop(SONDE_PARAM *param, LOOP_PARAM *loop_param) {
 	cout << "param->F " << param->F << endl;
 	float piomegamu0 = (0.00002480502 * param->F);
 	float Q = pow((pow((param->L2 + param->L1) / 2, 2) + pow(loop_param->r, 2)) * (pow((param->L2 - param->L1) / 2, 2) + pow(loop_param->r, 2)), 1.5);
-	return arg(((2.0f * 1if*ZFull * Q +  piomegamu0 * pow(loop_param->r, 4) * pow(param->L1, 3))*pow(param->L2, 3)) /
-		       ((2.0f * 1if*ZFull * Q +  piomegamu0 * pow(loop_param->r, 4) * pow(param->L2, 3))*pow(param->L1, 3)));
+	return arg(((2.0f * 1if*ZFull * Q + (float)(piomegamu0 * pow(loop_param->r, 4) * pow(param->L1, 3)))*(float)pow(param->L2, 3)) /
+		       ((2.0f * 1if*ZFull * Q + (float)(piomegamu0 * pow(loop_param->r, 4) * pow(param->L2, 3)))*(float)pow(param->L1, 3)));
 
 	//float omega = (2.0 * PI * param->F);
 	//float Q = pow((pow((param->L2 + param->L1) / 2, 2) + loop_param->r * loop_param->r) * (pow((param->L2 - param->L1) / 2, 2) + loop_param->r * loop_param->r), 1.5);
@@ -70,19 +70,19 @@ float dfi_from_loop(SONDE_PARAM *param, LOOP_PARAM *loop_param) {
 	//	((2.0f * 1if*ZFull * Q + (float)PI * omega * (float)mu0 * pow(loop_param->r, 4) * pow(param->L2, 3))*pow(param->L1, 3)));
 	
 }
-// фаза от среды 
+// С„Р°Р·Р° РѕС‚ СЃСЂРµРґС‹ 
 float dfi_ro(SONDE_PARAM *param, float ro) {
 	float omegamu0sigma = (0.0000078957f * param->F) / ro;
 	complex <float> ik = 1if * sqrt(1if * omegamu0sigma);
 	complex <float> SGN = exp(ik*(param->L2 - param->L1)) * ((1.0f - ik * param->L2) / (1.0f - ik * param->L1));
 	return arg(SGN);
 }
-// УЭС от фазы (обратная задача )
+// РЈР­РЎ РѕС‚ С„Р°Р·С‹ (РѕР±СЂР°С‚РЅР°СЏ Р·Р°РґР°С‡Р° )
 float  ro_dfi(SONDE_PARAM *param, float PH_from_loop) {
 	float Ro0;
-	float epsilon_ARG = 0.0000005; // точность  фазы
-	float epsilon_INF = 0.000000005; // точность  фазы
-	float  Ro_0 = 0.01, Ro_max = 7000.0;  //мин. и мах. значение ус для расчета
+	float epsilon_ARG = 0.0000005; // С‚РѕС‡РЅРѕСЃС‚СЊ  С„Р°Р·С‹
+	float epsilon_INF = 0.000000005; // С‚РѕС‡РЅРѕСЃС‚СЊ  С„Р°Р·С‹
+	float  Ro_0 = 0.01, Ro_max = 7000.0;  //РјРёРЅ. Рё РјР°С…. Р·РЅР°С‡РµРЅРёРµ СѓСЃ РґР»СЏ СЂР°СЃС‡РµС‚Р°
 	bool stop_epsl_ARG = false;
 	bool stop_epsl_INF = false;
 	float  ro_0 = Ro_0;
@@ -105,7 +105,7 @@ float  ro_dfi(SONDE_PARAM *param, float PH_from_loop) {
 	ro_max = Ro_max;
 	return   Ro0;
 }
-//вычисляем кажущееся УЭС от сигналов прибора
+//РІС‹С‡РёСЃР»СЏРµРј РєР°Р¶СѓС‰РµРµСЃСЏ РЈР­РЎ РѕС‚ СЃРёРіРЅР°Р»РѕРІ РїСЂРёР±РѕСЂР°
 V10 ro_dfi(vector <SONDE_PARAM> &sonde_param, V10 PH_from_loop) {
 	V10 ro_data;
 	for (int i = 0; i < 10; i++)
@@ -115,10 +115,10 @@ V10 ro_dfi(vector <SONDE_PARAM> &sonde_param, V10 PH_from_loop) {
 	return ro_data;
 }
 
-//комплект фаз 10 зондов от всех сопротивлений
+//РєРѕРјРїР»РµРєС‚ С„Р°Р· 10 Р·РѕРЅРґРѕРІ РѕС‚ РІСЃРµС… СЃРѕРїСЂРѕС‚РёРІР»РµРЅРёР№
  void calc_PH_from_loop(vector <SONDE_PARAM> &sonde_param, vector <LOOP_PARAM> &loop_param, vector <V10> &PH_computed) {
 	 PH_computed.clear();
-	 // с первого по последнее сопротивления  
+	 // СЃ РїРµСЂРІРѕРіРѕ РїРѕ РїРѕСЃР»РµРґРЅРµРµ СЃРѕРїСЂРѕС‚РёРІР»РµРЅРёСЏ  
 	 V10 buff = { 0.0f, };
 	 PH_computed.push_back(buff);
 	 //for (int R_idx = 0; R_idx < loop_param.size(); R_idx++) {
@@ -128,26 +128,26 @@ V10 ro_dfi(vector <SONDE_PARAM> &sonde_param, V10 PH_from_loop) {
 		 loop_param_local.R = loop_param[R_idx].R;	
 		 loop_param_local.r = loop_param[R_idx].r;
 		 loop_param_local.R_Add_Wire = loop_param[R_idx].R_Add_Wire;
-		// для всех зондов
+		// РґР»СЏ РІСЃРµС… Р·РѕРЅРґРѕРІ
 		 for (int i = 0; i < sonde_param.size(); i++) {
 			 loop_param_local.Re = loop_param[i].Re;
 			 buff.VALUE[i] = dfi_from_loop(&sonde_param[i], &loop_param_local);
 		 } 
-		 //длина вектора равна количеству сопротивлений
+		 //РґР»РёРЅР° РІРµРєС‚РѕСЂР° СЂР°РІРЅР° РєРѕР»РёС‡РµСЃС‚РІСѓ СЃРѕРїСЂРѕС‚РёРІР»РµРЅРёР№
 		  PH_computed.push_back(buff);
 	 }
  }
 
-//комплект кажущихся УЭС бесконечной среды 10 зондов от вычисленных фаз от кольца для всех сопротивлений кольца
+//РєРѕРјРїР»РµРєС‚ РєР°Р¶СѓС‰РёС…СЃСЏ РЈР­РЎ Р±РµСЃРєРѕРЅРµС‡РЅРѕР№ СЃСЂРµРґС‹ 10 Р·РѕРЅРґРѕРІ РѕС‚ РІС‹С‡РёСЃР»РµРЅРЅС‹С… С„Р°Р· РѕС‚ РєРѕР»СЊС†Р° РґР»СЏ РІСЃРµС… СЃРѕРїСЂРѕС‚РёРІР»РµРЅРёР№ РєРѕР»СЊС†Р°
  void calc_Ro_from_loop(vector <SONDE_PARAM> &sonde_param, vector <V10> &PH_computed, vector <V10> &Ro_computed) {
 	 Ro_computed.clear();
-	 // с первого по последнее сопротивления  
+	 // СЃ РїРµСЂРІРѕРіРѕ РїРѕ РїРѕСЃР»РµРґРЅРµРµ СЃРѕРїСЂРѕС‚РёРІР»РµРЅРёСЏ  
 	 for (int R_idx = 0; R_idx < PH_computed.size(); R_idx++) {
 		 V10 buff;
-		 // для всех зондов
+		 // РґР»СЏ РІСЃРµС… Р·РѕРЅРґРѕРІ
 		 for (int i = 0; i < sonde_param.size(); i++)
 			 buff.VALUE[i] = ro_dfi(&sonde_param[i], PH_computed[R_idx].VALUE[i]);
-		 //длина вектора равна количеству сопротивлений
+		 //РґР»РёРЅР° РІРµРєС‚РѕСЂР° СЂР°РІРЅР° РєРѕР»РёС‡РµСЃС‚РІСѓ СЃРѕРїСЂРѕС‚РёРІР»РµРЅРёР№
 		 Ro_computed.push_back(buff);
 	 }
  }
@@ -178,7 +178,7 @@ V10 get_ph_from_SDR(System::IO::Ports::SerialPort^ COM, int mode, int &res) {
 	if (!stop) {
 		uint8_t DATA[2] = { 0x05 ,0x00 };
 		if (send_to_tool(COM, CMD_GET_DATA, DATA, 2) == 1) {
-			Console::WriteLine("Соединение с прибором прервано переподключите !");
+			Console::WriteLine("РЎРѕРµРґРёРЅРµРЅРёРµ СЃ РїСЂРёР±РѕСЂРѕРј РїСЂРµСЂРІР°РЅРѕ РїРµСЂРµРїРѕРґРєР»СЋС‡РёС‚Рµ !");
 		}
 		Sleep(50);
 		result = receive_from_tool(COM, CMD, DATA_IN, length);
@@ -200,11 +200,11 @@ V10 get_ph_from_SDR(System::IO::Ports::SerialPort^ COM, int mode, int &res) {
 			ph_data.VALUE[i + 5] = All_Data_SDR->DELTA_PH_2000[i];
 		}
 	}
-	// меняем знак для зеркальных передатчиков
-		//Z1 повернут T1 
+	// РјРµРЅСЏРµРј Р·РЅР°Рє РґР»СЏ Р·РµСЂРєР°Р»СЊРЅС‹С… РїРµСЂРµРґР°С‚С‡РёРєРѕРІ
+		//Z1 РїРѕРІРµСЂРЅСѓС‚ T1 
 	for (int i = 0; i < 10; i++) {
-		if (i & 1)ph_data.VALUE[i];//1,3 норм нечет
-		else ph_data.VALUE[i] = -ph_data.VALUE[i];//2,4 инвертируем чет	
+		if (i & 1)ph_data.VALUE[i];//1,3 РЅРѕСЂРј РЅРµС‡РµС‚
+		else ph_data.VALUE[i] = -ph_data.VALUE[i];//2,4 РёРЅРІРµСЂС‚РёСЂСѓРµРј С‡РµС‚	
 	}
 
 	/*
@@ -267,7 +267,7 @@ V10 get_ph_from_1DDS(System::IO::Ports::SerialPort^ COM, int mode, int &res) {
 		uint8_t *DATA = new uint8_t;
 		*DATA = length;
 		if (send_to_tool(COM, CMD_WORK, DATA, 1) == 1) {
-			Console::WriteLine("Соединение с прибором прервано переподключите !");
+			Console::WriteLine("РЎРѕРµРґРёРЅРµРЅРёРµ СЃ РїСЂРёР±РѕСЂРѕРј РїСЂРµСЂРІР°РЅРѕ РїРµСЂРµРїРѕРґРєР»СЋС‡РёС‚Рµ !");
 		}
 		Sleep(50);
 		result = receive_from_tool(COM, CMD, DATA_IN, length);
@@ -289,11 +289,11 @@ V10 get_ph_from_1DDS(System::IO::Ports::SerialPort^ COM, int mode, int &res) {
 		    while (ph_data.VALUE[i] > PI) ph_data.VALUE[i] -= 2 * PI;
 		    while (ph_data.VALUE[i] <= -PI) ph_data.VALUE[i] += 2 * PI;
 	}
-	// меняем знак для зеркальных передатчиков
-	    //Z1 повернут T1 
+	// РјРµРЅСЏРµРј Р·РЅР°Рє РґР»СЏ Р·РµСЂРєР°Р»СЊРЅС‹С… РїРµСЂРµРґР°С‚С‡РёРєРѕРІ
+	    //Z1 РїРѕРІРµСЂРЅСѓС‚ T1 
 		for (int i = 0; i < 8; i++) {
-			if (i & 1)ph_data.VALUE[i] ;//1,3 норм нечет
-			else ph_data.VALUE[i] = -ph_data.VALUE[i];//2,4 инвертируем чет	
+			if (i & 1)ph_data.VALUE[i] ;//1,3 РЅРѕСЂРј РЅРµС‡РµС‚
+			else ph_data.VALUE[i] = -ph_data.VALUE[i];//2,4 РёРЅРІРµСЂС‚РёСЂСѓРµРј С‡РµС‚	
 		}	
 	}
 
@@ -331,11 +331,11 @@ V10 get_ph_from_AUTONOM(void *ComPort, int mode, int &res) {
 			while (ph_data.VALUE[i] > PI) ph_data.VALUE[i] -= 2 * PI;
 			while (ph_data.VALUE[i] <= -PI) ph_data.VALUE[i] += 2 * PI;
 		}
-		// меняем знак для зеркальных передатчиков
-			//Z1 повернут T1 
+		// РјРµРЅСЏРµРј Р·РЅР°Рє РґР»СЏ Р·РµСЂРєР°Р»СЊРЅС‹С… РїРµСЂРµРґР°С‚С‡РёРєРѕРІ
+			//Z1 РїРѕРІРµСЂРЅСѓС‚ T1 
 		for (int i = 0; i < 8; i++) {
-			if (i & 1)ph_data.VALUE[i];//1,3 норм нечет
-			else ph_data.VALUE[i] = -ph_data.VALUE[i];//2,4 инвертируем чет	
+			if (i & 1)ph_data.VALUE[i];//1,3 РЅРѕСЂРј РЅРµС‡РµС‚
+			else ph_data.VALUE[i] = -ph_data.VALUE[i];//2,4 РёРЅРІРµСЂС‚РёСЂСѓРµРј С‡РµС‚	
 		}
 	    /*
 		cout << " SGN " << std::hex << All_Data_1DDS->signature << endl;
@@ -352,8 +352,8 @@ V10 get_ph_from_AUTONOM(void *ComPort, int mode, int &res) {
 	return ph_data;
 }
 
-//старое
-//вычисляет симметризованную разницу фаз от кольца  для всех передатчиков
+//СЃС‚Р°СЂРѕРµ
+//РІС‹С‡РёСЃР»СЏРµС‚ СЃРёРјРјРµС‚СЂРёР·РѕРІР°РЅРЅСѓСЋ СЂР°Р·РЅРёС†Сѓ С„Р°Р· РѕС‚ РєРѕР»СЊС†Р°  РґР»СЏ РІСЃРµС… РїРµСЂРµРґР°С‚С‡РёРєРѕРІ
 V8 calc_phase_from_loop(METROLOGY *metrology_struct, double R, double R_Add_Wire, double *Re, double L, double C, double r, bool mode) {
 	V8 phase_loop, phase_loop_smt;
 	double L1[8], L2[8], F[8], Air[8];
@@ -377,7 +377,7 @@ V8 calc_phase_from_loop(METROLOGY *metrology_struct, double R, double R_Add_Wire
 		if (mode == 1)
 			ZFull[i] = (R + R_Add_Wire) + 1i*Re[i];
 		//cout << "ZFull " << ZFull[i] << endl;
-		// разницы фаз от кольца
+		// СЂР°Р·РЅРёС†С‹ С„Р°Р· РѕС‚ РєРѕР»СЊС†Р°
 		Q[i] = pow((pow((L2[i] + L1[i]) / 2, 2) + r * r) * (pow((L2[i] - L1[i]) / 2, 2) + r * r), 1.5);
 		phase_loop.VALUE[i] = arg(((2.0 * 1i*ZFull[i] * Q[i] + PI*omega[i]*mu0 * pow(r, 4) * pow(L1[i], 3))*pow(L2[i], 3)) / ((2.0 * 1i*ZFull[i] * Q[i] + PI*omega[i]*mu0 * pow(r, 4) * pow(L2[i], 3))*pow(L1[i], 3)));
 	}
@@ -397,9 +397,9 @@ double SIGNAL( METROLOGY *metrology, uint16_t n, double ro) {
 
 int  RO(METROLOGY *metrology, uint16_t n, V8 *Signal_from_loop, V8 *Ro_calculated_adecvat_r_loop) {
 	float Ro0;
-	float epsilon_ARG = 0.0000005; // точность  фазы
-	float epsilon_INF = 0.000000005; // точность  фазы
-	float  Ro_0 = 0.01, Ro_max = 7000.0;  //мин. и мах. значение ус для расчета
+	float epsilon_ARG = 0.0000005; // С‚РѕС‡РЅРѕСЃС‚СЊ  С„Р°Р·С‹
+	float epsilon_INF = 0.000000005; // С‚РѕС‡РЅРѕСЃС‚СЊ  С„Р°Р·С‹
+	float  Ro_0 = 0.01, Ro_max = 7000.0;  //РјРёРЅ. Рё РјР°С…. Р·РЅР°С‡РµРЅРёРµ СѓСЃ РґР»СЏ СЂР°СЃС‡РµС‚Р°
 	bool stop_epsl_ARG = false;
 	bool stop_epsl_INF = false;
 	float  ro_0 = Ro_0;
@@ -444,19 +444,19 @@ V8 get_phase_raw(AllData_1DDS *P) {
 
 V8 get_phase(AllData_1DDS *P, METROLOGY *metrology) {
 	V8 phase = { 0.0, };
-	//получаем разности фаз
+	//РїРѕР»СѓС‡Р°РµРј СЂР°Р·РЅРѕСЃС‚Рё С„Р°Р·
 	for (int i = 0; i < 8; i++) {
 		phase.VALUE[i] = P->PH_RX_2[i] - P->PH_RX_1[i];
 		while (phase.VALUE[i] > PI) phase.VALUE[i] -= 2 * PI;
 		while (phase.VALUE[i] <= -PI) phase.VALUE[i] += 2 * PI;
 	}
 
-	// нормализуем разности фаз к воздуху  и меняем знак для зеркальных передатчиков
-	//Z1 повернут T1 
+	// РЅРѕСЂРјР°Р»РёР·СѓРµРј СЂР°Р·РЅРѕСЃС‚Рё С„Р°Р· Рє РІРѕР·РґСѓС…Сѓ  Рё РјРµРЅСЏРµРј Р·РЅР°Рє РґР»СЏ Р·РµСЂРєР°Р»СЊРЅС‹С… РїРµСЂРµРґР°С‚С‡РёРєРѕРІ
+	//Z1 РїРѕРІРµСЂРЅСѓС‚ T1 
 	
 	for (int i = 0; i < 8; i++) {
-		if (i & 1)phase.VALUE[i] -= (metrology->Air_zz[i] / mG);//1,3 норм нечет
-		else phase.VALUE[i] = -phase.VALUE[i] + (metrology->Air_zz[i] / mG);//2,4 инвертируем чет	
+		if (i & 1)phase.VALUE[i] -= (metrology->Air_zz[i] / mG);//1,3 РЅРѕСЂРј РЅРµС‡РµС‚
+		else phase.VALUE[i] = -phase.VALUE[i] + (metrology->Air_zz[i] / mG);//2,4 РёРЅРІРµСЂС‚РёСЂСѓРµРј С‡РµС‚	
 	}
 	
 	return phase;
@@ -469,21 +469,21 @@ V8 get_phase_smt(AllData_1DDS *P, METROLOGY *metrology) {
 	enum T_SMT {
 		T1, T2, T3, T4,
 	};
-	//получаем разности фаз
+	//РїРѕР»СѓС‡Р°РµРј СЂР°Р·РЅРѕСЃС‚Рё С„Р°Р·
 	for (int i = 0; i < 8; i++) {
 		phase.VALUE[i] = P->PH_RX_2[i] - P->PH_RX_1[i];
 		while (phase.VALUE[i] > PI) phase.VALUE[i] -= 2 * PI;
 		while (phase.VALUE[i] <= -PI) phase.VALUE[i] += 2 * PI;
 	}
 
-	// нормализуем разности фаз к воздуху  и меняем знак для зеркальных передатчиков
-	//Z1 повернут T1 
+	// РЅРѕСЂРјР°Р»РёР·СѓРµРј СЂР°Р·РЅРѕСЃС‚Рё С„Р°Р· Рє РІРѕР·РґСѓС…Сѓ  Рё РјРµРЅСЏРµРј Р·РЅР°Рє РґР»СЏ Р·РµСЂРєР°Р»СЊРЅС‹С… РїРµСЂРµРґР°С‚С‡РёРєРѕРІ
+	//Z1 РїРѕРІРµСЂРЅСѓС‚ T1 
 	for (int i = 0; i < 8; i++) {
-		if (i & 1)phase.VALUE[i]-= (metrology->Air_zz[i] / mG);//1,3 норм нечет
-		else phase.VALUE[i] = - phase.VALUE[i] + (metrology->Air_zz[i] / mG);//2,4 инвертируем	чет
+		if (i & 1)phase.VALUE[i]-= (metrology->Air_zz[i] / mG);//1,3 РЅРѕСЂРј РЅРµС‡РµС‚
+		else phase.VALUE[i] = - phase.VALUE[i] + (metrology->Air_zz[i] / mG);//2,4 РёРЅРІРµСЂС‚РёСЂСѓРµРј	С‡РµС‚
 	}
 
-	//задаем коэфф симметризации для различных версий зондов
+	//Р·Р°РґР°РµРј РєРѕСЌС„С„ СЃРёРјРјРµС‚СЂРёР·Р°С†РёРё РґР»СЏ СЂР°Р·Р»РёС‡РЅС‹С… РІРµСЂСЃРёР№ Р·РѕРЅРґРѕРІ
 	if ((metrology->serial & (1 << 17)) == 0) {//3 transmitters LWD direct messurement
 		K[T1][T1] = 0.75; K[T1][T2] = 0.5; K[T1][T3] = -0.25; K[T1][T4] = 0.0;
 		K[T2][T1] = 0.25; K[T2][T2] = 0.5; K[T2][T3] = 0.25; K[T2][T4] = 0.0;
@@ -513,7 +513,7 @@ V8 get_air_smt(V8 *S, METROLOGY *metrology) {
 		T1, T2, T3, T4,
 	};
 	
-	//задаем коэфф симметризации для различных версий зондов
+	//Р·Р°РґР°РµРј РєРѕСЌС„С„ СЃРёРјРјРµС‚СЂРёР·Р°С†РёРё РґР»СЏ СЂР°Р·Р»РёС‡РЅС‹С… РІРµСЂСЃРёР№ Р·РѕРЅРґРѕРІ
 	if ((metrology->serial & (1 << 17)) == 0) {//3 transmitters LWD direct messurement
 		K[T1][T1] = 0.75; K[T1][T2] = 0.5; K[T1][T3] = -0.25; K[T1][T4] = 0.0;
 		K[T2][T1] = 0.25; K[T2][T2] = 0.5; K[T2][T3] = 0.25; K[T2][T4] = 0.0;
@@ -548,7 +548,7 @@ complex <double> Z(double R, double L, double C, double f) {
 }
 
 double L(double R_loop, double R_wire) {
-	return  mu0 * R_loop * (log(8 * R_loop / R_wire) - 1.75);//индуктивность кольца 
+	return  mu0 * R_loop * (log(8 * R_loop / R_wire) - 1.75);//РёРЅРґСѓРєС‚РёРІРЅРѕСЃС‚СЊ РєРѕР»СЊС†Р° 
 }
 
 double L(double L) {
@@ -558,7 +558,7 @@ double L(double L) {
 complex <double> Loop(double R,  double C, double L, double r, double f, double L1, double L2) {
 	double omega = 2 * PI*f;
 	double K0 = PI * omega*mu0;
-	//Импеданс кольца со вставкой
+	//РРјРїРµРґР°РЅСЃ РєРѕР»СЊС†Р° СЃРѕ РІСЃС‚Р°РІРєРѕР№
 	complex<double>ZFull = (R) + 1i*((omega*L) - 1 / (omega*C));
 	double Q = pow((pow((L2 + L1) / 2, 2) + r * r) * (pow((L2 - L1) / 2, 2) + r * r), 1.5);
 	complex<double> VzzR1R2 = ((2.0 * 1i*ZFull * Q + K0 * pow(r, 4) * pow(L1, 3))*pow(L2, 3)) / ((2.0 * 1i*ZFull * Q + K0 * pow(r, 4) * pow(L2, 3))*pow(L1, 3));
@@ -568,7 +568,7 @@ complex <double> Loop(double R,  double C, double L, double r, double f, double 
 complex <double> Loop_Re(double R,  double Re, double r, double f, double L1, double L2) {
 	double omega = 2 * PI*f;
 	double K0 = PI * omega*mu0;
-	//Импеданс кольца со вставкой
+	//РРјРїРµРґР°РЅСЃ РєРѕР»СЊС†Р° СЃРѕ РІСЃС‚Р°РІРєРѕР№
 	complex<double>ZFull = (R) + 1i*(Re);
 	double Q = pow((pow((L2 + L1) / 2, 2) + r * r) * (pow((L2 - L1) / 2, 2) + r * r), 1.5);
 	complex<double> VzzR1R2 = ((2.0 * 1i*ZFull * Q + K0 * pow(r, 4) * pow(L1, 3))*pow(L2, 3)) / ((2.0 * 1i*ZFull * Q + K0 * pow(r, 4) * pow(L2, 3))*pow(L1, 3));
@@ -576,7 +576,7 @@ complex <double> Loop_Re(double R,  double Re, double r, double f, double L1, do
 }
 
 double Re(double f, double r, double L, double L1, double L2) {
-	double left = 0.1, right = 50, EPS = 0.01; // входные данные
+	double left = 0.1, right = 50, EPS = 0.01; // РІС…РѕРґРЅС‹Рµ РґР°РЅРЅС‹Рµ
 	double m1, m2;
 	while (right - left > EPS) {
 		m1 = left + (right - left) / 3;
@@ -590,7 +590,7 @@ double Re(double f, double r, double L, double L1, double L2) {
 }
 
 double C_max_fi(double f, double r, double L, double L1, double L2) {
-	double left = 500.0 / 1e12, right = 70000.0 / 1e12, EPS = 1.0 / 1e12; // входные данные
+	double left = 500.0 / 1e12, right = 70000.0 / 1e12, EPS = 1.0 / 1e12; // РІС…РѕРґРЅС‹Рµ РґР°РЅРЅС‹Рµ
 	double m1, m2;
 	while (right - left > EPS) {
 		m1 = left + (right - left) / 3;
@@ -604,7 +604,7 @@ double C_max_fi(double f, double r, double L, double L1, double L2) {
 }
 
 double F(double f,  double r, double L, double L1, double L2) {
-	double left = 50000, right = 5000000, EPS = 1; // входные данные
+	double left = 50000, right = 5000000, EPS = 1; // РІС…РѕРґРЅС‹Рµ РґР°РЅРЅС‹Рµ
 	double m1, m2;
 	while (right - left > EPS) {
 		m1 = left + (right - left) / 3;

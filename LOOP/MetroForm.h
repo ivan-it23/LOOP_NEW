@@ -1,4 +1,4 @@
-#pragma once
+п»ї#pragma once
 #include <fstream>
 #include <iostream>
 #include <iomanip>
@@ -7,13 +7,13 @@
 #include <string> 
 #include "variable.h"
 #include "function.h"
-#include <typeinfo.h>
+#include <typeinfo>
 #include <sstream>
 #include <msclr\marshal_cppstd.h>
 #include <bitset>
 
-extern HINSTANCE AMK_DLL;// Объявляем идентификатор библиотеки
-extern StartComPort  AMK_StartComPort;  // Объявляем указатель на  функцию AMK_StartComPort
+extern HINSTANCE AMK_DLL;// РћР±СЉСЏРІР»СЏРµРј РёРґРµРЅС‚РёС„РёРєР°С‚РѕСЂ Р±РёР±Р»РёРѕС‚РµРєРё
+extern StartComPort  AMK_StartComPort;  // РћР±СЉСЏРІР»СЏРµРј СѓРєР°Р·Р°С‚РµР»СЊ РЅР°  С„СѓРЅРєС†РёСЋ AMK_StartComPort
 extern GetCurrState AMK_GetCurrState;
 extern Init AMK_Init;
 extern BeginCyclogram AMK_BeginCyclogram;
@@ -47,7 +47,7 @@ namespace AIRTEMP10 {
 	using namespace System::Runtime::InteropServices;
 
 	/// <summary>
-	/// Сводка для MyForm1
+	/// РЎРІРѕРґРєР° РґР»СЏ MyForm1
 	/// </summary>
 	public ref class MyForm1 : public System::Windows::Forms::Form
 	{
@@ -55,9 +55,9 @@ namespace AIRTEMP10 {
 		MyForm1(void)
 		{
 			InitializeComponent();
-			//при открытии формы читаем из файла конфигурации параметры и записываем
-			// в окошки техстбокс (умолчания)
-			const char* Metrology;
+			//РїСЂРё РѕС‚РєСЂС‹С‚РёРё С„РѕСЂРјС‹ С‡РёС‚Р°РµРј РёР· С„Р°Р№Р»Р° РєРѕРЅС„РёРіСѓСЂР°С†РёРё РїР°СЂР°РјРµС‚СЂС‹ Рё Р·Р°РїРёСЃС‹РІР°РµРј
+			// РІ РѕРєРѕС€РєРё С‚РµС…СЃС‚Р±РѕРєСЃ (СѓРјРѕР»С‡Р°РЅРёСЏ)
+			const char* Metrology = "Metrology.bin";
 			unsigned int Sonde_serial;
 			ifstream metro_in;
 			extern METROLOGY metrology_struct;
@@ -93,7 +93,7 @@ namespace AIRTEMP10 {
 
 	protected:
 		/// <summary>
-		/// Освободить все используемые ресурсы.
+		/// РћСЃРІРѕР±РѕРґРёС‚СЊ РІСЃРµ РёСЃРїРѕР»СЊР·СѓРµРјС‹Рµ СЂРµСЃСѓСЂСЃС‹.
 		/// </summary>
 		~MyForm1()
 		{
@@ -294,14 +294,14 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 
 	private:
 		/// <summary>
-		/// Обязательная переменная конструктора.
+		/// РћР±СЏР·Р°С‚РµР»СЊРЅР°СЏ РїРµСЂРµРјРµРЅРЅР°СЏ РєРѕРЅСЃС‚СЂСѓРєС‚РѕСЂР°.
 		/// </summary>
 
 
 #pragma region Windows Form Designer generated code
 		/// <summary>
-		/// Требуемый метод для поддержки конструктора — не изменяйте 
-		/// содержимое этого метода с помощью редактора кода.
+		/// РўСЂРµР±СѓРµРјС‹Р№ РјРµС‚РѕРґ РґР»СЏ РїРѕРґРґРµСЂР¶РєРё РєРѕРЅСЃС‚СЂСѓРєС‚РѕСЂР° вЂ” РЅРµ РёР·РјРµРЅСЏР№С‚Рµ 
+		/// СЃРѕРґРµСЂР¶РёРјРѕРµ СЌС‚РѕРіРѕ РјРµС‚РѕРґР° СЃ РїРѕРјРѕС‰СЊСЋ СЂРµРґР°РєС‚РѕСЂР° РєРѕРґР°.
 		/// </summary>
 		void InitializeComponent(void)
 		{
@@ -453,7 +453,7 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			this->label67->Name = L"label67";
 			this->label67->Size = System::Drawing::Size(49, 15);
 			this->label67->TabIndex = 27;
-			this->label67->Text = L"номер";
+			this->label67->Text = L"РЅРѕРјРµСЂ";
 			// 
 			// textBox_number
 			// 
@@ -472,7 +472,7 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			this->label66->Name = L"label66";
 			this->label66->Size = System::Drawing::Size(33, 15);
 			this->label66->TabIndex = 25;
-			this->label66->Text = L"мод";
+			this->label66->Text = L"РјРѕРґ";
 			// 
 			// comboBox_mod
 			// 
@@ -495,12 +495,12 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			this->label38->Name = L"label38";
 			this->label38->Size = System::Drawing::Size(35, 15);
 			this->label38->TabIndex = 23;
-			this->label38->Text = L"ТИП";
+			this->label38->Text = L"РўРРџ";
 			// 
 			// comboBox_type
 			// 
 			this->comboBox_type->FormattingEnabled = true;
-			this->comboBox_type->Items->AddRange(gcnew cli::array< System::Object^  >(3) { L"АВТОНОМ", L"LWD", L"КАРТОГРАФ" });
+			this->comboBox_type->Items->AddRange(gcnew cli::array< System::Object^  >(3) { L"РђР’РўРћРќРћРњ", L"LWD", L"РљРђР РўРћР“Р РђР¤" });
 			this->comboBox_type->Location = System::Drawing::Point(-2, 19);
 			this->comboBox_type->Margin = System::Windows::Forms::Padding(2, 2, 2, 2);
 			this->comboBox_type->Name = L"comboBox_type";
@@ -515,7 +515,7 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			this->label44->Name = L"label44";
 			this->label44->Size = System::Drawing::Size(192, 15);
 			this->label44->TabIndex = 15;
-			this->label44->Text = L"signature32 разр. бинарный";
+			this->label44->Text = L"signature32 СЂР°Р·СЂ. Р±РёРЅР°СЂРЅС‹Р№";
 			// 
 			// textBoxSer
 			// 
@@ -542,7 +542,7 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			this->label39->Name = L"label39";
 			this->label39->Size = System::Drawing::Size(144, 15);
 			this->label39->TabIndex = 2;
-			this->label39->Text = L"Серийный на кожухе";
+			this->label39->Text = L"РЎРµСЂРёР№РЅС‹Р№ РЅР° РєРѕР¶СѓС…Рµ";
 			// 
 			// comboBox_N_Tx
 			// 
@@ -573,7 +573,7 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			this->button1->Name = L"button1";
 			this->button1->Size = System::Drawing::Size(154, 24);
 			this->button1->TabIndex = 10;
-			this->button1->Text = L"ЗАПИСАТЬ_В_ФАЙЛ";
+			this->button1->Text = L"Р—РђРџРРЎРђРўР¬_Р’_Р¤РђР™Р›";
 			this->button1->UseVisualStyleBackColor = true;
 			this->button1->Click += gcnew System::EventHandler(this, &MyForm1::buttonWrite_tofile_Click);
 			// 
@@ -587,7 +587,7 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			this->label40->Name = L"label40";
 			this->label40->Size = System::Drawing::Size(164, 20);
 			this->label40->TabIndex = 11;
-			this->label40->Text = L"Файл Метрологии";
+			this->label40->Text = L"Р¤Р°Р№Р» РњРµС‚СЂРѕР»РѕРіРёРё";
 			// 
 			// button3
 			// 
@@ -598,7 +598,7 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			this->button3->Name = L"button3";
 			this->button3->Size = System::Drawing::Size(154, 24);
 			this->button3->TabIndex = 13;
-			this->button3->Text = L"ОТКРЫТЬ_ФАЙЛ";
+			this->button3->Text = L"РћРўРљР Р«РўР¬_Р¤РђР™Р›";
 			this->button3->UseVisualStyleBackColor = true;
 			this->button3->Click += gcnew System::EventHandler(this, &MyForm1::buttonOpen_file_Click);
 			// 
@@ -615,7 +615,7 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			this->button4->Name = L"button4";
 			this->button4->Size = System::Drawing::Size(175, 24);
 			this->button4->TabIndex = 14;
-			this->button4->Text = L"ПРОЧИТАТЬ_ИЗ_ЗОНДА";
+			this->button4->Text = L"РџР РћР§РРўРђРўР¬_РР—_Р—РћРќР”Рђ";
 			this->button4->UseVisualStyleBackColor = true;
 			this->button4->Click += gcnew System::EventHandler(this, &MyForm1::buttonRead_from_sonde_Click);
 			// 
@@ -628,7 +628,7 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			this->button5->Name = L"button5";
 			this->button5->Size = System::Drawing::Size(175, 24);
 			this->button5->TabIndex = 15;
-			this->button5->Text = L"ЗАПИСАТЬ_В_ЗОНД";
+			this->button5->Text = L"Р—РђРџРРЎРђРўР¬_Р’_Р—РћРќР”";
 			this->button5->UseVisualStyleBackColor = true;
 			this->button5->Click += gcnew System::EventHandler(this, &MyForm1::buttonWrite_to_sonde_Click);
 			// 
@@ -641,7 +641,7 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			this->button_smt->Name = L"button_smt";
 			this->button_smt->Size = System::Drawing::Size(124, 24);
 			this->button_smt->TabIndex = 17;
-			this->button_smt->Text = L"ВЗЯТЬ _dFI_SMT";
+			this->button_smt->Text = L"Р’Р—РЇРўР¬ _dFI_SMT";
 			this->button_smt->UseVisualStyleBackColor = true;
 			this->button_smt->Click += gcnew System::EventHandler(this, &MyForm1::button_smt_Click);
 			// 
@@ -654,7 +654,7 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			this->button_dfi->Name = L"button_dfi";
 			this->button_dfi->Size = System::Drawing::Size(124, 24);
 			this->button_dfi->TabIndex = 18;
-			this->button_dfi->Text = L"ВЗЯТЬ _dFI";
+			this->button_dfi->Text = L"Р’Р—РЇРўР¬ _dFI";
 			this->button_dfi->UseVisualStyleBackColor = true;
 			// 
 			// serialPort_LWD_1DDS
@@ -1634,7 +1634,7 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			ss << std::bitset<32>(metrology_struct.signature);
 			textBox_sign32->Text = gcnew String((ss.str()).c_str());
 		}
-		else MessageBox::Show("сигнатура старого образца");
+		else MessageBox::Show("СЃРёРіРЅР°С‚СѓСЂР° СЃС‚Р°СЂРѕРіРѕ РѕР±СЂР°Р·С†Р°");
 
 		textBoxSer->Text = (metrology_struct.serial).ToString();
 		Sonde_serial = metrology_struct.serial;
@@ -1664,7 +1664,7 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 	private: System::Void buttonWrite_tofile_Click(System::Object^  sender, System::EventArgs^  e) {
 		const char* Metrology_out = "Metrology.bin";
 		unsigned int Sonde_serial;
-		METROLOGY metrology_struct;
+		METROLOGY metrology_struct = {};
 		ofstream metro_out;
 
 		///////////////////////////////////////////////////////////////////////
@@ -1708,7 +1708,7 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			metro_out.write((char*)&metrology_struct, sizeof(metrology_struct));
 			metro_out.close();
 		}
-		else MessageBox::Show("Не удалось записать файл");
+		else MessageBox::Show("РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РїРёСЃР°С‚СЊ С„Р°Р№Р»");
 
 
 	}
@@ -1784,7 +1784,7 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 					ss << std::bitset<32>(metrology_struct.signature);
 					textBox_sign32->Text = gcnew String((ss.str()).c_str());
 				}
-				else MessageBox::Show("сигнатура старого образца");
+				else MessageBox::Show("СЃРёРіРЅР°С‚СѓСЂР° СЃС‚Р°СЂРѕРіРѕ РѕР±СЂР°Р·С†Р°");
 				textBoxSer->Text = (metrology_struct.serial).ToString();
 				Sonde_serial = metrology_struct.serial;
 				//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1810,18 +1810,18 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 				
 
 				Sleep(500);
-				MessageBox::Show("ФАЙЛ МЕТРОЛОГИИ  СЧИТАН ИЗ ПРИБОРА!");
+				MessageBox::Show("Р¤РђР™Р› РњР•РўР РћР›РћР“РР  РЎР§РРўРђРќ РР— РџР РР‘РћР Рђ!");
 				metro_check = false;
 			}
 			else {
 				stop = 0;
-				MessageBox::Show("ФАЙЛ МЕТРОЛОГИИ НЕ БЫЛ СЧИТАН !");
+				MessageBox::Show("Р¤РђР™Р› РњР•РўР РћР›РћР“РР РќР• Р‘Р«Р› РЎР§РРўРђРќ !");
 				metro_check = false;
 				serialPort_LWD_1DDS->Close();
 			}
 
 		}
-		else MessageBox::Show("Включите зонд !");
+		else MessageBox::Show("Р’РєР»СЋС‡РёС‚Рµ Р·РѕРЅРґ !");
 
 
 	}
@@ -1917,12 +1917,12 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 				Sleep(150);
 				uint8_t CMD; uint8_t DATA_IN[2];
 				if (receive_from_tool(serialPort_LWD_1DDS, CMD, DATA_IN, 2) == 0) {
-					MessageBox::Show("ФАЙЛ МЕТРОЛОГИИ  ЗАПИСАН В ПРИБОР !");
+					MessageBox::Show("Р¤РђР™Р› РњР•РўР РћР›РћР“РР  Р—РђРџРРЎРђРќ Р’ РџР РР‘РћР  !");
 					metro_check = false;
 				}
 
 				else {
-					MessageBox::Show("ФАЙЛ МЕТРОЛОГИИ НЕ БЫЛ ЗАПИСАН В ПРИБОР !");
+					MessageBox::Show("Р¤РђР™Р› РњР•РўР РћР›РћР“РР РќР• Р‘Р«Р› Р—РђРџРРЎРђРќ Р’ РџР РР‘РћР  !");
 					metro_check = false;
 				}
 				serialPort_LWD_1DDS->Close();
@@ -1931,13 +1931,13 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 
 			else {
 				stop = 0;
-				MessageBox::Show("ФАЙЛ МЕТРОЛОГИИ НЕ БЫЛ ЗАПИСАН В ПРИБОР !");
+				MessageBox::Show("Р¤РђР™Р› РњР•РўР РћР›РћР“РР РќР• Р‘Р«Р› Р—РђРџРРЎРђРќ Р’ РџР РР‘РћР  !");
 				bool metro_check = false;
 				serialPort_LWD_1DDS->Close();
 			}
 
 		}
-		else MessageBox::Show("Включите зонд !");
+		else MessageBox::Show("Р’РєР»СЋС‡РёС‚Рµ Р·РѕРЅРґ !");
 	}
 
 	private: System::Void digit2(System::Object^  sender, System::Windows::Forms::KeyPressEventArgs^  e) {

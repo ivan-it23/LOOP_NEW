@@ -1,4 +1,4 @@
-#pragma once
+п»ї#pragma once
 #include <fstream>
 #include <iostream>
 #include <iomanip>
@@ -7,7 +7,7 @@
 #include <string> 
 #include "variable.h"
 #include "function.h"
-#include <typeinfo.h>
+#include <typeinfo>
 namespace PARAMETRS {
 
 	using namespace System;
@@ -20,7 +20,7 @@ namespace PARAMETRS {
 	using namespace System::Runtime::InteropServices;
 
 	/// <summary>
-	/// Сводка для MyForm1
+	/// РЎРІРѕРґРєР° РґР»СЏ MyForm1
 	/// </summary>
 	public ref class MyForm1 : public System::Windows::Forms::Form
 	{
@@ -132,7 +132,7 @@ namespace PARAMETRS {
 
 	protected:
 		/// <summary>
-		/// Освободить все используемые ресурсы.
+		/// РћСЃРІРѕР±РѕРґРёС‚СЊ РІСЃРµ РёСЃРїРѕР»СЊР·СѓРµРјС‹Рµ СЂРµСЃСѓСЂСЃС‹.
 		/// </summary>
 		~MyForm1()
 		{
@@ -246,14 +246,14 @@ private: System::ComponentModel::IContainer^  components;
 
 	private:
 		/// <summary>
-		/// Обязательная переменная конструктора.
+		/// РћР±СЏР·Р°С‚РµР»СЊРЅР°СЏ РїРµСЂРµРјРµРЅРЅР°СЏ РєРѕРЅСЃС‚СЂСѓРєС‚РѕСЂР°.
 		/// </summary>
 
 
 #pragma region Windows Form Designer generated code
 		/// <summary>
-		/// Требуемый метод для поддержки конструктора — не изменяйте 
-		/// содержимое этого метода с помощью редактора кода.
+		/// РўСЂРµР±СѓРµРјС‹Р№ РјРµС‚РѕРґ РґР»СЏ РїРѕРґРґРµСЂР¶РєРё РєРѕРЅСЃС‚СЂСѓРєС‚РѕСЂР° вЂ” РЅРµ РёР·РјРµРЅСЏР№С‚Рµ 
+		/// СЃРѕРґРµСЂР¶РёРјРѕРµ СЌС‚РѕРіРѕ РјРµС‚РѕРґР° СЃ РїРѕРјРѕС‰СЊСЋ СЂРµРґР°РєС‚РѕСЂР° РєРѕРґР°.
 		/// </summary>
 		void InitializeComponent(void)
 		{
@@ -452,7 +452,7 @@ private: System::ComponentModel::IContainer^  components;
 			this->textBox33->Name = L"textBox33";
 			this->textBox33->Size = System::Drawing::Size(76, 35);
 			this->textBox33->TabIndex = 46;
-			this->textBox33->Text = L"Провести калибровку";
+			this->textBox33->Text = L"РџСЂРѕРІРµСЃС‚Рё РєР°Р»РёР±СЂРѕРІРєСѓ";
 			// 
 			// label14
 			// 
@@ -883,7 +883,7 @@ private: System::ComponentModel::IContainer^  components;
 			this->textBox32->Name = L"textBox32";
 			this->textBox32->Size = System::Drawing::Size(76, 35);
 			this->textBox32->TabIndex = 45;
-			this->textBox32->Text = L"Возможна эксплуатация";
+			this->textBox32->Text = L"Р’РѕР·РјРѕР¶РЅР° СЌРєСЃРїР»СѓР°С‚Р°С†РёСЏ";
 			// 
 			// textBox34
 			// 
@@ -932,7 +932,7 @@ private: System::ComponentModel::IContainer^  components;
 			this->label1->Name = L"label1";
 			this->label1->Size = System::Drawing::Size(46, 13);
 			this->label1->TabIndex = 3;
-			this->label1->Text = L"Норма";
+			this->label1->Text = L"РќРѕСЂРјР°";
 			// 
 			// label15
 			// 
@@ -1103,7 +1103,7 @@ private: System::ComponentModel::IContainer^  components;
 			this->label25->Name = L"label25";
 			this->label25->Size = System::Drawing::Size(76, 13);
 			this->label25->TabIndex = 65;
-			this->label25->Text = L"усреднение";
+			this->label25->Text = L"СѓСЃСЂРµРґРЅРµРЅРёРµ";
 			// 
 			// label3
 			// 
@@ -1132,7 +1132,7 @@ private: System::ComponentModel::IContainer^  components;
 			this->button1->Name = L"button1";
 			this->button1->Size = System::Drawing::Size(96, 19);
 			this->button1->TabIndex = 1;
-			this->button1->Text = L"УСТАНОВИТЬ";
+			this->button1->Text = L"РЈРЎРўРђРќРћР’РРўР¬";
 			this->button1->UseVisualStyleBackColor = true;
 			this->button1->Click += gcnew System::EventHandler(this, &MyForm1::set_param);
 			// 
@@ -1158,7 +1158,7 @@ private: System::ComponentModel::IContainer^  components;
 			this->checkBox_express->Name = L"checkBox_express";
 			this->checkBox_express->Size = System::Drawing::Size(77, 17);
 			this->checkBox_express->TabIndex = 62;
-			this->checkBox_express->Text = L"экспресс ";
+			this->checkBox_express->Text = L"СЌРєСЃРїСЂРµСЃСЃ ";
 			this->checkBox_express->UseVisualStyleBackColor = true;
 			// 
 			// checkBox_Ro
@@ -1168,7 +1168,7 @@ private: System::ComponentModel::IContainer^  components;
 			this->checkBox_Ro->Name = L"checkBox_Ro";
 			this->checkBox_Ro->Size = System::Drawing::Size(93, 17);
 			this->checkBox_Ro->TabIndex = 63;
-			this->checkBox_Ro->Text = L"УЭС->Рапорт";
+			this->checkBox_Ro->Text = L"РЈР­РЎ->Р Р°РїРѕСЂС‚";
 			this->checkBox_Ro->UseVisualStyleBackColor = true;
 			// 
 			// checkBox_PH
@@ -1178,7 +1178,7 @@ private: System::ComponentModel::IContainer^  components;
 			this->checkBox_PH->Name = L"checkBox_PH";
 			this->checkBox_PH->Size = System::Drawing::Size(100, 17);
 			this->checkBox_PH->TabIndex = 64;
-			this->checkBox_PH->Text = L"Фаза->Рапорт";
+			this->checkBox_PH->Text = L"Р¤Р°Р·Р°->Р Р°РїРѕСЂС‚";
 			this->checkBox_PH->UseVisualStyleBackColor = true;
 			// 
 			// comboBox3
@@ -1225,7 +1225,7 @@ private: System::ComponentModel::IContainer^  components;
 			// comboBox_Ro_calk
 			// 
 			this->comboBox_Ro_calk->FormattingEnabled = true;
-			this->comboBox_Ro_calk->Items->AddRange(gcnew cli::array< System::Object^  >(2) { L"Расчет фаз и УЭС на компьютере", L"Расчет фаз и УЭС прибором" });
+			this->comboBox_Ro_calk->Items->AddRange(gcnew cli::array< System::Object^  >(2) { L"Р Р°СЃС‡РµС‚ С„Р°Р· Рё РЈР­РЎ РЅР° РєРѕРјРїСЊСЋС‚РµСЂРµ", L"Р Р°СЃС‡РµС‚ С„Р°Р· Рё РЈР­РЎ РїСЂРёР±РѕСЂРѕРј" });
 			this->comboBox_Ro_calk->Location = System::Drawing::Point(9, 428);
 			this->comboBox_Ro_calk->Margin = System::Windows::Forms::Padding(2);
 			this->comboBox_Ro_calk->Name = L"comboBox_Ro_calk";
@@ -1240,7 +1240,7 @@ private: System::ComponentModel::IContainer^  components;
 			this->checkBox_smt->Name = L"checkBox_smt";
 			this->checkBox_smt->Size = System::Drawing::Size(72, 17);
 			this->checkBox_smt->TabIndex = 70;
-			this->checkBox_smt->Text = L"Симметр";
+			this->checkBox_smt->Text = L"РЎРёРјРјРµС‚СЂ";
 			this->checkBox_smt->UseVisualStyleBackColor = true;
 			// 
 			// comboBox_LWD_COM
@@ -1296,7 +1296,7 @@ private: System::ComponentModel::IContainer^  components;
 			this->Controls->Add(this->tableLayoutPanel1);
 			this->Margin = System::Windows::Forms::Padding(2);
 			this->Name = L"MyForm1";
-			this->Text = L"ПАРАМЕТРЫ";
+			this->Text = L"РџРђР РђРњР•РўР Р«";
 			this->FormClosing += gcnew System::Windows::Forms::FormClosingEventHandler(this, &MyForm1::MyForm1_FormClosing);
 			this->Load += gcnew System::EventHandler(this, &MyForm1::MyForm1_Load);
 			this->tableLayoutPanel1->ResumeLayout(false);
@@ -1308,7 +1308,7 @@ private: System::ComponentModel::IContainer^  components;
 #pragma endregion
 	
 		const char* ConfName = "Config.txt";
-		// фильтр только для цифр при вводе в текстбокс
+		// С„РёР»СЊС‚СЂ С‚РѕР»СЊРєРѕ РґР»СЏ С†РёС„СЂ РїСЂРё РІРІРѕРґРµ РІ С‚РµРєСЃС‚Р±РѕРєСЃ
 private: System::Void digit(System::Object^  sender, System::Windows::Forms::KeyPressEventArgs^  e) {
 	if (!Char::IsDigit(e->KeyChar) && !Char::IsControl(e->KeyChar)) e->Handled = true;
 }
@@ -1470,7 +1470,7 @@ private: System::Void comboBox_Ro_calk_SelectedIndexChanged(System::Object^  sen
 	if (comboBox_Ro_calk->SelectedIndex == 0) {
 	    if ((metrology_struct.serial & (1 << 31)) != 0) {
 		    comboBox_Ro_calk->SelectedIndex = 1;
-		    MessageBox::Show("верните файл метрологии");
+		    MessageBox::Show("РІРµСЂРЅРёС‚Рµ С„Р°Р№Р» РјРµС‚СЂРѕР»РѕРіРёРё");
 	    }
 		else checkBox_smt->Visible = true;
 	}

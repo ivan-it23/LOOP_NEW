@@ -1,7 +1,7 @@
-#pragma once
+п»ї#pragma once
 #include "variable.h"
 #include <vector>
-//для новой программы
+//РґР»СЏ РЅРѕРІРѕР№ РїСЂРѕРіСЂР°РјРјС‹
 void metro_convert(void *metrology_struct, vector <SONDE_PARAM> &param );
 float  ro_dfi(SONDE_PARAM *param, float PH_from_loop);
 V10 ro_dfi(vector <SONDE_PARAM> &sonde_param, V10 PH_from_loop);
@@ -10,7 +10,7 @@ void calc_Ro_from_loop(vector <SONDE_PARAM> &param, vector <V10> &PH_computed, v
 V10 get_ph_from_SDR(System::IO::Ports::SerialPort^ COM, int mode, int &res);
 V10 get_ph_from_1DDS(System::IO::Ports::SerialPort^ COM, int mode, int &res);
 V10 get_ph_from_AUTONOM(void *ComPort, int mode, int &res);
-//вычисляет сигнал от кольца  
+//РІС‹С‡РёСЃР»СЏРµС‚ СЃРёРіРЅР°Р» РѕС‚ РєРѕР»СЊС†Р°  
 V8 calc_phase_from_loop(METROLOGY *metrology_struct, double R, double R_Add_Wire, double *Re, double L, double C, double r, bool mode);
 	double SIGNAL(METROLOGY *metrology, uint16_t n, double ro);
 int  RO (METROLOGY *metrology, uint16_t n, V8 *Signal_from_loop, V8 *Ro_calculated_adecvat_r_loop);
