@@ -5473,7 +5473,7 @@ private: System::Void button_ON_OFF_Click(System::Object^  sender, System::Event
 
 		if (on_off == false) {
 			AMK_DLL = LoadLibrary(TEXT("AMK_1DDS_AUTONOM.dll"));// Загружаем библиотеку EMK_90_1dds
-			METROLOGY metrology_struct;
+			GP_TOOL_METROLOGY metrology_struct;
 			_controlfp(_CW_DEFAULT, 0xfffff);
 			AMK_StartComPort = (StartComPort)GetProcAddress(AMK_DLL, "AMK_StartComPort");
 			AMK_GetCurrState = (GetCurrState)GetProcAddress(AMK_DLL, "AMK_GetCurrState");
@@ -6409,7 +6409,7 @@ private: System::Void button_calk_C_need_Click(System::Object^  sender, System::
 	vector <SONDE_PARAM> param;
 
 	ifstream metro_in;
-	METROLOGY metrology_struct;
+	GP_TOOL_METROLOGY metrology_struct;
 	openFileDialog1->Filter = "text files (*.bin)|*.bin";
 	if (checkBox_param_red->Checked == false) {
 		if (openFileDialog1->ShowDialog() == System::Windows::Forms::DialogResult::OK) {
@@ -6530,7 +6530,7 @@ private: System::Void button_calk_Click(System::Object^  sender, System::EventAr
 
 	const char* Metrology_in;
 	ifstream metro_in;
-	METROLOGY_NEW *metrology_struct;
+	GP_TOOL_METROLOGY *metrology_struct;
 	
 	
 	
@@ -6562,8 +6562,8 @@ private: System::Void button_calk_Click(System::Object^  sender, System::EventAr
 		Re[i] = loop_param[i].Re;
 	}
 	for(int R_idx = 0; R_idx < 8; R_idx++) {
-		V8 PH_old = calc_phase_from_loop(&metrology_struct, loop_param[R_idx].R, 0.01, Re, 0, 0, 0.5, 1);
-		V8 Ro_old = R0_adecvat_r_loop(&metrology_struct, &PH_old);
+		V10 PH_old = calc_phase_from_loop(metrology_struct, loop_param[R_idx].R, 0.01, Re, 0, 0, 0.5, 1);
+		V10 Ro_old = R0_adecvat_r_loop(metrology_struct, &PH_old);
 		cout  << " Ro_old ";
 		for (int i = 0; i < 8; i++)
 			cout << Ro_old.VALUE[i] << " ";

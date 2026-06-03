@@ -63,11 +63,10 @@ string Com1_Name = "";
 string Com_LWD_Name = "";
 string  Metrology_Path;
 
-METROLOGY metrology_struct;
-METROLOGY_FOR_AUTONOM metrology_struct_for_autonom; 
-vector <AllData_1DDS> Temp_data;
-V8 Air_Phase;
-V8 Ro_percent_temperature[200][10] = { 0.0, };
+GP_TOOL_METROLOGY metrology_struct;
+vector <GP_TOOL_DATA> Temp_data;
+V10 Air_Phase;
+V10 Ro_percent_temperature[200][10] = { 0.0, };
 complex<double> SGN[20] ;
 
 int version_now, version_new;

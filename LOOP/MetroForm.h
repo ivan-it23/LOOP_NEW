@@ -60,7 +60,7 @@ namespace AIRTEMP10 {
 			const char* Metrology = "Metrology.bin";
 			unsigned int Sonde_serial;
 			ifstream metro_in;
-			extern METROLOGY metrology_struct;
+			extern GP_TOOL_METROLOGY metrology_struct;
 			metro_in.open(Metrology, ios::binary);
 			//metro_in.read((char*)&metrology_struct, sizeof(metrology_struct));
 			metro_in.close();
@@ -82,7 +82,7 @@ namespace AIRTEMP10 {
 			}
 			for (int i = 0; i < 10; i++) {
 				TextBox^ TEXTBOX_AIR = (TextBox^)this->tableLayoutPanel1->Controls["textBoxAIRT" + (i + 1).ToString()];
-				TEXTBOX_AIR->Text = metrology_struct.Air_zz[i].ToString();
+				TEXTBOX_AIR->Text = metrology_struct.Air_zz[i / 5][i % 5].ToString();
 			}
 
 
@@ -1601,7 +1601,7 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 		const char* Metrology;
 		unsigned int Sonde_serial;
 		ifstream metro_in;
-		METROLOGY metrology_struct;
+		GP_TOOL_METROLOGY metrology_struct;
 
 		openFileDialog1->Filter = "text files (*.bin)|*.bin";
 		//openFileDialog1->InitialDirectory = gcnew String(Metrology_Path.c_str());
@@ -1652,7 +1652,7 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 		}
 		for (int i = 0; i < 10; i++) {
 			TextBox^ TEXTBOX_AIR = (TextBox^)this->tableLayoutPanel1->Controls["textBoxAIRT" + (i + 1).ToString()];
-			TEXTBOX_AIR->Text = metrology_struct.Air_zz[i].ToString();
+			TEXTBOX_AIR->Text = metrology_struct.Air_zz[i / 5][i % 5].ToString();
 		}
 
 
@@ -1664,7 +1664,7 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 	private: System::Void buttonWrite_tofile_Click(System::Object^  sender, System::EventArgs^  e) {
 		const char* Metrology_out = "Metrology.bin";
 		unsigned int Sonde_serial;
-		METROLOGY metrology_struct = {};
+		GP_TOOL_METROLOGY metrology_struct = {};
 		ofstream metro_out;
 
 		///////////////////////////////////////////////////////////////////////
@@ -1695,7 +1695,7 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 		}
 		for (int i = 0; i < 10; i++) {
 			TextBox^ TEXTBOX_AIR = (TextBox^)this->tableLayoutPanel1->Controls["textBoxAIRT" + (i + 1).ToString()];
-			if (TEXTBOX_AIR->Text != "") metrology_struct.Air_zz[i] = System::Int64::Parse(TEXTBOX_AIR->Text);
+			if (TEXTBOX_AIR->Text != "") metrology_struct.Air_zz[i / 5][i % 5] = System::Int64::Parse(TEXTBOX_AIR->Text);
 		}
 
 
@@ -1723,7 +1723,7 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 		bool plateu_test = false;
 
 		if (on_off_1dds == true) {
-			METROLOGY metrology_struct;
+			GP_TOOL_METROLOGY metrology_struct;
 			metro_check = true;
 			Sleep(700);
 			bool stop = false;
@@ -1797,14 +1797,12 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 				if (tool_N_Tx == 4) {
 					for (int i = 0; i < 2; i++) {
 						TextBox^ TEXTBOX_F = (TextBox^)this->tableLayoutPanel1->Controls["textBoxFT" + (i + 1).ToString()];
-						if (i == 0)
-							TEXTBOX_F->Text = metrology_struct.F[i].ToString();
-						if (i == 1)
-							TEXTBOX_F->Text = metrology_struct.F[4].ToString();
+						// F[0] - 400 кГц, F[1] - 2000 кГц (две рабочие частоты прибора)
+						TEXTBOX_F->Text = metrology_struct.F[i].ToString();
 					}
 					for (int i = 0; i < 8; i++) {
 						TextBox^ TEXTBOX_AIR = (TextBox^)this->tableLayoutPanel1->Controls["textBoxAIRT" + (i + 1).ToString()];
-						TEXTBOX_AIR->Text = metrology_struct.Air_zz[i].ToString();							
+						TEXTBOX_AIR->Text = metrology_struct.Air_zz[i / 5][i % 5].ToString();							
 					}
 				}
 				
@@ -1835,7 +1833,7 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 	    bool plateu_test = false;
 
 		if (on_off_1dds == true) {
-			METROLOGY metrology_struct;
+			GP_TOOL_METROLOGY metrology_struct;
 			///////////////////////////////////////////////////////////////////////
 			uint32_t tool_number = 0;
 			if (textBox_number->Text != "")  tool_number = System::Int64::Parse(textBox_number->Text);
@@ -1862,23 +1860,12 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			
 			for (int i = 0; i < 2; i++) {
 				TextBox^ TEXTBOX_F = (TextBox^)this->tableLayoutPanel1->Controls["textBoxFT" + (i + 1).ToString()];
+				// F[0] - 400 кГц, F[1] - 2000 кГц (две рабочие частоты прибора для 3/4/5 Tx)
 				if (TEXTBOX_F->Text != "") metrology_struct.F[i] = System::Int64::Parse(TEXTBOX_F->Text);
-				if (comboBox_N_Tx->SelectedIndex + 3 == 4) {
-					if (TEXTBOX_F->Text != "") {
-						metrology_struct.F[i+0] = System::Int64::Parse(TEXTBOX_F->Text);
-						metrology_struct.F[i+1] = System::Int64::Parse(TEXTBOX_F->Text);
-						metrology_struct.F[i+2] = System::Int64::Parse(TEXTBOX_F->Text);
-						metrology_struct.F[i+3] = System::Int64::Parse(TEXTBOX_F->Text);
-					} 
-				}
-				if (comboBox_N_Tx->SelectedIndex + 3 == 5) {
-					if (TEXTBOX_F->Text != "") metrology_struct.F[i] = System::Int64::Parse(TEXTBOX_F->Text);										
-				}
-			
 			}
 			for (int i = 0; i < 10; i++) {
 				TextBox^ TEXTBOX_AIR = (TextBox^)this->tableLayoutPanel1->Controls["textBoxAIRT" + (i + 1).ToString()];
-				if (TEXTBOX_AIR->Text != "") metrology_struct.Air_zz[i] = System::Int64::Parse(TEXTBOX_AIR->Text);
+				if (TEXTBOX_AIR->Text != "") metrology_struct.Air_zz[i / 5][i % 5] = System::Int64::Parse(TEXTBOX_AIR->Text);
 			}
 
 

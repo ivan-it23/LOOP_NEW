@@ -1466,7 +1466,7 @@ private: System::Void digit1(System::Object^  sender, System::Windows::Forms::Ke
 }
 
 private: System::Void comboBox_Ro_calk_SelectedIndexChanged(System::Object^  sender, System::EventArgs^  e) {
-	extern METROLOGY metrology_struct;
+	extern GP_TOOL_METROLOGY metrology_struct;
 	if (comboBox_Ro_calk->SelectedIndex == 0) {
 	    if ((metrology_struct.serial & (1 << 31)) != 0) {
 		    comboBox_Ro_calk->SelectedIndex = 1;

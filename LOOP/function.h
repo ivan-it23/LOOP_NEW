@@ -11,14 +11,14 @@ V10 get_ph_from_SDR(System::IO::Ports::SerialPort^ COM, int mode, int &res);
 V10 get_ph_from_1DDS(System::IO::Ports::SerialPort^ COM, int mode, int &res);
 V10 get_ph_from_AUTONOM(void *ComPort, int mode, int &res);
 //вычисляет сигнал от кольца  
-V8 calc_phase_from_loop(METROLOGY *metrology_struct, double R, double R_Add_Wire, double *Re, double L, double C, double r, bool mode);
-	double SIGNAL(METROLOGY *metrology, uint16_t n, double ro);
-int  RO (METROLOGY *metrology, uint16_t n, V8 *Signal_from_loop, V8 *Ro_calculated_adecvat_r_loop);
-V8  R0_adecvat_r_loop(METROLOGY *metrology, V8 *Signal_from_loop);
-V8 get_phase_smt(AllData_1DDS *P, METROLOGY *metrology);
-V8 get_phase(AllData_1DDS *P, METROLOGY *metrology);
-V8 get_phase_raw(AllData_1DDS *P);
-V8 get_air_smt(V8 *S, METROLOGY *metrology);
+V10 calc_phase_from_loop(GP_TOOL_METROLOGY *metrology_struct, double R, double R_Add_Wire, double *Re, double L, double C, double r, bool mode);
+	double SIGNAL(GP_TOOL_METROLOGY *metrology, uint16_t n, double ro);
+int  RO (GP_TOOL_METROLOGY *metrology, uint16_t n, V10 *Signal_from_loop, V10 *Ro_calculated_adecvat_r_loop);
+V10  R0_adecvat_r_loop(GP_TOOL_METROLOGY *metrology, V10 *Signal_from_loop);
+V10 get_phase_smt(GP_TOOL_DATA *P, GP_TOOL_METROLOGY *metrology);
+V10 get_phase(GP_TOOL_DATA *P, GP_TOOL_METROLOGY *metrology);
+V10 get_phase_raw(GP_TOOL_DATA *P);
+V10 get_air_smt(V10 *S, GP_TOOL_METROLOGY *metrology);
 /////////////////////////////////////////////////////////////////////////////////////
 complex <double> Z(double R, double L, double C, double f);
 
@@ -44,6 +44,6 @@ int send_to_tool(System::IO::Ports::SerialPort^ COM, uint8_t CMD, uint8_t* DATA,
 
 int receive_from_tool(System::IO::Ports::SerialPort^ COM, uint8_t CMD, uint8_t* DATA, uint16_t length);
 
-AllData_1DDS READ_BLOK_AllData_1DDS(ifstream &fin, int n);
+GP_TOOL_DATA READ_BLOK_GP_TOOL_DATA(ifstream &fin, int n);
 
 ARGB rgb(double ratio);

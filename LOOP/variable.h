@@ -69,10 +69,6 @@ typedef unsigned long(__stdcall *CheckConnect)(void); // функция не з�
 //L1 Расстояние между ближним приемником и передатчиком 
 //L2 Расстояние между дальним приемником и передатчиком
 
-struct V8  {
-	float VALUE[8];
-};
-
 struct V10 {
 	float VALUE[10];
 };
@@ -105,107 +101,36 @@ struct INC_SET {
 	float K_delta; //2.5
 };
 
-struct	METROLOGY {
-	uint32_t signature;
-	uint32_t serial;
-	uint16_t L1[8];//
-	uint16_t L2[8];//
-	uint16_t F[8];//
-	int16_t Air_zz[8];//
-	uint16_t PhaseOffsets[4];//сдвиг между квадратурами
-	uint32_t D_sonde_mm;
-	int16_t Air_zz_amt[8];//
-	INC_SET inc_set;
-	uint8_t service[92];//на будущее до 240 байт !!!!
-};
-
-struct	METROLOGY_NEW {
-	uint32_t signature;
-	uint32_t serial;
-	uint16_t L1[5];//
-	uint16_t L2[5];//
-	uint16_t F[2];//
-	int16_t Air_zz_400[5];//
-	int16_t Air_zz_2000[5];//
-	int16_t min_zz_amt_400[5];//
-	int16_t min_zz_amt_2000[5];//
-	int16_t freq_PWM_on;
-	int16_t pow_save_mode;
-	uint16_t D_sonde_mm;
-	int16_t add[80];
-};
-
-struct	METROLOGY_FOR_AUTONOM {
-	uint32_t signature;
-	uint32_t serial;
-	uint16_t L1[8];//
-	uint16_t L2[8];//
-	uint16_t F[8];//
-	int16_t Air_zz[8];//	
-	int16_t Air_zz_amt[8];//
-	int16_t high_temp[8];
-	int16_t Air_zz_high_temp[8][8];//	
-	int16_t add[4] = { 0, };
-};
-
-struct AllData_1DDS {
-	uint32_t signature;
-	uint32_t condition;
-	float Ro_smt[8];
-	float PH_smt[8];
-	uint32_t frame;
-	float temperature;
-	float AM_RX_1[10];
-	float AM_RX_2[10];
-	float PH_RX_1[10];
-	float PH_RX_2[10];
-	//uint8_t add[6];
-};
-
-struct DATA_5_TX {// 616 byte
+// Универсальная структура данных прибора для 3/4/5 передатчиков (240 байт).
+// Индексация: [freq][Tx], freq 0 = 400 кГц, 1 = 2000 кГц; Tx 0..4 = T1..T5.
+struct GP_TOOL_DATA {// 240 byte
 	uint32_t signature;
 	uint32_t condition;
 	uint32_t frame;
 	float temperature;
-
-	float Ro_smt_400[5];// УЭС, рассчитанные на контроллере
-	float Ro_smt_2000[5];//
-
-	float PH_smt_400[5];// симметризованные фазы
-	float PH_smt_2000[5];//
-
-	float DELTA_PH_400[5];// сырая разница фаз
-	float DELTA_PH_2000[5];// она же разница фаз первой гармоники
-
-	float AM_RX_1_400[5];// амплитуды первой гармоники
-	float AM_RX_1_2000[5];// они же амплитуды сигнала
-	float AM_RX_2_400[5];//на приемниках для пяти передатчиков
-	float AM_RX_2_2000[5];//
-
-	float AM_0_RX_1_400;//амплитуды шума первой гармоники
-	float AM_0_RX_1_2000;//они же амплитуды шума в полосе приема
-	float AM_0_RX_2_400;// при молчащих передатчиках
-	float AM_0_RX_2_2000;//
-
-
-	//debug and tuning
-	//5 - передатчиков 4 гармоники
-	// в массиве по порядку 0,2,3,4 я гармоники
-	float AM_RX_1_400_H[5][4];
-	float AM_RX_1_2000_H[5][4];
-
-	float AM_RX_2_400_H[5][4];
-	float AM_RX_2_2000_H[5][4];
-
-	float AM_0_RX_1_400_H[4];
-	float AM_0_RX_1_2000_H[4];
-
-	float AM_0_RX_2_400_H[4];
-	float AM_0_RX_2_2000_H[4];
+	float rho_smt[2][5];// УЭС, рассчитанные на контроллере [400, 2000][T1-T5]
+	float phase_smt[2][5];// симметризованные фазы [400, 2000][T1-T5]
+	float AM_RX_1[2][5];// амплитуды на первом приемнике [400, 2000][T1-T5]
+	float ZERO_AM_RX_1[2];// амплитуды на первом приемнике [400, 2000] при молчащих передатчиках
+	float AM_RX_2[2][5];// амплитуды на втором приемнике [400, 2000][T1-T5]
+	float ZERO_AM_RX_2[2];// амплитуды на втором приемнике [400, 2000] при молчащих передатчиках
+	float DELTA_PH[2][5];// сырая разница фаз [400, 2000][T1-T5]
+	float ZERO_dPH[2];// разница фаз молчащих передатчиков [400, 2000]
 };
 
-struct DAT {
-	DATA_5_TX GP;
+// Универсальная структура метрологии прибора для 3/4/5 передатчиков (240 байт).
+struct GP_TOOL_METROLOGY {// 240 byte
+	uint32_t signature;
+	uint32_t serial;
+	uint16_t L1[5];// расстояние до ближнего приемника, T1-T5
+	uint16_t L2[5];// расстояние до дальнего приемника, T1-T5
+	uint16_t F[2];// частоты [400, 2000]
+	int16_t Air_zz[2][5];// воздушные поправки фаз [400, 2000][T1-T5]
+	int16_t Air_zz_amt[2][5];// пороги амплитуд [400, 2000][T1-T5]
+	uint32_t D_sonde_mm;// диаметр зонда
+	uint32_t work_type;// тип работы прибора
+	uint32_t Rx_Position;// 0 - DEFAULT R1->T1, 1 - R1->T2
+	uint16_t service[78];// на будущее до 240 байт !!!!
 };
 
 struct ARGB
