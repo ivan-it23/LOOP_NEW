@@ -7,6 +7,29 @@ float  ro_dfi(SONDE_PARAM *param, float PH_from_loop);
 V10 ro_dfi(vector <SONDE_PARAM> &sonde_param, V10 PH_from_loop);
 void calc_PH_from_loop(vector <SONDE_PARAM> &param, vector <LOOP_PARAM> &loop_param, vector <V10> &PH_computed);
 void calc_Ro_from_loop(vector <SONDE_PARAM> &param, vector <V10> &PH_computed, vector <V10> &Ro_computed);
+// Идентификация прибора, декодированная из поля signature структуры данных/метрологии.
+// toolCode = low20(signature)/1000 = XYZ: X=тип прибора, Y=число передатчиков, Z=модификация.
+struct TOOL_IDENTITY {
+	uint32_t signature;     // исходная сигнатура
+	uint32_t device_type;   // 1 = Автономный, 2 = LWD, 0 = неизвестно
+	uint32_t n_tx;          // число передатчиков
+	uint32_t modification;  // модификация прибора
+	uint32_t number;        // порядковый номер прибора
+	bool     valid;         // признак корректно распознанной сигнатуры
+};
+
+// Универсальное декодирование сигнатуры в идентификацию прибора.
+TOOL_IDENTITY decode_tool_signature(uint32_t signature);
+
+// Чтение сигнатуры прибора командой CMD_GET_SIGNATURE (0x16). Возврат 0 при успехе.
+int read_tool_signature(System::IO::Ports::SerialPort^ COM, uint32_t &signature);
+
+// Универсальный опрос кадра данных прибора командой CMD_GET_DATA (0x11).
+// Число передатчиков и раскладка фаз определяются из сигнатуры кадра.
+V10 get_ph_from_tool(System::IO::Ports::SerialPort^ COM, int mode, int &res);
+
+// Специализированные функции опроса по типу прибора.
+// Порт должен быть открыт вызывающим кодом; данные функции не управляют жизнью порта.
 V10 get_ph_from_SDR(System::IO::Ports::SerialPort^ COM, int mode, int &res);
 V10 get_ph_from_1DDS(System::IO::Ports::SerialPort^ COM, int mode, int &res);
 V10 get_ph_from_AUTONOM(void *ComPort, int mode, int &res);

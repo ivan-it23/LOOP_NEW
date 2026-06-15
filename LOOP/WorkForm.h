@@ -4,6 +4,8 @@
 #include <fstream>
 #include <iostream>
 #include <iomanip>
+#include <sstream>
+#include <cstring>
 #include <cmath>
 #include <complex> 
 #include <string> 
@@ -48,6 +50,38 @@ namespace LOOP {
 
 
 	using namespace std;
+
+	// Установка UTF-8 кодировки для консоли Windows
+	inline void SetConsoleUTF8() {
+		SetConsoleOutputCP(CP_UTF8);
+		SetConsoleCP(CP_UTF8);
+	}
+
+	// Функция логирования с timestamp (UTF-8)
+	inline void WriteLog(const string& message) {
+		time_t now = time(0);
+		tm ltm;
+		localtime_s(&ltm, &now);
+		// Открываем файл в бинарном режиме с UTF-8 BOM для корректного отображения
+		ofstream log_file("LoopDeviceLog.txt", ios::app | ios::binary);
+		// Если файл новый, записываем UTF-8 BOM
+		if (log_file.tellp() == 0) {
+			const unsigned char bom[] = {0xEF, 0xBB, 0xBF};
+			log_file.write((const char*)bom, 3);
+		}
+		stringstream ss;
+		ss << "[" << setfill('0') << setw(2) << ltm.tm_hour << ":"
+		   << setfill('0') << setw(2) << ltm.tm_min << ":"
+		   << setfill('0') << setw(2) << ltm.tm_sec << "] "
+		   << message << "\n";
+		string log_line = ss.str();
+		log_file.write(log_line.c_str(), log_line.length());
+		log_file.close();
+		// Вывод в консоль с установкой кодировки UTF-8
+		SetConsoleUTF8();
+		cout << log_line;
+	}
+
 	using namespace System::IO::Ports;
 	using namespace System::Windows;
 
@@ -5472,9 +5506,14 @@ private: System::Void button_ON_OFF_Click(System::Object^  sender, System::Event
 		extern vector <LOOP_PARAM> loop_param;
 
 		if (on_off == false) {
+			WriteLog("=== НАЧАЛО ВКЛЮЧЕНИЯ АВТОНОМНИКА ===");
+			WriteLog("Тип прибора: AUTONOM");
 			AMK_DLL = LoadLibrary(TEXT("AMK_1DDS_AUTONOM.dll"));// Загружаем библиотеку EMK_90_1dds
+			WriteLog(AMK_DLL != NULL ? "DLL AMK_1DDS_AUTONOM.dll загружена успешно" : "ОШИБКА: DLL не загружена!");
 			GP_TOOL_METROLOGY metrology_struct;
+			memset(&metrology_struct, 0, sizeof(GP_TOOL_METROLOGY));
 			_controlfp(_CW_DEFAULT, 0xfffff);
+			WriteLog("Получение адресов функций из DLL...");
 			AMK_StartComPort = (StartComPort)GetProcAddress(AMK_DLL, "AMK_StartComPort");
 			AMK_GetCurrState = (GetCurrState)GetProcAddress(AMK_DLL, "AMK_GetCurrState");
 			AMK_Init = (Init)GetProcAddress(AMK_DLL, "AMK_Init");
@@ -5492,34 +5531,48 @@ private: System::Void button_ON_OFF_Click(System::Object^  sender, System::Event
 			AMK_GetSerial = (GetSerial)GetProcAddress(AMK_DLL, "AMK_GetSerial");
 			AMK_GetMetroData = (GetMetroData)GetProcAddress(AMK_DLL, "AMK_GetMetroData");
 			AMK_SetMetroData = (SetMetroData)GetProcAddress(AMK_DLL, "AMK_SetMetroData");
+			WriteLog("Адреса функций получены");
 
-			if (AMK_DLL == NULL)MessageBox::Show("Положите файл 'DllProject.dll' в каталог программы!");
+			if (AMK_DLL == NULL) {
+				WriteLog("ОШИБКА: AMK_DLL == NULL");
+				MessageBox::Show("Положите файл 'DllProject.dll' в каталог программы!");
+			}
 			if (!AMK_StartComPort || !AMK_GetCurrState || !AMK_Init || !AMK_BeginCyclogram || !AMK_GetData
 				|| !AMK_SetIdle || !AMK_PwrOn || !AMK_PwrOff || !AMK_DeleteComPort
 				//|| !AMK_CheckConnect
 				|| !AMK_GetSerial || !AMK_GetMetroData || !AMK_SetMetroData) {
+				WriteLog("ОШИБКА: Не все функции найдены в DLL!");
 				MessageBox::Show("Файл 'DllProject.dll' испорчен !");
 			}
 			else {
+				WriteLog("Инициализация COM-порта...");
 				Sleep(2000);
 				ComPort = AMK_StartComPort(&ComPort, NULL);
-				cout << " ComPort " << ComPort << endl;
+				stringstream ss_port;
+				ss_port << "ComPort открыт, handle: " << ComPort;
+				WriteLog(ComPort != NULL ? ss_port.str() : "ОШИБКА: ComPort == NULL");
 				if (ComPort != NULL) {
-					cout << "idle " << AMK_SetIdle(ComPort) << endl;
+					WriteLog("Установка режима IDLE...");
+					int idle_res = AMK_SetIdle(ComPort);
+					stringstream ss_idle;
+					ss_idle << "AMK_SetIdle результат: " << idle_res;
+					WriteLog(ss_idle.str());
+					WriteLog("Включение питания прибора (AMK_PwrOn)...");
 					if (AMK_PwrOn(ComPort)) {
+						WriteLog("Питание включено успешно");
 						Sleep(2000);
-						//while (AMK_GetCurrState(ComPort) != 32 && AMK_GetCurrState(ComPort) != 1)
-						//	Sleep(500);
-						//cout << "idle " << AMK_SetIdle(ComPort) << endl;
-
+						Sleep(2000);
+						WriteLog("Инициализация прибора (AMK_Init)...");
 						if (AMK_Init(ComPort)) {
+							WriteLog("Прибор инициализирован успешно");
 							Sleep(500);
+							WriteLog("Запрос метрологии (AMK_GetMetroData)...");
 							if (!AMK_GetMetroData(ComPort, &metrology_struct)) {
-								cout << "no metro1" << endl;
+								WriteLog("Попытка 1: метрология не получена");
 								if (!AMK_GetMetroData(ComPort, &metrology_struct)) {
-									cout << "no metro2" << endl;
+									WriteLog("Попытка 2: метрология не получена");
 									if (!AMK_GetMetroData(ComPort, &metrology_struct)) {
-										cout << "no metro3" << endl;
+										WriteLog("Попытка 3: метрология не получена - ОТКАЗ");
 										AMK_PwrOff(ComPort);
 										AMK_DeleteComPort(ComPort);
 										FreeLibrary(AMK_DLL);
@@ -5528,39 +5581,98 @@ private: System::Void button_ON_OFF_Click(System::Object^  sender, System::Event
 								}
 							}
 							//файл метрологии выгружен
-
+							WriteLog("=== МЕТРОЛОГИЯ ПОЛУЧЕНА ===");
+							// Логирование содержимого метрологии
+							{
+								stringstream ss;
+								ss << "Signature: 0x" << hex << metrology_struct.signature << dec;
+								WriteLog(ss.str());
+							}
+							{
+								stringstream ss;
+								ss << "Serial: " << metrology_struct.serial;
+								WriteLog(ss.str());
+							}
+							// Определение N_Tx из signature
+							{
+								uint32_t buff = (metrology_struct.signature << 12) >> 12;
+								uint32_t N_Tx = (buff % 100000) / 10000;
+								if (N_Tx < 3 || N_Tx > 5) N_Tx = 5;
+								stringstream ss;
+								ss << "N_Tx (из signature): " << N_Tx;
+								WriteLog(ss.str());
+							}
+							WriteLog("Частоты F[0] (400kHz): " + to_string(metrology_struct.F[0]) + " kHz");
+							WriteLog("Частоты F[1] (2000kHz): " + to_string(metrology_struct.F[1]) + " kHz");
+							WriteLog("Параметры зондов (L1/L2 в мм):");
+							for (int i = 0; i < 5; i++) {
+								stringstream ss;
+								ss << "  Tx[" << i << "]: L1=" << metrology_struct.L1[i] 
+								   << ", L2=" << metrology_struct.L2[i];
+								WriteLog(ss.str());
+							}
+							WriteLog("Air_zz (воздушные поправки):");
+							for (int freq = 0; freq < 2; freq++) {
+								for (int tx = 0; tx < 5; tx++) {
+									stringstream ss;
+									ss << "  Air_zz[" << (freq == 0 ? "400" : "2000") << "kHz][Tx" << tx << "]: " 
+									   << metrology_struct.Air_zz[freq][tx];
+									WriteLog(ss.str());
+								}
+							}
+							WriteLog("Конвертация метрологии в sonde_param...");
 							metro_convert(&metrology_struct, sonde_param);
+							{
+								stringstream ss;
+								ss << "Количество записей sonde_param: " << sonde_param.size();
+								WriteLog(ss.str());
+							}
 
 							/////////////////////////////////////////////////////////////////////////////////////////////////////
 							Sleep(500);
+							WriteLog("Запуск циклограммы (AMK_BeginCyclogram)...");
 							if (AMK_BeginCyclogram(ComPort)) {
 								Sleep(500);
-								cout << "autonom Start " << endl;
+								WriteLog("=== АВТОНОМНИК УСПЕШНО ЗАПУЩЕН ===");
 								on_off = true;
 								this->button_ON_OFF->BackColor = System::Drawing::Color::Coral;
 								Sonde_Read_Timer->Enabled = true;
 								this->button_ON_OFF->Text = "ВЫКЛЮЧИТЬ АВТОНОМНИК";
 								comboBox_tool_type->SelectedIndex = 2;//AUTONOM
 							}
-							else { AMK_PwrOff(ComPort); AMK_DeleteComPort(ComPort); FreeLibrary(AMK_DLL);  MessageBox::Show(" прибор не стартовал, попробуйте еще раз!"); }
+							else { 
+								WriteLog("ОШИБКА: AMK_BeginCyclogram вернул false");
+								AMK_PwrOff(ComPort); AMK_DeleteComPort(ComPort); FreeLibrary(AMK_DLL);  MessageBox::Show(" прибор не стартовал, попробуйте еще раз!"); 
+							}
 						}
-						else { AMK_PwrOff(ComPort); AMK_DeleteComPort(ComPort); FreeLibrary(AMK_DLL);  MessageBox::Show(" прибор неиницилизирован, попробуйте еще раз!"); }
+						else { 
+							WriteLog("ОШИБКА: AMK_Init вернул false");
+							AMK_PwrOff(ComPort); AMK_DeleteComPort(ComPort); FreeLibrary(AMK_DLL);  MessageBox::Show(" прибор неиницилизирован, попробуйте еще раз!"); 
+						}
 					}
-					else { AMK_DeleteComPort(ComPort);  FreeLibrary(AMK_DLL);  MessageBox::Show("Проверьте правильность подключения прибора!"); }
+					else { 
+						WriteLog("ОШИБКА: AMK_PwrOn вернул false");
+						AMK_DeleteComPort(ComPort);  FreeLibrary(AMK_DLL);  MessageBox::Show("Проверьте правильность подключения прибора!"); 
+					}
 				}
-				else { FreeLibrary(AMK_DLL);   MessageBox::Show("Подключите УСИ!"); }
+				else { 
+					WriteLog("ОШИБКА: ComPort == NULL после AMK_StartComPort");
+					FreeLibrary(AMK_DLL);   MessageBox::Show("Подключите УСИ!"); 
+				}
 
 			}
 
 		}
 
 		else {
+			WriteLog("=== ВЫКЛЮЧЕНИЕ АВТОНОМНИКА ===");
 			on_off = false;
 			this->button_ON_OFF->BackColor = DefaultBackColor;
 			serialPort_sonde->Close();
 			Sonde_Read_Timer->Enabled = false;
 			Sleep(100);
 			this->button_ON_OFF->Text = "ВКЛЮЧИТЬ АВТОНОМНИК";
+			WriteLog("Автономник выключен, порт закрыт");
 		}
 
 	}
@@ -5576,57 +5688,127 @@ private: System::Void button_ON_OFF_Click(System::Object^  sender, System::Event
 		//длина вектора равна количеству зондов
 		//отладка
 		extern vector <LOOP_PARAM> loop_param;
+		GP_TOOL_METROLOGY temp_metro;
+		memset(&temp_metro, 0, sizeof(GP_TOOL_METROLOGY));
 
 		if (on_off == false) {
+			WriteLog(tool_type == SDR ? "=== НАЧАЛО ВКЛЮЧЕНИЯ SDR ===" : "=== НАЧАЛО ВКЛЮЧЕНИЯ LWD1DDS ===");
 			serialPort_sonde->Close();
 			Sleep(100);
 			//serialPort_sonde->PortName = "COM17";
-			if (tool_type == SDR)
+			if (tool_type == SDR) {
 				serialPort_sonde->BaudRate = 115200;
-			if (tool_type == LWD1DDS)
+				WriteLog("Установка BaudRate = 115200 (SDR)");
+			}
+			if (tool_type == LWD1DDS) {
 				serialPort_sonde->BaudRate = 125000;
-			serialPort_sonde->ReadTimeout = 100;
-			serialPort_sonde->WriteTimeout = 100;
+				WriteLog("Установка BaudRate = 125000 (LWD1DDS)");
+			}
+			serialPort_sonde->ReadTimeout = 200;
+			serialPort_sonde->WriteTimeout = 200;
 			Com_LWD_Name = (char*)Marshal::StringToHGlobalAnsi(serialPort_sonde->PortName).ToPointer();
-			Console::WriteLine(serialPort_sonde->PortName);
+			{
+				stringstream ss;
+				ss << "Порт: " << Com_LWD_Name;
+				WriteLog(ss.str());
+			}
 			try {
+				WriteLog("Открытие COM-порта...");
 				serialPort_sonde->Open();
+				WriteLog("Порт открыт успешно");
 				serialPort_sonde->DiscardOutBuffer();
 				Sleep(150);
 				//читаем метрологию
 				if (tool_type == SDR) {
+					WriteLog("Чтение метрологии SDR (команда 0x13)...");
 					uint8_t DATA[2] = { 0x05 ,0x00 };
-					uint8_t CMD = 0; uint8_t DATA_IN[242];
-					if (send_to_tool(serialPort_sonde, 0x13, DATA, 2) == 0) {
-						Sleep(50);
-						receive_from_tool(serialPort_sonde, CMD, DATA_IN, 242);
-						metro_convert(DATA_IN + 2, sonde_param);
+					int metro_result = -1;
+					for (int attempt = 0; attempt < 3 && metro_result != 0; attempt++) {
+						uint8_t CMD = 0;
+						uint8_t DATA_IN[242] = { 0 };
+						if (send_to_tool(serialPort_sonde, 0x13, DATA, 2) == 0) {
+							Sleep(100);
+							metro_result = receive_from_tool(serialPort_sonde, CMD, DATA_IN, 242);
+							if (metro_result == 0) {
+								memcpy(&temp_metro, DATA_IN + 2, sizeof(GP_TOOL_METROLOGY));
+								WriteLog("Метрология получена (попытка " + to_string(attempt + 1) + "), конвертация...");
+								metro_convert(DATA_IN + 2, sonde_param);
+							}
+							else if (metro_result == 1) {
+								WriteLog("ОШИБКА: receive_from_tool timeout (попытка " + to_string(attempt + 1) + ")");
+							}
+							else if (metro_result == 2) {
+								WriteLog("ОШИБКА: receive_from_tool CRC error (попытка " + to_string(attempt + 1) + ")");
+							}
+						}
+						else {
+							WriteLog("ОШИБКА: send_to_tool вернул ошибку (попытка " + to_string(attempt + 1) + ")");
+						}
 					}
 				}
 				if (tool_type == LWD1DDS) {
-					
-					int mode = 0; int res = 0;
-					get_ph_from_1DDS(serialPort_sonde, mode, res);
-					Sleep(1000);
-					get_ph_from_1DDS(serialPort_sonde, mode, res);
-					Sleep(1000);
-					serialPort_sonde->Open();
-					
-					uint8_t DATA[3];
-					DATA[0] = 0x00; DATA[1] = 0x04; DATA[2] = 240;
-					send_to_tool(serialPort_sonde, CMD_READ_EE, DATA, 3);
-					Sleep(150);
-					uint8_t CMD = 0; uint8_t DATA_IN[256];
-					receive_from_tool(serialPort_sonde, CMD, DATA_IN, 240);
-					metro_convert(DATA_IN, sonde_param);
-					sonde_kojuh_serial = *(uint32_t*)(DATA_IN + 4);
-								
-			
+					// Унифицированный протокол с Amk-Horizon-New-Chart: метрология читается командой 0x13
+					// с пустым payload, ответ [0x13][LEN:2][240B метрология][CRC]. Полезная нагрузка со смещением +2.
+					WriteLog("Чтение метрологии LWD1DDS (команда 0x13)...");
+					uint8_t DATA[2] = { 0x05 ,0x00 };
+					int metro_result = -1;
+					for (int attempt = 0; attempt < 3 && metro_result != 0; attempt++) {
+						uint8_t CMD = 0;
+						uint8_t DATA_IN[242] = { 0 };
+						if (send_to_tool(serialPort_sonde, 0x13, DATA, 2) == 0) {
+							Sleep(100);
+							metro_result = receive_from_tool(serialPort_sonde, CMD, DATA_IN, 242);
+							if (metro_result == 0) {
+								memcpy(&temp_metro, DATA_IN + 2, sizeof(GP_TOOL_METROLOGY));
+								WriteLog("Метрология получена (попытка " + to_string(attempt + 1) + "), конвертация...");
+								metro_convert(DATA_IN + 2, sonde_param);
+								sonde_kojuh_serial = temp_metro.serial;
+								{
+									stringstream ss;
+									ss << "Serial: " << sonde_kojuh_serial;
+									WriteLog(ss.str());
+								}
+							}
+							else if (metro_result == 1) {
+								WriteLog("ОШИБКА: receive_from_tool timeout (попытка " + to_string(attempt + 1) + ")");
+							}
+							else if (metro_result == 2) {
+								WriteLog("ОШИБКА: receive_from_tool CRC error (попытка " + to_string(attempt + 1) + ")");
+							}
+						}
+						else {
+							WriteLog("ОШИБКА: send_to_tool вернул ошибку (попытка " + to_string(attempt + 1) + ")");
+						}
+					}
+				}
+				// Логирование метрологии
+				if (temp_metro.signature != 0) {
+					WriteLog("=== МЕТРОЛОГИЯ ПРИБОРА ===");
+					{
+						stringstream ss;
+						ss << "Signature: 0x" << hex << temp_metro.signature << dec;
+						WriteLog(ss.str());
+					}
+					{
+						uint32_t buff = (temp_metro.signature << 12) >> 12;
+						uint32_t N_Tx = (buff % 100000) / 10000;
+						if (N_Tx < 3 || N_Tx > 5) N_Tx = 5;
+						stringstream ss;
+						ss << "N_Tx (из signature): " << N_Tx;
+						WriteLog(ss.str());
+					}
+					WriteLog("Частоты: F[0]=" + to_string(temp_metro.F[0]) + "kHz, F[1]=" + to_string(temp_metro.F[1]) + "kHz");
+					{
+						stringstream ss;
+						ss << "Количество sonde_param: " << sonde_param.size();
+						WriteLog(ss.str());
+					}
 				}
 
 			}
 			catch (...) {
 				stop = 1;
+				WriteLog("ИСКЛЮЧЕНИЕ при открытии порта или чтении метрологии!");
 			}
 			if (!stop) {
 				serialPort_sonde->DiscardOutBuffer();
@@ -5635,16 +5817,22 @@ private: System::Void button_ON_OFF_Click(System::Object^  sender, System::Event
 				this->button_ON_OFF->BackColor = System::Drawing::Color::Coral;
 				Sonde_Read_Timer->Enabled = true;
 				this->button_ON_OFF->Text = "ВЫКЛЮЧИТЬ ПРИБОР";
+				WriteLog("=== ПРИБОР УСПЕШНО ВКЛЮЧЕН ===");
 			}
-			else MessageBox::Show("Не удется открыть порт !");
+			else {
+				WriteLog("ОШИБКА: Не удалось включить прибор!");
+				MessageBox::Show("Не удется открыть порт !");
+			}
 		}
 		else {
+			WriteLog("=== ВЫКЛЮЧЕНИЕ ПРИБОРА ===");
 			on_off = false;
 			this->button_ON_OFF->BackColor = DefaultBackColor;
 			serialPort_sonde->Close();
 			Sonde_Read_Timer->Enabled = false;
 			Sleep(100);
 			this->button_ON_OFF->Text = "ВКЛЮЧИТЬ ПРИБОР";
+			WriteLog("Прибор выключен, порт закрыт");
 		}
 	}
 	
@@ -5677,7 +5865,15 @@ private:  System::Void  Sonde_Read() {
     
 private:void sonde_read_timer(System::Object^ source, ElapsedEventArgs^ e) {
 	extern bool metro_check;
-	
+	extern bool is_polling;
+
+	// Защита от реентрантности: System::Timers::Timer вызывает обработчик из пула потоков,
+	// поэтому без флага возможен одновременный запуск нескольких итераций опроса COM-порта.
+	if (is_polling) return;
+	is_polling = true;
+
+	try {
+
 	if (metro_check == false) {
 		extern string Com_Name;
 		//длина вектора равна количеству сопротивлений
@@ -5697,15 +5893,48 @@ private:void sonde_read_timer(System::Object^ source, ElapsedEventArgs^ e) {
 		//получаем набор фаз от прибора
 
 		int mode = 0;
-		if (tool_type == SDR)
+		WriteLog("--- Получение данных от прибора ---");
+		if (tool_type == SDR) {
+			WriteLog("Тип: SDR, вызов get_ph_from_SDR...");
 			ph_data = get_ph_from_SDR(serialPort_sonde, mode, res);
-		if (tool_type == LWD1DDS)
+		}
+		if (tool_type == LWD1DDS) {
+			WriteLog("Тип: LWD1DDS, вызов get_ph_from_1DDS...");
 			ph_data = get_ph_from_1DDS(serialPort_sonde, mode, res);
-		if (tool_type == AUTONOM)
+		}
+		if (tool_type == AUTONOM) {
+			WriteLog("Тип: AUTONOM, вызов get_ph_from_AUTONOM...");
 			ph_data = get_ph_from_AUTONOM(ComPort, mode, res);
+		}
+
+		// Логирование результата
+		{
+			stringstream ss;
+			ss << "Результат чтения (res): " << res << (res == 0 ? " (УСПЕХ)" : " (ОШИБКА)");
+			WriteLog(ss.str());
+		}
 
 		if (res == 0)
 			global_cntr++;
+		
+		// Логирование номера кадра и данных
+		{
+			stringstream ss;
+			ss << "Номер кадра: " << global_cntr << ", размер sonde_param: " << sonde_param.size();
+			WriteLog(ss.str());
+		}
+		
+		if (res == 0 && sonde_param.size() > 0) {
+			WriteLog("Полученные фазы (ph_data.VALUE):");
+			for (size_t i = 0; i < sonde_param.size() && i < 10; i++) {
+				stringstream ss;
+				int freq = i / ((sonde_param.size() + 1) / 2);
+				int tx = i % ((sonde_param.size() + 1) / 2);
+				ss << "  [" << i << "] freq=" << (freq == 0 ? "400" : "2000") << "kHz Tx=" << tx 
+				   << ": " << ph_data.VALUE[i] << " rad (" << ph_data.VALUE[i] * mG << " mG)";
+				WriteLog(ss.str());
+			}
+		}
 		//Console::WriteLine("global_cntr " + global_cntr);
 
 		/*/отладка ////////////////////////////////////////
@@ -5782,6 +6011,20 @@ private:void sonde_read_timer(System::Object^ source, ElapsedEventArgs^ e) {
 
 		//вычисляем кажущееся УЭС от сигналов прибора
 		ro_data = ro_dfi(sonde_param, ph_data);
+		
+		// Логирование вычисленного УЭС
+		if (res == 0 && sonde_param.size() > 0) {
+			WriteLog("Вычисленное УЭС (ro_data.VALUE):");
+			for (size_t i = 0; i < sonde_param.size() && i < 10; i++) {
+				stringstream ss;
+				int freq = i / ((sonde_param.size() + 1) / 2);
+				int tx = i % ((sonde_param.size() + 1) / 2);
+				ss << "  [" << i << "] freq=" << (freq == 0 ? "400" : "2000") << "kHz Tx=" << tx 
+				   << ": " << ro_data.VALUE[i] << " Ohm*m";
+				WriteLog(ss.str());
+			}
+		}
+		
 		for (int N_sonde = 0; N_sonde < sonde_param.size(); N_sonde++)
 			Ro_percent_from_sonde[N_sonde][0] =
 			100 * (ro_data.VALUE[N_sonde] - Ro_computed[R_IDX].VALUE[N_sonde]) / (Ro_computed[R_IDX].VALUE[N_sonde] + 0.000000001f);
@@ -5858,8 +6101,9 @@ private:void sonde_read_timer(System::Object^ source, ElapsedEventArgs^ e) {
 			}
 		}
 	}
-	
-	
+
+	} catch (...) {}
+	is_polling = false;
 }
 
 private: System::Void BT_ON(System::Object^  sender, System::EventArgs^  e) {
@@ -6852,8 +7096,8 @@ private: System::Void timer1_Tick(System::Object^  sender, System::EventArgs^  e
 	}
 	
 	if (comboBox_trashhold->Text != "") trashhold = System::Int32::Parse((comboBox_trashhold->Text));
-	
-	
+
+
 
 
 }

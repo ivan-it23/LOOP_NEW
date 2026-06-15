@@ -33,6 +33,22 @@
 # define SDR 1
 # define AUTONOM 2
 
+// Унифицированный протокол обмена с прибором (совместим с Amk-Horizon-New-Chart).
+// Пакет: [CMD:1][LEN:2][PAYLOAD:N][CRC:2], где LEN = полная длина пакета (N + 5).
+// 0x16 запрос сигнатуры прибора (ответ: 4 байта signature)
+#define CMD_GET_SIGNATURE 0x16
+// 0x13 чтение метрологии прибора (ответ: 240 байт GP_TOOL_METROLOGY)
+#define CMD_GET_METROLOGY 0x13
+// 0x12 запись метрологии прибора (payload: 240 байт GP_TOOL_METROLOGY)
+#define CMD_SET_METROLOGY 0x12
+
+// Единая скорость UART для всех приборов унифицированного протокола.
+#define TOOL_BAUDRATE 125000
+
+// Тип прибора кодируется первой цифрой toolCode из сигнатуры.
+#define DEVTYPE_AUTONOM 1
+#define DEVTYPE_LWD     2
+
 
 using namespace std;
 

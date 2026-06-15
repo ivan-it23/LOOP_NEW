@@ -95,6 +95,7 @@ bool Ro_to_raport;
 bool PH_to_raport;
 bool param_form_closed;
 bool metro_check;
+bool is_polling = false;
 
 int min_n;//начальная и конечная точки на первом графике
 int max_n;//

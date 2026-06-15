@@ -1743,26 +1743,15 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 
 			if (!stop) {
 
-				if (plateu_test == false) {
-					uint8_t DATA[3]; DATA[0] = 0x00; DATA[1] = 0x04; DATA[2] = 240;
-					send_to_tool(serialPort_LWD_1DDS, CMD_READ_EE, DATA, 3);
-				}
-				if (plateu_test == true) {
-					uint8_t DATA[2] = { 0x05 ,0x00 };
-					send_to_tool(serialPort_LWD_1DDS, 0x13, DATA, 2);
-				}
-
+				// Унифицированный протокол с Amk-Horizon-New-Chart: метрология читается командой 0x13
+				// с пустым payload, ответ [0x13][LEN:2][240B метрология][CRC]. Полезная нагрузка со смещением +2.
+				uint8_t DATA[2] = { 0x05 ,0x00 };
+				send_to_tool(serialPort_LWD_1DDS, 0x13, DATA, 2);
 
 				Sleep(150);
 				uint8_t CMD; uint8_t DATA_IN[258];
-				if (plateu_test == false) {
-					receive_from_tool(serialPort_LWD_1DDS, CMD, DATA_IN, 240);
-					memcpy(&metrology_struct, DATA_IN, 256);
-				}
-				if (plateu_test == true) {
-					receive_from_tool(serialPort_LWD_1DDS, CMD, DATA_IN, 242);
-					memcpy(&metrology_struct, DATA_IN + 2, 256);
-				}
+				receive_from_tool(serialPort_LWD_1DDS, CMD, DATA_IN, 242);
+				memcpy(&metrology_struct, DATA_IN + 2, sizeof(GP_TOOL_METROLOGY));
 				serialPort_LWD_1DDS->Close();
 				/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1888,18 +1877,12 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			catch (...) { stop = 1; }
 
 			if (!stop) {
-				if (plateu_test == false) {
-					uint8_t DATA_OUT[242];
-					DATA_OUT[0] = 0x00; DATA_OUT[1] = 0x04;
-					memcpy(DATA_OUT + 2, &metrology_struct, 240);
-					send_to_tool(serialPort_LWD_1DDS, CMD_WRITE_EE, DATA_OUT, 242);
-				}
-				if (plateu_test == true) {
-					uint8_t DATA_OUT[242];
-					DATA_OUT[0] = 0xf5; DATA_OUT[1] = 0x00;
-					memcpy(DATA_OUT + 2, &metrology_struct, 240);
-					send_to_tool(serialPort_LWD_1DDS, 0x12, DATA_OUT, 242);
-				}
+				// Унифицированный протокол с Amk-Horizon-New-Chart: запись метрологии командой 0x13
+				// с 240-байтовым payload. Поле длины 0xf5 0x00 = 245 (полный размер пакета: CMD+LEN+240B+CRC).
+				uint8_t DATA_OUT[242];
+				DATA_OUT[0] = 0xf5; DATA_OUT[1] = 0x00;
+				memcpy(DATA_OUT + 2, &metrology_struct, sizeof(GP_TOOL_METROLOGY));
+				send_to_tool(serialPort_LWD_1DDS, 0x13, DATA_OUT, 242);
 
 				Sleep(150);
 				uint8_t CMD; uint8_t DATA_IN[2];

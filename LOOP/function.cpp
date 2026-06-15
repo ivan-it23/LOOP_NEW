@@ -4,29 +4,37 @@
 #include <vector>
 using namespace System;
 
+// Универсальное декодирование сигнатуры прибора.
+// low20 = младшие 20 бит сигнатуры; toolCode = low20/1000 = XYZ:
+//   X (тип): low20/100000, Y (число Tx): (low20%100000)/10000, Z (мод): (low20%10000)/1000.
+TOOL_IDENTITY decode_tool_signature(uint32_t signature) {
+	TOOL_IDENTITY id = { 0 };
+	id.signature = signature;
+	uint32_t low20 = (signature << 12) >> 12;
+	id.device_type = low20 / 100000;
+	id.n_tx = (low20 % 100000) / 10000;
+	id.modification = (low20 % 10000) / 1000;
+	id.number = low20 % 1000;
+	id.valid = (id.device_type == DEVTYPE_AUTONOM || id.device_type == DEVTYPE_LWD)
+	           && (id.n_tx >= 3 && id.n_tx <= 5);
+	// Безопасный фолбэк по числу передатчиков для дальнейших расчётов.
+	if (id.n_tx < 3 || id.n_tx > 5) id.n_tx = 5;
+	return id;
+}
+
 //для новой программы
-//извлекаем из файла метрологии длинны и частоты зондов
+//извлекаем из файла метрологии длины и частоты зондов
 void metro_convert(void *metrology_struct, vector <SONDE_PARAM> &sonde_param) {
 	GP_TOOL_METROLOGY metrology = *(GP_TOOL_METROLOGY*)metrology_struct;
-	uint32_t sign = metrology.signature;
-	uint32_t buff = (sign << 12) >> 12;
-	cout << " sign " << sign << endl;
-	uint32_t tool_type = buff / 100000;
-	uint32_t tool_N_Tx = (buff % 100000) / 10000;
-	uint32_t tool_mod = (buff % 10000) / 1000;
-	uint32_t tool_number = (buff % 1000);
-	uint32_t signature_for_pallete = buff / 1000;
-
-	cout << "tool_N_Tx " << tool_N_Tx << " tool_mod " << tool_mod;
+	TOOL_IDENTITY id = decode_tool_signature(metrology.signature);
 
 	sonde_param.clear();
 
-	// Количество передатчиков извлекается из toolCode сигнатуры (средняя цифра),
-	// что делает конвертацию универсальной для приборов с 3/4/5 передатчиками.
-	// Защита от некорректной сигнатуры: допустимый диапазон 3..5 передатчиков.
-	if (tool_N_Tx >= 3 && tool_N_Tx <= 5) {
+	// Раскладка зондов выполняется только при корректно распознанной сигнатуре,
+	// число передатчиков определяется из сигнатуры (универсально для 3/4/5 Tx).
+	if (id.valid) {
 		for (int freq = 0; freq < 2; freq++) {
-			for (uint32_t Tx = 0; Tx < tool_N_Tx; Tx++) {
+			for (uint32_t Tx = 0; Tx < id.n_tx; Tx++) {
 				SONDE_PARAM buff_sp;
 				buff_sp.L1 = (metrology.L1[Tx] / 1000.0);
 				buff_sp.L2 = (metrology.L2[Tx] / 1000.0);
@@ -35,9 +43,6 @@ void metro_convert(void *metrology_struct, vector <SONDE_PARAM> &sonde_param) {
 			}
 		}
 	}
-
-	cout << " sonde_param.size " << sonde_param.size() << endl;
-
 }
 
 //фаза от кольца
@@ -151,36 +156,27 @@ V10 get_ph_from_SDR(System::IO::Ports::SerialPort^ COM, int mode, int &res) {
 	//const uint16_t length = sizeof(GP_TOOL_DATA) + 2;
 	const uint16_t length = 242;
 
-	uint8_t CMD;
+	uint8_t CMD = 0;
 	uint8_t DATA_IN[length] = { 0, };
 	int result;
 	bool stop = false;
 
-	try {
-		COM->Close();
-		COM->ReadTimeout = 100;
-		COM->WriteTimeout = 100;
-		COM->BaudRate = 115200;
-		COM->Open();
-	}
-	catch (...) { stop = 1; }
-
-	if (!stop) {
-		uint8_t DATA[2] = { 0x05 ,0x00 };
-		if (send_to_tool(COM, CMD_GET_DATA, DATA, 2) == 1) {
-			Console::WriteLine("Соединение с прибором прервано переподключите !");
-		}
-		Sleep(50);
-		result = receive_from_tool(COM, CMD, DATA_IN, length);
-		COM->Close();
-	}
-
-	else {
-		stop = 0;
-		result = 3;
+	// Порт должен быть открыт вызывающим кодом (button_ON_OFF_Click).
+	// Не закрываем/открываем его здесь, чтобы избежать гонок при опросе.
+	if (!COM->IsOpen) {
+		res = 3;
 		Console::WriteLine("no port 112");
-		COM->Close();
+		return ph_data;
 	}
+	COM->ReadTimeout = 100;
+	COM->WriteTimeout = 100;
+
+	uint8_t DATA[2] = { 0x05 ,0x00 };
+	if (send_to_tool(COM, CMD_GET_DATA, DATA, 2) == 1) {
+		Console::WriteLine("Соединение с прибором прервано переподключите !");
+	}
+	Sleep(50);
+	result = receive_from_tool(COM, CMD, DATA_IN, length);
 	//cout << "result " << result << endl;
 	res = result;
 	if (result == 0) {
@@ -192,13 +188,16 @@ V10 get_ph_from_SDR(System::IO::Ports::SerialPort^ COM, int mode, int &res) {
 		// Сырая разница фаз укладывается freq-major (страйд = N_Tx) для совпадения с sonde_param.
 		for (uint32_t freq = 0; freq < 2; freq++) {
 			for (uint32_t Tx = 0; Tx < N_Tx; Tx++) {
-				ph_data.VALUE[freq * N_Tx + Tx] = All_Data_SDR->DELTA_PH[freq][Tx];
+				uint32_t idx = freq * N_Tx + Tx;
+				ph_data.VALUE[idx] = All_Data_SDR->DELTA_PH[freq][Tx];
+				while (ph_data.VALUE[idx] > PI) ph_data.VALUE[idx] -= 2 * PI;
+				while (ph_data.VALUE[idx] <= -PI) ph_data.VALUE[idx] += 2 * PI;
 			}
 		}
 		// меняем знак для зеркальных передатчиков (Z1 повернут T1)
 		for (uint32_t i = 0; i < 2 * N_Tx; i++) {
-			if (i & 1)ph_data.VALUE[i];// нечётные нормальные
-			else ph_data.VALUE[i] = -ph_data.VALUE[i];// чётные инвертируем
+			if ((i & 1) == 0)
+				ph_data.VALUE[i] = -ph_data.VALUE[i]; // чётные инвертируем
 		}
 	}
 
@@ -211,43 +210,37 @@ V10 get_ph_from_1DDS(System::IO::Ports::SerialPort^ COM, int mode, int &res) {
 		ph_data.VALUE[i] = 0;
 
 	GP_TOOL_DATA *All_Data_1DDS = new GP_TOOL_DATA;
-	const uint16_t length = 252;
-	uint8_t CMD;
+	// Эмулятор/прибор отвечает пакетом [CMD][LEN:2][GP_TOOL_DATA:240][CRC:2].
+	// receive_from_tool читает length+3 байт, поэтому полезная нагрузка 240 + 2 байта LEN = 242.
+	const uint16_t length = 242;
+	uint8_t CMD = 0;
 	uint8_t DATA_IN[length] = { 0, };
 	int result;
 	bool stop = false;
 
-	try {
-		COM->Close();
-		COM->ReadTimeout = 200;
-		COM->WriteTimeout = 200;
-		COM->BaudRate = 125000;
-		COM->Open();
-	}
-	catch (...) { stop = 1; }
-
-
-	if (!stop) {
-		uint8_t *DATA = new uint8_t;
-		*DATA = length;
-		if (send_to_tool(COM, CMD_WORK, DATA, 1) == 1) {
-			Console::WriteLine("Соединение с прибором прервано переподключите !");
-		}
-		Sleep(50);
-		result = receive_from_tool(COM, CMD, DATA_IN, length);
-		COM->Close();
-	}
-
-	else {
-		stop = 0;
-		result = 3;
+	// Порт должен быть открыт вызывающим кодом (button_ON_OFF_Click).
+	// Не закрываем/открываем его здесь, чтобы избежать гонок при опросе.
+	if (!COM->IsOpen) {
+		res = 3;
 		Console::WriteLine("no port 112");
-		COM->Close();
+		return ph_data;
 	}
+	COM->ReadTimeout = 200;
+	COM->WriteTimeout = 200;
+
+	// Унифицированный протокол с Amk-Horizon-New-Chart: запрос кадра данных командой CMD_GET_DATA (0x11)
+	// с пустым payload (передаётся поле длины пакета 0x05 0x00).
+	uint8_t DATA[2] = { 0x05, 0x00 };
+	if (send_to_tool(COM, CMD_GET_DATA, DATA, 2) == 1) {
+		Console::WriteLine("Соединение с прибором прервано переподключите !");
+	}
+	Sleep(50);
+	result = receive_from_tool(COM, CMD, DATA_IN, length);
 	//cout << "result " << result << endl;
 	res = result;
 	if (result == 0) {
-		All_Data_1DDS = (GP_TOOL_DATA*)(DATA_IN + 12);
+		// Полезная нагрузка GP_TOOL_DATA начинается после 2-байтового поля длины (LEN).
+		All_Data_1DDS = (GP_TOOL_DATA*)(DATA_IN + 2);
 		// Количество передатчиков определяется из toolCode сигнатуры (универсально 3/4/5 Tx).
 		uint32_t buff = (All_Data_1DDS->signature << 12) >> 12;
 		uint32_t N_Tx = (buff % 100000) / 10000;
