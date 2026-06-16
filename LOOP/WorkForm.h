@@ -7440,6 +7440,9 @@ private: System::Void uploadToFTPToolStripMenuItem_Click(System::Object^  sender
 }
 private: System::Void работаСФайломМетрологииToolStripMenuItem_Click(System::Object^  sender, System::EventArgs^  e) {
 	AIRTEMP10::MyForm1^ Metro = gcnew AIRTEMP10::MyForm1;
+	// Передаём открытый порт прибора, чтобы MetroForm не пытался открыть
+	// тот же COM-порт повторно при нажатии "Прочитать из зонда".
+	Metro->ExternalPort = serialPort_sonde;
 	Metro->Show();
 }
 private: System::Void пОМОЩЬToolStripMenuItem_Click(System::Object^  sender, System::EventArgs^  e) {

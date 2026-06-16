@@ -52,6 +52,10 @@ namespace AIRTEMP10 {
 	public ref class MyForm1 : public System::Windows::Forms::Form
 	{
 	public:
+		// Если прибор уже запущен из WorkForm, этому полю присваивается открытый
+		// serialPort_sonde, чтобы не открывать тот же COM-порт повторно.
+		System::IO::Ports::SerialPort^ ExternalPort;
+
 		MyForm1(void)
 		{
 			InitializeComponent();
@@ -1599,27 +1603,32 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 	private: System::Void buttonOpen_file_Click(System::Object^  sender, System::EventArgs^  e) {
 		string  Metrology_Path;
 		const char* Metrology;
-		unsigned int Sonde_serial;
+		unsigned int Sonde_serial = 0;
 		ifstream metro_in;
 		GP_TOOL_METROLOGY metrology_struct;
+		memset(&metrology_struct, 0, sizeof(GP_TOOL_METROLOGY));
 
 		openFileDialog1->Filter = "text files (*.bin)|*.bin";
 		//openFileDialog1->InitialDirectory = gcnew String(Metrology_Path.c_str());
 		//openFileDialog1->RestoreDirectory = true;
-		if (openFileDialog1->ShowDialog() == System::Windows::Forms::DialogResult::OK) {
-			Metrology = (char*)Marshal::StringToHGlobalAnsi(openFileDialog1->FileName).ToPointer();
-			Text = L"DATA1 " + L" METRO " + gcnew String(Metrology);
-		}
+		if (openFileDialog1->ShowDialog() != System::Windows::Forms::DialogResult::OK)
+			return;
+		Metrology = (char*)Marshal::StringToHGlobalAnsi(openFileDialog1->FileName).ToPointer();
+		Text = L"DATA1 " + L" METRO " + gcnew String(Metrology);
 
 		metro_in.open(Metrology, ios::binary);
+		if (!metro_in.is_open()) {
+			MessageBox::Show("Не удалось открыть файл метрологии!");
+			return;
+		}
 		metro_in.read((char*)&metrology_struct, sizeof(metrology_struct));
 		metro_in.close();
 
 		/////////////////////////////////////////////////////////////////////////////
-		uint32_t buff = metrology_struct.signature << 12;
-		buff = buff >> 12;
+		uint32_t buff = (metrology_struct.signature << 12) >> 12;
 		uint32_t tool_type = buff / 100000;
 		uint32_t tool_N_Tx = (buff % 100000) / 10000;
+		if (tool_N_Tx < 3 || tool_N_Tx > 5) tool_N_Tx = 5;
 		uint32_t tool_mod = (buff % 10000) / 1000;
 		uint32_t tool_number = (buff % 1000);
 		uint32_t signature_for_pallete = buff / 1000;
@@ -1640,19 +1649,23 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 		Sonde_serial = metrology_struct.serial;
 		/////////////////////////////////////////////////////////////////////////////////
 
-		for (int i = 0; i < 5; i++) {
+		// Заполнение L1/L2 для всех передатчиков (по N_Tx из сигнатуры).
+		for (uint32_t i = 0; i < tool_N_Tx; i++) {
 			TextBox^ TEXTBOX_L1 = (TextBox^)this->tableLayoutPanel1->Controls["textBoxL1T" + (i + 1).ToString()];
 			TEXTBOX_L1->Text = metrology_struct.L1[i].ToString();
 			TextBox^ TEXTBOX_L2 = (TextBox^)this->tableLayoutPanel1->Controls["textBoxL2T" + (i + 1).ToString()];
 			TEXTBOX_L2->Text = metrology_struct.L2[i].ToString();
 		}
+		// Частоты — всегда два поля F[0] и F[1] независимо от N_Tx.
 		for (int i = 0; i < 2; i++) {
 			TextBox^ TEXTBOX_F = (TextBox^)this->tableLayoutPanel1->Controls["textBoxFT" + (i + 1).ToString()];
 			TEXTBOX_F->Text = metrology_struct.F[i].ToString();
 		}
-		for (int i = 0; i < 10; i++) {
+		// Air_zz — 2*N_Tx поправок, раскладка [freq][Tx]: линейный индекс i → [i/N_Tx][i%N_Tx].
+		uint32_t n_air = 2 * tool_N_Tx;
+		for (uint32_t i = 0; i < n_air; i++) {
 			TextBox^ TEXTBOX_AIR = (TextBox^)this->tableLayoutPanel1->Controls["textBoxAIRT" + (i + 1).ToString()];
-			TEXTBOX_AIR->Text = metrology_struct.Air_zz[i / 5][i % 5].ToString();
+			TEXTBOX_AIR->Text = metrology_struct.Air_zz[i / tool_N_Tx][i % tool_N_Tx].ToString();
 		}
 
 
@@ -1716,101 +1729,115 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 	private: System::Void buttonRead_from_sonde_Click(System::Object^  sender, System::EventArgs^  e) {
 		extern string Com_Name;
 		extern string Com_LWD_Name;
-		bool on_off_1dds = 1;
 		extern bool sonde_on_off;
-		unsigned int Sonde_serial;
+		unsigned int Sonde_serial = 0;
 		extern bool metro_check;
-		bool plateu_test = false;
 
-		if (on_off_1dds == true) {
-			GP_TOOL_METROLOGY metrology_struct;
-			metro_check = true;
-			Sleep(700);
+		GP_TOOL_METROLOGY metrology_struct;
+		memset(&metrology_struct, 0, sizeof(GP_TOOL_METROLOGY));
+		metro_check = true;
+
+		// Если WorkForm передал открытый порт — используем его напрямую,
+		// не пытаясь открыть тот же COM-порт повторно (порт занят).
+		bool useExternal = (ExternalPort != nullptr && ExternalPort->IsOpen);
+		System::IO::Ports::SerialPort^ port = useExternal ? ExternalPort : serialPort_LWD_1DDS;
+
+		if (!useExternal) {
 			bool stop = false;
 			try {
-				serialPort_LWD_1DDS->PortName = gcnew String(Com_LWD_Name.c_str());
-				Console::WriteLine(serialPort_LWD_1DDS->PortName);
+				port->PortName = gcnew String(Com_LWD_Name.c_str());
+				Console::WriteLine(port->PortName);
 				Sleep(100);
-				serialPort_LWD_1DDS->ReadTimeout = 1000;
-				serialPort_LWD_1DDS->WriteTimeout = 1000;
-				if (plateu_test == false)
-					serialPort_LWD_1DDS->BaudRate = 125000;
-				if (plateu_test == true)
-					serialPort_LWD_1DDS->BaudRate = 115000;
-				serialPort_LWD_1DDS->Open();
+				// Таймауты согласованы с WorkForm.h (2000 мс), чтобы цикл накопления байт
+				// в receive_from_tool успевал набрать полный пакет 245 байт.
+				port->ReadTimeout = 2000;
+				port->WriteTimeout = 2000;
+				port->BaudRate = 125000;
+				port->Open();
 			}
-			catch (...) { stop = 1; }
+			catch (...) { stop = true; }
 
-			if (!stop) {
-
-				// Унифицированный протокол с Amk-Horizon-New-Chart: метрология читается командой 0x13
-				// с пустым payload, ответ [0x13][LEN:2][240B метрология][CRC]. Полезная нагрузка со смещением +2.
-				uint8_t DATA[2] = { 0x05 ,0x00 };
-				send_to_tool(serialPort_LWD_1DDS, 0x13, DATA, 2);
-
-				Sleep(150);
-				uint8_t CMD; uint8_t DATA_IN[258];
-				receive_from_tool(serialPort_LWD_1DDS, CMD, DATA_IN, 242);
-				memcpy(&metrology_struct, DATA_IN + 2, sizeof(GP_TOOL_METROLOGY));
-				serialPort_LWD_1DDS->Close();
-				/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-				uint32_t buff = metrology_struct.signature << 12;
-				buff = buff >> 12;
-				uint32_t tool_type = buff / 100000;
-				uint32_t tool_N_Tx = (buff % 100000) / 10000;
-				uint32_t tool_mod = (buff % 10000) / 1000;
-				uint32_t tool_number = (buff % 1000);
-				uint32_t signature_for_pallete = buff / 1000;
-				textBox_sign_for_pallete->Text = signature_for_pallete.ToString();
-				//cout<< metrology_struct.signature << " buff " << buff << " tool_type " << tool_type << " tool_N_Tx " << tool_N_Tx << " tool_mod " << tool_mod << " tool_number " << tool_number << " signature_for_pallete " << signature_for_pallete << endl;
-				if ((tool_type == 1 || tool_type == 2 || tool_type == 3) && (tool_N_Tx == 3 || tool_N_Tx == 4 || tool_N_Tx == 5)) {
-					comboBox_type->SelectedIndex = tool_type - 1;
-					comboBox_N_Tx->SelectedIndex = tool_N_Tx - 3;
-					comboBox_mod->SelectedIndex = tool_mod - 1;
-					textBox_number->Text = tool_number.ToString();
-					std::stringstream ss;
-					ss << std::bitset<32>(metrology_struct.signature);
-					textBox_sign32->Text = gcnew String((ss.str()).c_str());
-				}
-				else MessageBox::Show("сигнатура старого образца");
-				textBoxSer->Text = (metrology_struct.serial).ToString();
-				Sonde_serial = metrology_struct.serial;
-				//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-				for (int i = 0; i < tool_N_Tx; i++) {
-					TextBox^ TEXTBOX_L1 = (TextBox^)this->tableLayoutPanel1->Controls["textBoxL1T" + (i + 1).ToString()];
-					TEXTBOX_L1->Text = metrology_struct.L1[i].ToString();
-					TextBox^ TEXTBOX_L2 = (TextBox^)this->tableLayoutPanel1->Controls["textBoxL2T" + (i + 1).ToString()];
-					TEXTBOX_L2->Text = metrology_struct.L2[i].ToString();
-				}
-				if (tool_N_Tx == 4) {
-					for (int i = 0; i < 2; i++) {
-						TextBox^ TEXTBOX_F = (TextBox^)this->tableLayoutPanel1->Controls["textBoxFT" + (i + 1).ToString()];
-						// F[0] - 400 кГц, F[1] - 2000 кГц (две рабочие частоты прибора)
-						TEXTBOX_F->Text = metrology_struct.F[i].ToString();
-					}
-					for (int i = 0; i < 8; i++) {
-						TextBox^ TEXTBOX_AIR = (TextBox^)this->tableLayoutPanel1->Controls["textBoxAIRT" + (i + 1).ToString()];
-						TEXTBOX_AIR->Text = metrology_struct.Air_zz[i / 5][i % 5].ToString();							
-					}
-				}
-				
-
-				Sleep(500);
-				MessageBox::Show("ФАЙЛ МЕТРОЛОГИИ  СЧИТАН ИЗ ПРИБОРА!");
+			if (stop) {
+				MessageBox::Show("ОШИБКА: не удалось открыть COM-порт !");
 				metro_check = false;
+				if (port->IsOpen) port->Close();
+				return;
 			}
-			else {
-				stop = 0;
-				MessageBox::Show("ФАЙЛ МЕТРОЛОГИИ НЕ БЫЛ СЧИТАН !");
-				metro_check = false;
-				serialPort_LWD_1DDS->Close();
-			}
-
 		}
-		else MessageBox::Show("Включите зонд !");
 
+		// Унифицированный протокол с Amk-Horizon-New-Chart: метрология читается командой 0x13
+		// с пустым payload, ответ [0x13][LEN:2][240B метрология][CRC]. Полезная нагрузка со смещением +2.
+		uint8_t DATA[2] = { 0x05, 0x00 };
+		int metro_result = -1;
+		// Три попытки опроса метрологии — аналогично логике в WorkForm.h.
+		for (int attempt = 0; attempt < 3 && metro_result != 0; attempt++) {
+			uint8_t CMD = 0;
+			uint8_t DATA_IN[242] = { 0 };
+			if (send_to_tool(port, 0x13, DATA, 2) == 0) {
+				metro_result = receive_from_tool(port, CMD, DATA_IN, 242);
+				if (metro_result == 0) {
+					memcpy(&metrology_struct, DATA_IN + 2, sizeof(GP_TOOL_METROLOGY));
+				}
+				else {
+					// Очистка буфера перед повторной попыткой
+					port->DiscardInBuffer();
+					Sleep(100);
+				}
+			}
+		}
 
+		// Закрываем порт только если открывали сами (не внешний).
+		if (!useExternal) port->Close();
+
+		if (metro_result != 0) {
+			MessageBox::Show("ФАЙЛ МЕТРОЛОГИИ НЕ БЫЛ СЧИТАН! (таймаут или ошибка CRC)");
+			metro_check = false;
+			return;
+		}
+
+		/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		uint32_t buff = (metrology_struct.signature << 12) >> 12;
+		uint32_t tool_type = buff / 100000;
+		uint32_t tool_N_Tx = (buff % 100000) / 10000;
+		if (tool_N_Tx < 3 || tool_N_Tx > 5) tool_N_Tx = 5;
+		uint32_t tool_mod = (buff % 10000) / 1000;
+		uint32_t tool_number = (buff % 1000);
+		uint32_t signature_for_pallete = buff / 1000;
+		textBox_sign_for_pallete->Text = signature_for_pallete.ToString();
+		if ((tool_type == 1 || tool_type == 2 || tool_type == 3) && (tool_N_Tx == 3 || tool_N_Tx == 4 || tool_N_Tx == 5)) {
+			comboBox_type->SelectedIndex = tool_type - 1;
+			comboBox_N_Tx->SelectedIndex = tool_N_Tx - 3;
+			comboBox_mod->SelectedIndex = tool_mod - 1;
+			textBox_number->Text = tool_number.ToString();
+			std::stringstream ss;
+			ss << std::bitset<32>(metrology_struct.signature);
+			textBox_sign32->Text = gcnew String((ss.str()).c_str());
+		}
+		else MessageBox::Show("сигнатура старого образца");
+		textBoxSer->Text = (metrology_struct.serial).ToString();
+		Sonde_serial = metrology_struct.serial;
+		//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		// Заполнение L1/L2 для всех передатчиков (по N_Tx из сигнатуры).
+		for (uint32_t i = 0; i < tool_N_Tx; i++) {
+			TextBox^ TEXTBOX_L1 = (TextBox^)this->tableLayoutPanel1->Controls["textBoxL1T" + (i + 1).ToString()];
+			TEXTBOX_L1->Text = metrology_struct.L1[i].ToString();
+			TextBox^ TEXTBOX_L2 = (TextBox^)this->tableLayoutPanel1->Controls["textBoxL2T" + (i + 1).ToString()];
+			TEXTBOX_L2->Text = metrology_struct.L2[i].ToString();
+		}
+		// Частоты — всегда два поля F[0] и F[1] независимо от N_Tx.
+		for (int i = 0; i < 2; i++) {
+			TextBox^ TEXTBOX_F = (TextBox^)this->tableLayoutPanel1->Controls["textBoxFT" + (i + 1).ToString()];
+			TEXTBOX_F->Text = metrology_struct.F[i].ToString();
+		}
+		// Air_zz — 2*N_Tx поправок, раскладка [freq][Tx]: линейный индекс i → [i/N_Tx][i%N_Tx].
+		uint32_t n_air = 2 * tool_N_Tx;
+		for (uint32_t i = 0; i < n_air; i++) {
+			TextBox^ TEXTBOX_AIR = (TextBox^)this->tableLayoutPanel1->Controls["textBoxAIRT" + (i + 1).ToString()];
+			TEXTBOX_AIR->Text = metrology_struct.Air_zz[i / tool_N_Tx][i % tool_N_Tx].ToString();
+		}
+
+		MessageBox::Show("ФАЙЛ МЕТРОЛОГИИ СЧИТАН ИЗ ПРИБОРА!");
+		metro_check = false;
 	}
 
 	private: System::Void buttonWrite_to_sonde_Click(System::Object^  sender, System::EventArgs^  e) {
