@@ -5704,8 +5704,8 @@ private: System::Void button_ON_OFF_Click(System::Object^  sender, System::Event
 				serialPort_sonde->BaudRate = 125000;
 				WriteLog("Установка BaudRate = 125000 (LWD1DDS)");
 			}
-			serialPort_sonde->ReadTimeout = 200;
-			serialPort_sonde->WriteTimeout = 200;
+			serialPort_sonde->ReadTimeout = 2000;
+			serialPort_sonde->WriteTimeout = 2000;
 			Com_LWD_Name = (char*)Marshal::StringToHGlobalAnsi(serialPort_sonde->PortName).ToPointer();
 			{
 				stringstream ss;
@@ -5894,13 +5894,10 @@ private:void sonde_read_timer(System::Object^ source, ElapsedEventArgs^ e) {
 
 		int mode = 0;
 		WriteLog("--- Получение данных от прибора ---");
-		if (tool_type == SDR) {
-			WriteLog("Тип: SDR, вызов get_ph_from_SDR...");
-			ph_data = get_ph_from_SDR(serialPort_sonde, mode, res);
-		}
-		if (tool_type == LWD1DDS) {
-			WriteLog("Тип: LWD1DDS, вызов get_ph_from_1DDS...");
-			ph_data = get_ph_from_1DDS(serialPort_sonde, mode, res);
+		if (tool_type == SDR || tool_type == LWD1DDS) {
+			WriteLog(string("Тип: ") + (tool_type == SDR ? "SDR" : "LWD1DDS") + ", вызов get_ph_from_tool...");
+			uint8_t poll_cmd = (tool_type == SDR) ? 0x00 : CMD_GET_DATA;
+			ph_data = get_ph_from_tool(serialPort_sonde, poll_cmd, mode, res);
 		}
 		if (tool_type == AUTONOM) {
 			WriteLog("Тип: AUTONOM, вызов get_ph_from_AUTONOM...");

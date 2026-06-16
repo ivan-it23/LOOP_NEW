@@ -65,7 +65,10 @@ uint16_t CRC16(const BYTE *nData, uint16_t wLength);
 
 int send_to_tool(System::IO::Ports::SerialPort^ COM, uint8_t CMD, uint8_t* DATA, uint8_t length);
 
-int receive_from_tool(System::IO::Ports::SerialPort^ COM, uint8_t CMD, uint8_t* DATA, uint16_t length);
+int receive_from_tool(System::IO::Ports::SerialPort^ COM, uint8_t& CMD, uint8_t* DATA, uint16_t length);
+
+// Универсальный опрос кадра данных прибора (SDR: CMD=0x00, LWD1DDS: CMD=0x11).
+V10 get_ph_from_tool(System::IO::Ports::SerialPort^ COM, uint8_t CMD, int mode, int &res);
 
 GP_TOOL_DATA READ_BLOK_GP_TOOL_DATA(ifstream &fin, int n);
 

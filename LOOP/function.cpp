@@ -1,5 +1,7 @@
 ﻿#include <fstream>
 #include <iostream>
+#include <iomanip>
+#include <sstream>
 #include "function.h"
 #include <vector>
 using namespace System;
@@ -308,6 +310,110 @@ V10 get_ph_from_AUTONOM(void *ComPort, int mode, int &res) {
 	}
 
 	else res = 1;
+
+	return ph_data;
+}
+
+// Унифицированное чтение сигнатуры прибора (CMD_GET_SIGNATURE = 0x16).
+int read_tool_signature(System::IO::Ports::SerialPort^ COM, uint32_t &signature) {
+	uint8_t DATA[2] = { 0x05, 0x00 };
+	if (send_to_tool(COM, CMD_GET_SIGNATURE, DATA, 2) != 0)
+		return 1;
+
+	Sleep(50);
+
+	const uint16_t length = 6; // [LEN:2][signature:4]
+	uint8_t CMD = 0;
+	uint8_t DATA_IN[length] = { 0 };
+	int result = receive_from_tool(COM, CMD, DATA_IN, length);
+	if (result != 0)
+		return result;
+
+	if (CMD != CMD_GET_SIGNATURE)
+		return 3;
+
+	memcpy(&signature, DATA_IN + 2, sizeof(uint32_t));
+	return 0;
+}
+
+// Универсальный опрос кадра данных прибора.
+// Единая реализация для SDR и LWD1DDS; таймауты не переопределяются здесь.
+// CMD: 0x00 для SDR, CMD_GET_DATA (0x11) для LWD1DDS.
+// Добавлен retry (1 повтор) при таймауте для повышения надёжности.
+V10 get_ph_from_tool(System::IO::Ports::SerialPort^ COM, uint8_t CMD, int mode, int &res) {
+	V10 ph_data;
+	for (int i = 0; i < 10; i++)
+		ph_data.VALUE[i] = 0;
+
+	const uint16_t length = 242;
+	uint8_t recv_CMD = 0;
+	uint8_t DATA_IN[length] = { 0 };
+	int result;
+	const int MAX_RETRIES = 1; // количество повторов при таймауте
+
+	if (!COM->IsOpen) {
+		res = 3;
+		Console::WriteLine("get_ph_from_tool: порт закрыт");
+		return ph_data;
+	}
+
+	for (int retry = 0; retry <= MAX_RETRIES; retry++) {
+		if (retry > 0) {
+			Console::WriteLine("get_ph_from_tool: повторная попытка #{0}", retry);
+		}
+
+		// Логируем текущие таймауты и состояние COM-порта перед опросом
+		Console::WriteLine("get_ph_from_tool: ReadTimeout={0} WriteTimeout={1} BytesToRead={2}",
+							 COM->ReadTimeout, COM->WriteTimeout, COM->BytesToRead);
+
+		// Очистка входного буфера перед новым запросом — предотвращает чтение «хвостов»
+		// от предыдущих незавершённых обменов (например, таймаута метрологии).
+		COM->DiscardInBuffer();
+
+		uint8_t DATA[2] = { 0x05, 0x00 };
+		if (send_to_tool(COM, CMD, DATA, 2) != 0) {
+			Console::WriteLine("get_ph_from_tool: ошибка отправки команды опроса");
+			res = 1;
+			return ph_data;
+		}
+
+		result = receive_from_tool(COM, recv_CMD, DATA_IN, length);
+		res = result;
+
+		if (result == 0) {
+			// Старый протокол LOOP_NEW не гарантирует echo-команды в ответе;
+			// доверяем только CRC, которое проверяется в receive_from_tool.
+			GP_TOOL_DATA *All_Data = (GP_TOOL_DATA*)(DATA_IN + 2);
+			uint32_t buff = (All_Data->signature << 12) >> 12;
+			uint32_t N_Tx = (buff % 100000) / 10000;
+			if (N_Tx < 3 || N_Tx > 5) N_Tx = 5;
+
+			for (uint32_t freq = 0; freq < 2; freq++) {
+				for (uint32_t Tx = 0; Tx < N_Tx; Tx++) {
+					uint32_t idx = freq * N_Tx + Tx;
+					ph_data.VALUE[idx] = All_Data->DELTA_PH[freq][Tx];
+					while (ph_data.VALUE[idx] > PI) ph_data.VALUE[idx] -= 2 * PI;
+					while (ph_data.VALUE[idx] <= -PI) ph_data.VALUE[idx] += 2 * PI;
+				}
+			}
+			for (uint32_t i = 0; i < 2 * N_Tx; i++) {
+				if ((i & 1) == 0)
+					ph_data.VALUE[i] = -ph_data.VALUE[i];
+			}
+			return ph_data; // Успех — выходим
+		}
+
+		// При таймауте (result == 1) и не исчерпанных ретраях — пробуем снова
+		if (result == 1 && retry < MAX_RETRIES) {
+			Console::WriteLine("get_ph_from_tool: таймаут, пробуем ещё раз...");
+			continue;
+		}
+
+		// При других ошибках или исчерпании ретраев — выходим с ошибкой
+		if (result != 0) {
+			break;
+		}
+	}
 
 	return ph_data;
 }
@@ -691,10 +797,6 @@ int send_to_tool(System::IO::Ports::SerialPort^ COM, uint8_t CMD, uint8_t* DATA,
 	packet_to_send[length + 1] = CRC_res;
 	packet_to_send[length + 2] = CRC_res >> 8;
 
-
-	COM->DiscardInBuffer();
-	COM->DiscardOutBuffer();
-
 	try {
 		COM->Write(packet_to_send, 0, length + 3);
 	}
@@ -718,7 +820,7 @@ int send_to_tool(System::IO::Ports::SerialPort^ COM, uint8_t CMD, uint8_t* DATA,
 	else return 1;
 }
 
-int receive_from_tool(System::IO::Ports::SerialPort^ COM, uint8_t CMD, uint8_t* DATA, uint16_t length) {
+int receive_from_tool(System::IO::Ports::SerialPort^ COM, uint8_t& CMD, uint8_t* DATA, uint16_t length) {
 	int  stop = 0;
 	uint8_t *packet = new uint8_t[length + 3];
 	cli::array<byte>^ packet_to_receive = gcnew cli::array<byte>(length + 3);
@@ -728,46 +830,65 @@ int receive_from_tool(System::IO::Ports::SerialPort^ COM, uint8_t CMD, uint8_t* 
 		packet_to_receive[i] = 0xff;
 	}
 
-	//while (serialPort_LWD_1DDS->BytesToRead < length + 3) { ; }
+	// Логируем сколько байт доступно в COM-буфере перед чтением
+	std::cout << "[receive_from_tool] BytesToRead=" << COM->BytesToRead
+			  << " need=" << (length + 3)
+			  << " ReadTimeout=" << COM->ReadTimeout << std::endl;
 
+	// SerialPort::Read возвращается, как только доступен хотя бы один байт, и не блокирует
+	// до получения всех запрошенных байт. Поэтому чтение выполняется в цикле с
+	// дедлайном: байты накапливаются, пока не собран весь пакет или не истечёт таймаут.
+	// Аналогично ReceivePacket в Amk-Horizon-New-Chart.
+	const int total = length + 3;
+	int bytes_read = 0;
+	DateTime deadline = DateTime::Now.AddMilliseconds(COM->ReadTimeout);
 	try {
-		COM->Read(packet_to_receive, 0, length + 3);
+		while (bytes_read < total) {
+			int n = COM->Read(packet_to_receive, bytes_read, total - bytes_read);
+			if (n <= 0) break;
+			bytes_read += n;
+			if (DateTime::Now > deadline) break;
+		}
 	}
-	catch (...) { stop = 1; }
+	catch (...) {
+		// TimeoutException от Read: байтов больше нет в течение ReadTimeout.
+		// bytes_read хранит фактически принятое количество.
+		if (bytes_read == 0) stop = 1;
+	}
+
+	if (!stop && bytes_read < total) {
+		std::cout << "timeout (short read: " << bytes_read << "/" << total << ")" << std::endl;
+		COM->DiscardInBuffer();
+		delete packet;
+		delete packet_to_receive;
+		return 1;
+	}
 
 	if (!stop) {
 		for (int i = 0; i < length + 3; i++)
 			packet[i] = packet_to_receive[i];
 
-		COM->DiscardInBuffer();
-		COM->DiscardOutBuffer();
-
-		if (CRC16(packet, length + 1) == *(uint16_t *) &(packet[length + 1])) {
+		uint16_t calc_crc = CRC16(packet, length + 1);
+		uint16_t recv_crc = *(uint16_t *) &(packet[length + 1]);
+		if (calc_crc == recv_crc) {
 			CMD = packet[0];
 			for (int i = 0; i < length; i++)
 				DATA[i] = packet_to_receive[i + 1];
-			/*
-			Console::Write("receive_from_tool_ok ");
-			for (int i = 0; i < length; i++) {
-				Console::Write("{0:x}", DATA[i]); Console::Write(" ");
-			}
-			Console::WriteLine("");
-			*/
 			delete packet;
 			delete packet_to_receive;
 			return 0;
 		}
 		else {
-			/*
-			Console::Write("error ");
-			for (int i = 0; i < length+3; i++) {
-				Console::Write("{0:x}", packet_to_receive[i]); Console::Write(" ");
+			// Hex-дамп пакета при CRC-ошибке для диагностики
+			std::stringstream hex_ss;
+			hex_ss << "crc no valid | CalcCRC=0x" << std::hex << calc_crc
+				   << " RecvCRC=0x" << recv_crc << std::dec
+				   << " | Packet(" << (length + 3) << "b): ";
+			for (int i = 0; i < length + 3; i++) {
+				hex_ss << std::hex << std::setw(2) << std::setfill('0')
+					   << (int)packet_to_receive[i] << " ";
 			}
-			Console::WriteLine("");
-			*/
-			cout << "crc no valid" << endl;
-			COM->DiscardInBuffer();
-			COM->DiscardOutBuffer();
+			std::cout << hex_ss.str() << std::dec << std::endl;
 			delete packet;
 			delete packet_to_receive;
 			return 2;
@@ -776,9 +897,7 @@ int receive_from_tool(System::IO::Ports::SerialPort^ COM, uint8_t CMD, uint8_t* 
 
 	else {
 		stop = 0;
-		cout << "timeout" << endl;
-		COM->DiscardInBuffer();
-		COM->DiscardOutBuffer();
+		std::cout << "timeout (exception on Read)" << std::endl;
 		delete packet;
 		delete packet_to_receive;
 		return 1;
