@@ -82,6 +82,32 @@ namespace LOOP {
 		cout << log_line;
 	}
 
+	// Отдельный лог пошаговой поверки сопротивлений.
+	// Пишется в самостоятельный файл, чтобы не смешивать с потоком фаз LoopDeviceLog.txt.
+	// Формат строки: [HH:MM:SS] [ШАГ N] message
+	inline void WriteStepLog(int step, const string& message) {
+		time_t now = time(0);
+		tm ltm;
+		localtime_s(&ltm, &now);
+		// Бинарный режим + UTF-8 BOM, как и в основном логе, для корректного отображения кириллицы.
+		ofstream log_file("LoopStepsLog.txt", ios::app | ios::binary);
+		if (log_file.tellp() == 0) {
+			const unsigned char bom[] = {0xEF, 0xBB, 0xBF};
+			log_file.write((const char*)bom, 3);
+		}
+		stringstream ss;
+		ss << "[" << setfill('0') << setw(2) << ltm.tm_hour << ":"
+		   << setfill('0') << setw(2) << ltm.tm_min << ":"
+		   << setfill('0') << setw(2) << ltm.tm_sec << "] "
+		   << "[ШАГ " << step << "] "
+		   << message << "\n";
+		string log_line = ss.str();
+		log_file.write(log_line.c_str(), log_line.length());
+		log_file.close();
+		SetConsoleUTF8();
+		cout << log_line;
+	}
+
 	using namespace System::IO::Ports;
 	using namespace System::Windows;
 
@@ -5493,7 +5519,7 @@ void do_graf(int N_graf, int *X, int N, int trashhold) {
 }
 
 private: System::Void button_ON_OFF_Click(System::Object^  sender, System::EventArgs^  e) {		
-	
+	WriteStepLog(3, "ВКЛЮЧИТЬ ПРИБОР: нажата кнопка. Текущее состояние on_off=" + string(on_off ? "true" : "false") + ", tool_type=" + to_string(tool_type));
 	if (tool_type == AUTONOM) {
 		int stop = 0, stop_ = 0;
 		extern string Com_LWD_Name;
@@ -5818,9 +5844,11 @@ private: System::Void button_ON_OFF_Click(System::Object^  sender, System::Event
 				Sonde_Read_Timer->Enabled = true;
 				this->button_ON_OFF->Text = "ВЫКЛЮЧИТЬ ПРИБОР";
 				WriteLog("=== ПРИБОР УСПЕШНО ВКЛЮЧЕН ===");
+				WriteStepLog(3, "ВКЛЮЧИТЬ ПРИБОР: УСПЕХ. on_off=true, sonde_param=" + to_string(sonde_param.size()));
 			}
 			else {
 				WriteLog("ОШИБКА: Не удалось включить прибор!");
+				WriteStepLog(3, "ВКЛЮЧИТЬ ПРИБОР: ОШИБКА — порт прибора не открыт.");
 				MessageBox::Show("Не удется открыть порт !");
 			}
 		}
@@ -5840,6 +5868,7 @@ private: System::Void button_ON_OFF_Click(System::Object^  sender, System::Event
 }
 
 private: System::Void button_local_air_Click(System::Object^  sender, System::EventArgs^  e) {
+	WriteStepLog(10, "ЛОКАЛЬНЫЙ ВОЗДУХ: нажата кнопка. on_off=" + string(on_off ? "true" : "false") + ", bt_on=" + string(bt_on ? "true" : "false"));
 	//eсли прибор работает отсчитываем 20 измерений и забираем 
 	if (on_off == true && bt_on == true) {
 		button_AIR->PerformClick();
@@ -6104,6 +6133,7 @@ private:void sonde_read_timer(System::Object^ source, ElapsedEventArgs^ e) {
 }
 
 private: System::Void BT_ON(System::Object^  sender, System::EventArgs^  e) {
+	WriteStepLog(4, "ВКЛЮЧИТЬ КОЛЬЦО: нажата кнопка. Порт кольца=" + msclr::interop::marshal_as<std::string>(serialPort_loop->PortName));
 	int stop = 0, stop_ = 0;
 	extern string Com_Name;
 	String^ Str = "";
@@ -6114,31 +6144,42 @@ private: System::Void BT_ON(System::Object^  sender, System::EventArgs^  e) {
 	
 	if (serialPort_loop->IsOpen == true) {
 		serialPort_loop->Close();		
-			//MessageBox::Show("уже включен");
 	}			
 
-	//serialPort_loop->PortName = gcnew String(Com_Name.c_str());
 	serialPort_loop->BaudRate = 9600;
 	serialPort_loop->ReadTimeout = 500;
 	serialPort_loop->WriteTimeout = 500;
-	Console::WriteLine(serialPort_loop->PortName);
+	Console::WriteLine("[BT_ON] Попытка подключения кольца:");
+	Console::WriteLine("[BT_ON]   Порт: " + serialPort_loop->PortName + "  BaudRate: " + serialPort_loop->BaudRate);
+	Console::WriteLine("[BT_ON]   ReadTimeout: " + serialPort_loop->ReadTimeout + "  WriteTimeout: " + serialPort_loop->WriteTimeout);
 
 	try { serialPort_loop->Open(); }
-	catch (...) { stop_ = 1; }
-	if (!stop_) {		
+	catch (System::Exception^ ex) { stop_ = 1; Console::WriteLine("[BT_ON] ОШИБКА открытия порта: " + ex->Message); }
+	if (!stop_) {
+		Console::WriteLine("[BT_ON] Порт открыт. Отправка команды идентификации '$'...");
 		serialPort_loop->DiscardInBuffer();
 		serialPort_loop->Write("$\r\n");
 		try { Str = serialPort_loop->ReadLine(); }
-		catch (...) { stop = 1; }
+		catch (System::Exception^ ex) { stop = 1; Console::WriteLine("[BT_ON] Таймаут ожидания ответа: " + ex->Message); }
 		if (!stop) {
+			// Выводим hex-представление каждого символа ответа для диагностики
+			System::Text::StringBuilder^ hexDump = gcnew System::Text::StringBuilder();
+			for (int ci = 0; ci < Str->Length; ci++)
+				hexDump->AppendFormat("{0:X2} ", (int)Str[ci]);
+			Console::WriteLine("[BT_ON] Ответ (длина " + Str->Length + "): '" + Str + "'");
+			Console::WriteLine("[BT_ON] HEX: " + hexDump->ToString());
 			if (Str->StartsWith("Unknown")) {
 				bt_on = true;
 				button_AIR->PerformClick();
 				this->button_BT_ON->BackColor = Color::DodgerBlue;
 				this->button_BT_ON->Text = "КОЛЬЦО ВКЛЮЧЕНО";
 				Loop_Check_Timer->Enabled = true;
+				Console::WriteLine("[BT_ON] Кольцо успешно подключено.");
 			}
-			else { serialPort_loop->Close(); MessageBox::Show("Не удается установить соединение !"); }
+			else {
+				Console::WriteLine("[BT_ON] Ответ не содержит 'Unknown'. Подключение отклонено.");
+				serialPort_loop->Close(); MessageBox::Show("Не удается установить соединение !");
+			}
 		}
 		else {
 			serialPort_loop->Close(); MessageBox::Show("Нет ответа от кольца !");
@@ -6237,6 +6278,7 @@ private:void loop_check_timer(System::Object^ source, ElapsedEventArgs^ e) {
 
 ///loop////////////////////////////////////////////////////////////////////////////////////////////////////////
 private: System::Void button_AIR_Click(System::Object^  sender, System::EventArgs^  e) {
+	WriteStepLog(11, "AIR: нажата кнопка. on_off=" + string(on_off ? "true" : "false") + ", bt_on=" + string(bt_on ? "true" : "false"));
 	if (on_off == true && bt_on == true) {
 		R_IDX = 0;
 		C_IDX = 0;
@@ -6253,6 +6295,7 @@ private: System::Void button_AIR_Click(System::Object^  sender, System::EventArg
 }
 
 void R_Click(int R_idx, int C_idx) {
+	WriteStepLog(13, "R" + to_string(R_idx) + ": выбрано сопротивление. on_off=" + string(on_off ? "true" : "false") + ", bt_on=" + string(bt_on ? "true" : "false") + ", start_R_measure=" + string(start_R_measure ? "true" : "false"));
 	if (on_off == true && bt_on == true && start_R_measure == false) {
 		R_IDX = R_idx; C_IDX = C_idx;
 		Loop_Check_Timer->Enabled = false;
@@ -6412,6 +6455,7 @@ private: System::Void textBox_Z_loop10_KeyUp(System::Object^  sender, System::Wi
 }
 //загрузить параметры кольца
 private: System::Void button_read_loop_Z_Click(System::Object^  sender, System::EventArgs^  e) {
+	WriteStepLog(5, "ПРОЧИТАТЬ: нажата кнопка. bt_on=" + string(bt_on ? "true" : "false"));
 	int stop = 0;
 	String^ Str = "";
 	String^ send_Z = "";
@@ -6423,6 +6467,7 @@ private: System::Void button_read_loop_Z_Click(System::Object^  sender, System::
 	extern vector <V10> Ro_computed;
 	extern vector <LOOP_PARAM> loop_param;
 	extern vector <SONDE_PARAM> sonde_param;
+	Console::WriteLine("[ZREAD] === Начало чтения параметров кольца ===");
 	if (bt_on == true) {
 		Loop_Check_Timer->Enabled = false;
 		
@@ -6430,18 +6475,40 @@ private: System::Void button_read_loop_Z_Click(System::Object^  sender, System::
 		for (int n = 0; n < 10; n++) {
 			int stop = 0;
 			send_Z = "ZREAD " + (n)+"\r\n"; resive_Z = "Z" + (n)+" ";
+			Console::WriteLine("[ZREAD] n=" + n + "  Отправка: '" + send_Z->TrimEnd() + "'  Ожидаем префикс: '" + resive_Z + "'");
 			serialPort_loop->DiscardInBuffer();
 			serialPort_loop->Write(send_Z);
 			Sleep(50);
 			try { resive = serialPort_loop->ReadLine(); }
-			catch (...) { stop = 1; }
+			catch (System::Exception^ ex) { stop = 1; Console::WriteLine("[ZREAD] n=" + n + " Таймаут/ошибка ReadLine: " + ex->Message); }
 			if (!stop) {
+				// Выводим сырую строку и её hex-представление для диагностики символьных артефактов
+				System::Text::StringBuilder^ hexDump = gcnew System::Text::StringBuilder();
+				for (int ci = 0; ci < resive->Length; ci++)
+					hexDump->AppendFormat("{0:X2} ", (int)resive[ci]);
+				Console::WriteLine("[ZREAD] n=" + n + " Ответ (длина " + resive->Length + "): '" + resive + "'");
+				Console::WriteLine("[ZREAD] n=" + n + " HEX: " + hexDump->ToString());
 				if (resive->StartsWith(resive_Z)) {
 					Str = resive->Substring(3);
 					int index_0 = Str->IndexOf(" ");
-					R[n] = Double::Parse((Str->Substring(0, index_0))->Replace(".", ","));
-					Re[n] = Double::Parse((Str->Substring(index_0 + 1))->Replace(".", ","));
-					Console::WriteLine(n + " R " + R[n] + " Re " + Re[n]);
+					if (index_0 < 0) {
+						Console::WriteLine("[ZREAD] n=" + n + " ОШИБКА: разделитель ' ' не найден, строка пропущена.");
+						continue;
+					}
+					// Кольцо может вернуть "-nan"/"inf" для пустых ячеек памяти.
+					// TryParse не бросает исключений; нечисловые значения трактуются как 0.
+					double rVal = 0.0, reVal = 0.0;
+					bool okR = Double::TryParse((Str->Substring(0, index_0))->Trim(),
+						System::Globalization::NumberStyles::Float,
+						System::Globalization::CultureInfo::InvariantCulture, rVal);
+					bool okRe = Double::TryParse((Str->Substring(index_0 + 1))->Trim(),
+						System::Globalization::NumberStyles::Float,
+						System::Globalization::CultureInfo::InvariantCulture, reVal);
+					if (!okR || Double::IsNaN(rVal) || Double::IsInfinity(rVal)) rVal = 0.0;
+					if (!okRe || Double::IsNaN(reVal) || Double::IsInfinity(reVal)) reVal = 0.0;
+					R[n] = (float)rVal;
+					Re[n] = (float)reVal;
+					Console::WriteLine("[ZREAD] n=" + n + " Результат: R=" + R[n] + "  Re=" + Re[n] + (okR && okRe ? "" : "  (ячейка пуста/нечисловая)"));
 					TextBox^ TEXTBOX_Re = (TextBox^)this->tableLayoutPanel11->Controls["textBox_Z_loop" + (n + 1).ToString()];
 					TextBox^ TEXTBOX_R = (TextBox^)this->tableLayoutPanel11->Controls["textBox_R_loop" + (n + 1).ToString()];
 					TEXTBOX_Re->Text = Re[n].ToString("F4");
@@ -6477,11 +6544,13 @@ private: System::Void button_read_loop_Z_Click(System::Object^  sender, System::
 			}
 		}
 		//если прибор включен рассчитываем фазы и УЭС от всех сопротивлений кольца для всех зондов
+		WriteStepLog(5, "ПРОЧИТАТЬ: loop_param.size=" + to_string(loop_param.size()) + ", sonde_param.size=" + to_string(sonde_param.size()) + ", Z_downloaded=" + string(Z_downloaded_from_loop ? "true" : "false"));
 	}
 
 }
 
 private: System::Void button_write_Z_Click(System::Object^  sender, System::EventArgs^  e) {
+	WriteStepLog(8, "ЗАПИСАТЬ: нажата кнопка. bt_on=" + string(bt_on ? "true" : "false"));
 	bool write_ok = false;
 	int stop = 0;
 	String^ Str = "";
@@ -6526,14 +6595,21 @@ private: System::Void button_write_Z_Click(System::Object^  sender, System::Even
 		textBox_radius; textBox_R_wire;
 
 
-		if(write_ok == true )
+		if (write_ok == true) {
 			MessageBox::Show("запись прошла успешно");
-		else
+			WriteStepLog(8, "ЗАПИСАТЬ: УСПЕХ. write_ok=true");
+		}
+		else {
 			MessageBox::Show("ошибка, перезапишите");
-		
+			WriteStepLog(8, "ЗАПИСАТЬ: ОШИБКА. write_ok=false");
+		}
+
 		Loop_Check_Timer->Enabled = true;
 	}
-	if (bt_on == false) { MessageBox::Show("Включите кольцо"); }
+	if (bt_on == false) {
+		MessageBox::Show("Включите кольцо");
+		WriteStepLog(8, "ЗАПИСАТЬ: ОШИБКА — кольцо выключено.");
+	}
 }
 
 private: System::Void button_erase_Click(System::Object^  sender, System::EventArgs^  e) {
@@ -6623,6 +6699,7 @@ private: System::Void button_signature_Click(System::Object^  sender, System::Ev
 }
 
 private: System::Void button_calc_z_to_loop_Click(System::Object^  sender, System::EventArgs^  e) {
+	WriteStepLog(7, "записать_Z_расчетное: нажата кнопка.");
 	bool calc_z_exist = false;
 	for (int i = 0; i < 10; i++) {
 		TextBox^ TEXTBOX_Z_CALC = (TextBox^)this->tableLayoutPanel11->Controls["textBox_Z_calc" + (i + 1).ToString()];
@@ -6634,15 +6711,19 @@ private: System::Void button_calc_z_to_loop_Click(System::Object^  sender, Syste
 		else
 			calc_z_exist = false;
 	}
-	if(!calc_z_exist)
+	if(!calc_z_exist) {
 		MessageBox::Show("Требуется рассчитать реактивные сопротивления");
+		WriteStepLog(7, "записать_Z_расчетное: ОШИБКА — нет расчётных значений Z.");
+	}
 	else {
 		button_write_Z->PerformClick();
+		WriteStepLog(7, "записать_Z_расчетное: расчётные Z записаны в кольцо (вызвана запись).");
 		//MessageBox::Show("теперь запишите");
 	}
 }
 
 private: System::Void button_calk_C_need_Click(System::Object^  sender, System::EventArgs^  e) {
+	WriteStepLog(6, "РАССЧИТАТЬ ЕМКОСТИ: нажата кнопка. checkBox_param_red=" + string(checkBox_param_red->Checked ? "true" : "false"));
 	double L_loop = 4.6*1e-6;
 	double F_rez[10];
 	double C[10];
@@ -6708,6 +6789,7 @@ private: System::Void button_calk_C_need_Click(System::Object^  sender, System::
 			TEXTBOX_Z_CALC->Text = (imag(Z(1.0, L_loop, C[i], param[i].F))).ToString("F3");			
 		}
 	}
+	WriteStepLog(6, "РАССЧИТАТЬ ЕМКОСТИ: завершено. param.size=" + to_string(param.size()));
 }
 
 private: System::Void checkBox_Re_red_CheckedChanged(System::Object^  sender, System::EventArgs^  e) {
@@ -6763,6 +6845,7 @@ private: System::Void checkBox_param_red_CheckedChanged(System::Object^  sender,
 }
 //убрать после отладки
 private: System::Void button_calk_Click(System::Object^  sender, System::EventArgs^  e) {
+	WriteStepLog(14, "РАССЧИТАТЬ: нажата кнопка.");
 	extern bool metro_check;
 	extern vector <V10> PH_computed;
 	extern vector <V10> Ro_computed;
@@ -6775,11 +6858,13 @@ private: System::Void button_calk_Click(System::Object^  sender, System::EventAr
 	
 	
 	
+	WriteStepLog(14, "РАССЧИТАТЬ: перед расчётом. sonde_param=" + to_string(sonde_param.size()) + ", loop_param=" + to_string(loop_param.size()));
 	cout << endl;
 	cout << endl;
 
 	calc_PH_from_loop(sonde_param, loop_param,  PH_computed);
 	calc_Ro_from_loop(sonde_param, PH_computed, Ro_computed);
+	WriteStepLog(14, "РАССЧИТАТЬ: расчёт выполнен. PH_computed=" + to_string(PH_computed.size()) + ", Ro_computed=" + to_string(Ro_computed.size()));
 
 	for (int R_idx = 0; R_idx < 8; R_idx++) {
 		cout << "PH ";
@@ -6815,6 +6900,7 @@ private: System::Void button_calk_Click(System::Object^  sender, System::EventAr
 }
 
 private: System::Void button_auto_Click(System::Object^  sender, System::EventArgs^  e) {
+	WriteStepLog(12, "АВТО: нажата кнопка. on_off=" + string(on_off ? "true" : "false") + ", bt_on=" + string(bt_on ? "true" : "false") + ", auto_vork=" + string(auto_vork ? "true" : "false"));
 	extern vector <SONDE_PARAM> sonde_param;
 	if (on_off == true && bt_on == true) {
 		if (auto_vork == false) {
@@ -6833,8 +6919,8 @@ private: System::Void button_auto_Click(System::Object^  sender, System::EventAr
 					TEXTBOX_R_T->Text = "";
 				}
 			}
+			WriteStepLog(12, "АВТО: авто-режим запущен. auto_vork=true, R_IDX=" + to_string(R_IDX) + ", C_IDX=" + to_string(C_IDX));
 		}
-
 		else {
 			button_auto->BackColor = DefaultBackColor;
 			auto_vork = false;
@@ -6842,6 +6928,7 @@ private: System::Void button_auto_Click(System::Object^  sender, System::EventAr
 			end_R_measure = true;
 			//auto_R_IDX = 10;
 			int work_result = Loop_work(0, 0);
+			WriteStepLog(12, "АВТО: авто-режим остановлен. auto_vork=false, work_result=" + to_string(work_result) + ", end_R_measure=true");
 			R_IDX = 0;
 			C_IDX = 0;
 			if (!work_result) {
@@ -6962,7 +7049,12 @@ private: System::Void timer1_Tick(System::Object^  sender, System::EventArgs^  e
 		float Re[32];
 
 		if (bt_on == true) {
+			Console::WriteLine("[ZREAD-AUTO] === Автоматическое чтение параметров кольца (timer1_Tick) ===");
 			Loop_Check_Timer->Enabled = false;
+			// Пауза, чтобы уже запущенный обратный вызов loop_check_timer (пул потоков)
+			// завершил обмен по serialPort_loop до начала наших ZREAD-запросов.
+			Sleep(100);
+			serialPort_loop->DiscardInBuffer();
 			int stop = 0;
 			String^ resive = "";
 			for (int n = 0; n < 10; n++) {
@@ -6971,19 +7063,50 @@ private: System::Void timer1_Tick(System::Object^  sender, System::EventArgs^  e
 				serialPort_loop->Write(send_Z);
 				Sleep(50);
 				try { resive = serialPort_loop->ReadLine(); }
-				catch (...) { stop = 1; }
+				catch (System::Exception^ ex) { stop = 1; Console::WriteLine("[ZREAD-AUTO] n=" + n + " Таймаут/ошибка ReadLine: " + ex->Message); }
 				if (!stop) {
+					// Диагностика: сырая строка + hex-дамп для выявления символьных артефактов
+					System::Text::StringBuilder^ hexDump = gcnew System::Text::StringBuilder();
+					for (int ci = 0; ci < resive->Length; ci++)
+						hexDump->AppendFormat("{0:X2} ", (int)resive[ci]);
+					Console::WriteLine("[ZREAD-AUTO] n=" + n + " Ответ (длина " + resive->Length + "): '" + resive + "'");
+					Console::WriteLine("[ZREAD-AUTO] n=" + n + " HEX: " + hexDump->ToString());
 					if (resive->StartsWith(resive_Z)) {
 						Str = resive->Substring(3);
 						int index_0 = Str->IndexOf(" ");
-						R[n] = Double::Parse((Str->Substring(0, index_0))->Replace(".", ","));
-						Re[n] = Double::Parse((Str->Substring(index_0 + 1))->Replace(".", ","));
-						Console::WriteLine(n + " R " + R[n] + " Re " + Re[n]);
+						if (index_0 < 0) {
+							// Ответ не содержит разделитель — пропускаем во избежание исключения Substring
+							Console::WriteLine("[ZREAD-AUTO] n=" + n + " ОШИБКА: разделитель ' ' не найден, строка пропущена.");
+							continue;
+						}
+						// Кольцо может возвращать "-nan"/"inf" для пустых ячеек памяти.
+						// TryParse не бросает исключений; нечисловые значения трактуются как 0
+						// (ячейка считается незаполненной и отфильтровывается ниже по Re > 0).
+						double rVal = 0.0, reVal = 0.0;
+						bool okR = Double::TryParse(
+							(Str->Substring(0, index_0))->Trim(),
+							System::Globalization::NumberStyles::Float,
+							System::Globalization::CultureInfo::InvariantCulture, rVal);
+						bool okRe = Double::TryParse(
+							(Str->Substring(index_0 + 1))->Trim(),
+							System::Globalization::NumberStyles::Float,
+							System::Globalization::CultureInfo::InvariantCulture, reVal);
+						// Защита от nan/inf, прошедших парсинг в отдельных культурах.
+						if (!okR || Double::IsNaN(rVal) || Double::IsInfinity(rVal)) rVal = 0.0;
+						if (!okRe || Double::IsNaN(reVal) || Double::IsInfinity(reVal)) reVal = 0.0;
+						R[n] = (float)rVal;
+						Re[n] = (float)reVal;
+						if (!okR || !okRe || R[n] == 0.0f && Re[n] == 0.0f)
+							Console::WriteLine("[ZREAD-AUTO] n=" + n + " Ячейка пуста/нечисловая (R=" + R[n] + " Re=" + Re[n] + ")");
+						else
+							Console::WriteLine("[ZREAD-AUTO] n=" + n + " Результат: R=" + R[n] + "  Re=" + Re[n]);
 						TextBox^ TEXTBOX_Re = (TextBox^)this->tableLayoutPanel11->Controls["textBox_Z_loop" + (n + 1).ToString()];
 						TextBox^ TEXTBOX_R = (TextBox^)this->tableLayoutPanel11->Controls["textBox_R_loop" + (n + 1).ToString()];
 						TEXTBOX_Re->Text = Re[n].ToString("F4");
 						TEXTBOX_R->Text = R[n].ToString("F0");
 						TEXTBOX_Re->BackColor = Color::White;
+						// Прочитали корректный кадр (префикс Zn совпал) — отмечаем загрузку,
+						// чтобы timer1_Tick не зациклился на повторных чтениях.
 						Z_downloaded_from_loop = true;
 
 					}
@@ -7015,30 +7138,42 @@ private: System::Void timer1_Tick(System::Object^  sender, System::EventArgs^  e
 			MessageBox::Show("Параметры от кольца не получены");
 /////////////////////////////////////////////////////////////////////////////////
 		if(Z_downloaded_from_loop == true){
-			calc_PH_from_loop(sonde_param, loop_param, PH_computed);
-			calc_Ro_from_loop(sonde_param, PH_computed, Ro_computed);
+			// Расчёт возможен только при наличии валидных сопротивлений кольца.
+			// Если все ячейки пусты (кольцо вернуло -nan), loop_param пуст —
+			// пропускаем расчёт во избежание обращения к пустым векторам и null-контролам.
+			if (loop_param.size() > 0) {
+				calc_PH_from_loop(sonde_param, loop_param, PH_computed);
+				calc_Ro_from_loop(sonde_param, PH_computed, Ro_computed);
 
-			for (int n = 0; n < 8; n++) {
-				Button^ BUTTON_R = (Button^)this->tableLayoutPanel1->Controls["button_R" + (n+1).ToString()];
-	            BUTTON_R->Text = R[n].ToString("F0");
-			}
+				for (int n = 0; n < 8; n++) {
+					Button^ BUTTON_R = (Button^)this->tableLayoutPanel1->Controls["button_R" + (n + 1).ToString()];
+					// Контрол может отсутствовать в данной панели — проверка перед доступом.
+					if (BUTTON_R != nullptr)
+						BUTTON_R->Text = R[n].ToString("F0");
+				}
 
-
-			//отладка/////////////////////////////////////////
-			for (int R_idx = 0; R_idx < 8; R_idx++) {
-				cout << "PH ";
-				for (int n_sonde = 0; n_sonde < sonde_param.size(); n_sonde++)
-					cout << PH_computed[R_idx].VALUE[n_sonde] << " ";
+				//отладка/////////////////////////////////////////
+				for (size_t R_idx = 0; R_idx < PH_computed.size(); R_idx++) {
+					cout << "PH ";
+					for (size_t n_sonde = 0; n_sonde < sonde_param.size(); n_sonde++)
+						cout << PH_computed[R_idx].VALUE[n_sonde] << " ";
+					cout << endl;
+				}
 				cout << endl;
+				for (size_t R_idx = 0; R_idx < Ro_computed.size(); R_idx++) {
+					cout << "Ro ";
+					for (size_t n_sonde = 0; n_sonde < sonde_param.size(); n_sonde++)
+						cout << Ro_computed[R_idx].VALUE[n_sonde] << " ";
+					cout << endl;
+				}
+				////////////////////////////////////////////////////////
 			}
-			cout << endl;
-			for (int R_idx = 0; R_idx < PH_computed.size(); R_idx++) {
-				cout << "Ro ";
-				for (int n_sonde = 0; n_sonde < sonde_param.size(); n_sonde++)
-					cout << Ro_computed[R_idx].VALUE[n_sonde] << " ";
-				cout << endl;
+			else {
+				Console::WriteLine("[ZREAD-AUTO] Кольцо не содержит валидных Z (все ячейки -nan/пусты). "
+					"Расчёт пропущен. Запишите параметры Z в кольцо кнопкой 'Записать Z'.");
 			}
-			////////////////////////////////////////////////////////
+			// Выставляем флаг в любом случае, чтобы timer1_Tick не перечитывал кольцо
+			// каждую секунду, пока состояние прибора/кольца не изменится.
 			PH_Ro_is_calculated = true;
         }	
 	}
@@ -7101,6 +7236,7 @@ private: System::Void timer1_Tick(System::Object^  sender, System::EventArgs^  e
 
 //сохранить рапорт
 private: System::Void сохранитьРапортRtfToolStripMenuItem_Click(System::Object^  sender, System::EventArgs^  e) {
+	WriteStepLog(15, "РАПОРТ: нажата кнопка.");
 	extern vector <LOOP_PARAM> loop_param;
 	extern vector <SONDE_PARAM> sonde_param;
 	extern int Ro_percent_from_sonde[10][20];
@@ -7214,7 +7350,7 @@ private: System::Void сохранитьРапортRtfToolStripMenuItem_Click(S
 		if (on_off == true) {
 			Sonde_Read_Timer->Enabled = true;
 		}
-	
+		WriteStepLog(15, "РАПОРТ: завершено.");
     }
 
 }
