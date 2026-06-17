@@ -1765,11 +1765,10 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			}
 		}
 
-		// Унифицированный протокол с Amk-Horizon-New-Chart: метрология читается командой 0x13
-		// с пустым payload, ответ [0x13][LEN:2][240B метрология][CRC]. Полезная нагрузка со смещением +2.
+		// Чтение метрологии командой 0x13.
 		uint8_t DATA[2] = { 0x05, 0x00 };
 		int metro_result = -1;
-		// Три попытки опроса метрологии — аналогично логике в WorkForm.h.
+		// Три попытки опроса метрологии.
 		for (int attempt = 0; attempt < 3 && metro_result != 0; attempt++) {
 			uint8_t CMD = 0;
 			uint8_t DATA_IN[242] = { 0 };
@@ -1779,7 +1778,6 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 					memcpy(&metrology_struct, DATA_IN + 2, sizeof(GP_TOOL_METROLOGY));
 				}
 				else {
-					// Очистка буфера перед повторной попыткой
 					port->DiscardInBuffer();
 					Sleep(100);
 				}
@@ -1904,8 +1902,7 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			catch (...) { stop = 1; }
 
 			if (!stop) {
-				// Унифицированный протокол с Amk-Horizon-New-Chart: запись метрологии командой 0x13
-				// с 240-байтовым payload. Поле длины 0xf5 0x00 = 245 (полный размер пакета: CMD+LEN+240B+CRC).
+				// Запись метрологии командой 0x13.
 				uint8_t DATA_OUT[242];
 				DATA_OUT[0] = 0xf5; DATA_OUT[1] = 0x00;
 				memcpy(DATA_OUT + 2, &metrology_struct, sizeof(GP_TOOL_METROLOGY));

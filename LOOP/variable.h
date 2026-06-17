@@ -33,7 +33,7 @@
 # define SDR 1
 # define AUTONOM 2
 
-// Унифицированный протокол обмена с прибором (совместим с Amk-Horizon-New-Chart).
+// Протокол обмена с прибором.
 // Пакет: [CMD:1][LEN:2][PAYLOAD:N][CRC:2], где LEN = полная длина пакета (N + 5).
 // 0x16 запрос сигнатуры прибора (ответ: 4 байта signature)
 #define CMD_GET_SIGNATURE 0x16

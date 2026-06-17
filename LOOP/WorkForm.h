@@ -439,11 +439,8 @@ internal:
 
 	WorkForm(void)
 		{
-		    extern bool express;
+			extern bool express;
 			InitializeComponent();
-			//
-			//TODO: добавьте код конструктора
-			//
 			
 			Sonde_Read_Thread->Start();
 			Loop_Check_Thread->Start();
@@ -477,18 +474,12 @@ internal:
 			if (comboBox_aver->Text != "") N_averaging = Int32::Parse(comboBox_aver->Text);
 			checkBox_express->Checked = express;
 			
-			//comboBox_tool_type->SelectedIndex = 2;//AUTONOM
-			//comboBox_tool_type->SelectedIndex = 0;//LWD
-
 			for (int N_sonde = 1; N_sonde <= 10; N_sonde++) {
 				Label^ LABEL_T = (Label^)this->tableLayoutPanel1->Controls["labelT" + (N_sonde).ToString()];
 				LABEL_T->Text = "Tx " ;
 			}
 			
 
-			//do_legend(trashhold, 1);
-			//int X[20] = { 0, };
-			//do_graf(1, X, 1, trashhold);
 	}
 
 	protected:
@@ -5337,7 +5328,7 @@ internal:
 		}
 #pragma endregion
 
-    // инициализация 
+    // Инициализация.
 #define AIR_MODE 0
 #define MEAS_MODE 1
 	int tool_type = 0;
@@ -5364,8 +5355,7 @@ internal:
 	uint32_t sonde_kojuh_serial = 0;
 	int air_data_aver = 20;
 	int trashhold = 5;
-	int N_R_for_express = 2;//до какого сопротивления измеряем на всех конденсаторах
-	//bool express = false;
+	int N_R_for_express = 2; // До этого сопротивления экспресс-режим проходит все конденсаторы.
 	int R_IDX = 0;
 	int C_IDX = 0;
 	int N_averaging = 10;
@@ -5376,22 +5366,18 @@ internal:
 	int air_set_cntr = 0;
 	
 	
-	//функции
-
-	
 void do_legend( int trashhold, int mode ) {
 	pictureBox_legend_up;
-	int width = pictureBox_legend_up->Width / 6;//ширина 5%
-	int height = pictureBox_legend_up->Height;//высота полоски
+	int width = pictureBox_legend_up->Width / 6;
+	int height = pictureBox_legend_up->Height;
 	Bitmap^ bmp = gcnew Bitmap(6 * width, height, PixelFormat::Format32bppArgb);
 	Graphics ^ g = Graphics::FromImage(bmp);
 	String^ Text = "";
 	Brush^ Кисть = gcnew SolidBrush(Color::Black);
 	Font  = gcnew System::Drawing::Font("Microsoft Sans Serif", 8, FontStyle::Regular);
-	//air
 	if (mode == AIR_MODE) {
 		Text = "-90mG";
-		g->DrawString(Text, Font, Кисть, 0, 0); // Координаты размещения текста
+		g->DrawString(Text, Font, Кисть, 0, 0);
 		Text = "-60mG";
 		g->DrawString(Text, Font, Кисть, width + 2, 0);
 		Text = "-30mG";
@@ -5405,7 +5391,7 @@ void do_legend( int trashhold, int mode ) {
 	}
 	if (mode == MEAS_MODE) {
 		Text = "-" + 3 * trashhold + "%";
-		g->DrawString(Text, Font, Кисть, 0, 0); // Координаты размещения текста
+		g->DrawString(Text, Font, Кисть, 0, 0);
 		Text = "-" + 2 * trashhold + "%";
 		g->DrawString(Text, Font, Кисть, width + 2, 0);
 		Text = "-" + 1 * trashhold + "%";
@@ -5427,12 +5413,6 @@ void do_legend( int trashhold, int mode ) {
 	
 void do_graf(int N_graf, int *X, int N, int trashhold) {
 	if (N  > 0 && N_graf > 0 &&  N_graf < 11 ) {
-		//if (N_graf == 5)
-			//cout << "N_graf " << N_graf << endl;;
-		//if (N_graf == 5)
-			//cout << "N last points " << N << endl;
-		// граф выводит первые N  процентные разницы из массива Х 
-		//trashhold - процентный порог цвет
 		extern vector <V10> PH_computed;
 		extern vector <V10> Ro_computed;
 		extern int PH_percent_from_sonde[10][20];
@@ -5440,13 +5420,11 @@ void do_graf(int N_graf, int *X, int N, int trashhold) {
 		extern vector <SONDE_PARAM> sonde_param;
 		PictureBox^ GRAF = (PictureBox^)this->tableLayoutPanel1->Controls["pictureBox_graf" + (N_graf).ToString()];
 		int cursor_width = 5;
-		int width = GRAF->Width / 6;//ширина 5%
-		int height = GRAF->Height;//высота полоски
+		int width = GRAF->Width / 6;
+		int height = GRAF->Height;
 		Bitmap^ bmp = gcnew Bitmap(6 * width, height, PixelFormat::Format32bppArgb);
 		Graphics ^ g = Graphics::FromImage(bmp);
 		Brush ^ Заливка;
-		//если не воздух заливаем цветом	
-		//if (R_IDX != 0 && C_IDX != 0) {
 		Заливка = gcnew SolidBrush(Color::Red);
 		g->FillRectangle(Заливка, 0, 0, width, height);
 		Заливка = gcnew SolidBrush(Color::Yellow);
@@ -5457,10 +5435,6 @@ void do_graf(int N_graf, int *X, int N, int trashhold) {
 		g->FillRectangle(Заливка, 4 * width + 1, 0, width, height);
 		Заливка = gcnew SolidBrush(Color::Red);
 		g->FillRectangle(Заливка, 5 * width + 1, 0, width, height);
-		//}
-
-		////////////////////////////////////////////////////////
-		//среднее выводимых	процентов			
 		float summ = 0;
 		
 		for (int i = 0; i < N; i++) {
@@ -5468,30 +5442,21 @@ void do_graf(int N_graf, int *X, int N, int trashhold) {
 			int x = width * X[i] / trashhold;
 			if (x < -3 * width) x = -3 * width;
 			if (x > 3 * width) x = 3 * width - 3;
-			//серым выводим N измерений
 			Заливка = gcnew SolidBrush(Color::RoyalBlue);
 			if (R_IDX != 0 && C_IDX != 0)
 				g->FillRectangle(Заливка, x + 3 * width, 0, cursor_width / 1, height);
-			//if (N_graf == 5)
-				//cout << i << " " << X[i] << endl;
 		}
 		summ /= (N);
-		//if (N_graf == 5)
-			//cout << " S " << summ << endl;
-		//if (N_graf == 5)
-			//cout << endl;
 
 		int x_aver = width * summ / trashhold;
 		if (x_aver <= -3 * width) x_aver = -3 * width;
 		if (x_aver >= 3 * width) x_aver = 3 * width - 5;
 		Заливка = gcnew SolidBrush(Color::Black);
-		//черным выводим  среднее
 		g->FillRectangle(Заливка, x_aver + 3*width, 0, cursor_width, height);
 
 		GRAF->Refresh();
 		GRAF->Image = bmp;
 
-		//выводим номера передатчиков
 		Label^ LABEL_T = (Label^)this->tableLayoutPanel1->Controls["labelT" + (N_graf).ToString()];
 		if (N_graf <= sonde_param.size() / 2) {
 			LABEL_T->Text = "T" + N_graf + "  " + (sonde_param[N_graf - 1].F / 1000).ToString("F0");
@@ -5500,7 +5465,6 @@ void do_graf(int N_graf, int *X, int N, int trashhold) {
 			LABEL_T->Text = "T" + (N_graf - sonde_param.size() / 2) + "  " + (sonde_param[N_graf - 1].F / 1000).ToString("F0");
 		}
 
-        //выводим проценты для R кольца
 		if (R_IDX != 0) {
 			TextBox^ TEXTBOX_R_T = (TextBox^)this->tableLayoutPanel1->Controls["textBox_R" + R_IDX + "_T" + (N_graf).ToString()];
 			if (fabs(summ) <= float(trashhold))
@@ -5512,8 +5476,6 @@ void do_graf(int N_graf, int *X, int N, int trashhold) {
 			if (fabs(summ) > float(3 * trashhold))
 				TEXTBOX_R_T->ForeColor = System::Drawing::Color::DarkRed;
 			TEXTBOX_R_T->Text = summ.ToString("F1");
-			//TEXTBOX_R_T->Text = (PH_computed[R_IDX].VALUE[N_graf - 1] * mG).ToString("F0");
-
 		}
 	}
 }
@@ -5524,17 +5486,14 @@ private: System::Void button_ON_OFF_Click(System::Object^  sender, System::Event
 		int stop = 0, stop_ = 0;
 		extern string Com_LWD_Name;
 		extern vector <SONDE_PARAM> sonde_param;
-		//длина вектора равна количеству сопротивлений
 		extern vector <V10> PH_computed;
 		extern vector <V10> Ro_computed;
-		//длина вектора равна количеству зондов
-		//отладка
 		extern vector <LOOP_PARAM> loop_param;
 
 		if (on_off == false) {
 			WriteLog("=== НАЧАЛО ВКЛЮЧЕНИЯ АВТОНОМНИКА ===");
 			WriteLog("Тип прибора: AUTONOM");
-			AMK_DLL = LoadLibrary(TEXT("AMK_1DDS_AUTONOM.dll"));// Загружаем библиотеку EMK_90_1dds
+			AMK_DLL = LoadLibrary(TEXT("AMK_1DDS_AUTONOM.dll"));
 			WriteLog(AMK_DLL != NULL ? "DLL AMK_1DDS_AUTONOM.dll загружена успешно" : "ОШИБКА: DLL не загружена!");
 			GP_TOOL_METROLOGY metrology_struct;
 			memset(&metrology_struct, 0, sizeof(GP_TOOL_METROLOGY));
@@ -5606,9 +5565,7 @@ private: System::Void button_ON_OFF_Click(System::Object^  sender, System::Event
 									}
 								}
 							}
-							//файл метрологии выгружен
 							WriteLog("=== МЕТРОЛОГИЯ ПОЛУЧЕНА ===");
-							// Логирование содержимого метрологии
 							{
 								stringstream ss;
 								ss << "Signature: 0x" << hex << metrology_struct.signature << dec;
@@ -5619,7 +5576,6 @@ private: System::Void button_ON_OFF_Click(System::Object^  sender, System::Event
 								ss << "Serial: " << metrology_struct.serial;
 								WriteLog(ss.str());
 							}
-							// Определение N_Tx из signature
 							{
 								uint32_t buff = (metrology_struct.signature << 12) >> 12;
 								uint32_t N_Tx = (buff % 100000) / 10000;
@@ -5653,8 +5609,6 @@ private: System::Void button_ON_OFF_Click(System::Object^  sender, System::Event
 								ss << "Количество записей sonde_param: " << sonde_param.size();
 								WriteLog(ss.str());
 							}
-
-							/////////////////////////////////////////////////////////////////////////////////////////////////////
 							Sleep(500);
 							WriteLog("Запуск циклограммы (AMK_BeginCyclogram)...");
 							if (AMK_BeginCyclogram(ComPort)) {
@@ -5664,7 +5618,7 @@ private: System::Void button_ON_OFF_Click(System::Object^  sender, System::Event
 								this->button_ON_OFF->BackColor = System::Drawing::Color::Coral;
 								Sonde_Read_Timer->Enabled = true;
 								this->button_ON_OFF->Text = "ВЫКЛЮЧИТЬ АВТОНОМНИК";
-								comboBox_tool_type->SelectedIndex = 2;//AUTONOM
+								comboBox_tool_type->SelectedIndex = 2;
 							}
 							else { 
 								WriteLog("ОШИБКА: AMK_BeginCyclogram вернул false");
@@ -5708,11 +5662,8 @@ private: System::Void button_ON_OFF_Click(System::Object^  sender, System::Event
 		extern string Com_LWD_Name;
 		extern string Com_Name;
 		extern vector <SONDE_PARAM> sonde_param;
-		//длина вектора равна количеству сопротивлений
 		extern vector <V10> PH_computed;
 		extern vector <V10> Ro_computed;
-		//длина вектора равна количеству зондов
-		//отладка
 		extern vector <LOOP_PARAM> loop_param;
 		GP_TOOL_METROLOGY temp_metro;
 		memset(&temp_metro, 0, sizeof(GP_TOOL_METROLOGY));
@@ -5721,7 +5672,6 @@ private: System::Void button_ON_OFF_Click(System::Object^  sender, System::Event
 			WriteLog(tool_type == SDR ? "=== НАЧАЛО ВКЛЮЧЕНИЯ SDR ===" : "=== НАЧАЛО ВКЛЮЧЕНИЯ LWD1DDS ===");
 			serialPort_sonde->Close();
 			Sleep(100);
-			//serialPort_sonde->PortName = "COM17";
 			if (tool_type == SDR) {
 				serialPort_sonde->BaudRate = 115200;
 				WriteLog("Установка BaudRate = 115200 (SDR)");
@@ -5744,7 +5694,6 @@ private: System::Void button_ON_OFF_Click(System::Object^  sender, System::Event
 				WriteLog("Порт открыт успешно");
 				serialPort_sonde->DiscardOutBuffer();
 				Sleep(150);
-				//читаем метрологию
 				if (tool_type == SDR) {
 					WriteLog("Чтение метрологии SDR (команда 0x13)...");
 					uint8_t DATA[2] = { 0x05 ,0x00 };
@@ -5773,8 +5722,7 @@ private: System::Void button_ON_OFF_Click(System::Object^  sender, System::Event
 					}
 				}
 				if (tool_type == LWD1DDS) {
-					// Унифицированный протокол с Amk-Horizon-New-Chart: метрология читается командой 0x13
-					// с пустым payload, ответ [0x13][LEN:2][240B метрология][CRC]. Полезная нагрузка со смещением +2.
+					// Чтение метрологии LWD1DDS командой 0x13.
 					WriteLog("Чтение метрологии LWD1DDS (команда 0x13)...");
 					uint8_t DATA[2] = { 0x05 ,0x00 };
 					int metro_result = -1;
@@ -5807,7 +5755,6 @@ private: System::Void button_ON_OFF_Click(System::Object^  sender, System::Event
 						}
 					}
 				}
-				// Логирование метрологии
 				if (temp_metro.signature != 0) {
 					WriteLog("=== МЕТРОЛОГИЯ ПРИБОРА ===");
 					{
@@ -5869,17 +5816,24 @@ private: System::Void button_ON_OFF_Click(System::Object^  sender, System::Event
 
 private: System::Void button_local_air_Click(System::Object^  sender, System::EventArgs^  e) {
 	WriteStepLog(10, "ЛОКАЛЬНЫЙ ВОЗДУХ: нажата кнопка. on_off=" + string(on_off ? "true" : "false") + ", bt_on=" + string(bt_on ? "true" : "false"));
-	//eсли прибор работает отсчитываем 20 измерений и забираем 
+	WriteLog("LOCAL_AIR click: local_air_is_set=" + string(local_air_is_set ? "true" : "false") +
+		", collect_air_data=" + string(collect_air_data ? "true" : "false") +
+		", local_air_reset=" + string(local_air_reset ? "true" : "false") +
+		", air_set_cntr=" + to_string(air_set_cntr) +
+		", R_IDX=" + to_string(R_IDX) + ", C_IDX=" + to_string(C_IDX));
+	// Сбор локальной воздушной поправки при включенном приборе и кольце.
 	if (on_off == true && bt_on == true) {
 		button_AIR->PerformClick();
 		if (local_air_is_set == false) {
 			if (!Loop_work(0, 0)) {
 				air_set_cntr = 0;
 				collect_air_data = true;
+				WriteLog("LOCAL_AIR: started collecting local air baseline");
 			}
 		}
 		else{
 			local_air_reset = true;
+			WriteLog("LOCAL_AIR: requested reset of existing local air baseline");
 		}
 	}
 	else MessageBox::Show("Включите прибор и кольцо!");
@@ -5896,8 +5850,7 @@ private:void sonde_read_timer(System::Object^ source, ElapsedEventArgs^ e) {
 	extern bool metro_check;
 	extern bool is_polling;
 
-	// Защита от реентрантности: System::Timers::Timer вызывает обработчик из пула потоков,
-	// поэтому без флага возможен одновременный запуск нескольких итераций опроса COM-порта.
+	// Защита от параллельного опроса COM-порта.
 	if (is_polling) return;
 	is_polling = true;
 
@@ -5905,12 +5858,9 @@ private:void sonde_read_timer(System::Object^ source, ElapsedEventArgs^ e) {
 
 	if (metro_check == false) {
 		extern string Com_Name;
-		//длина вектора равна количеству сопротивлений
 		extern vector <V10> PH_computed;
 		extern vector <V10> Ro_computed;
-		//длина вектора равна количеству зондов
 		extern vector <SONDE_PARAM> sonde_param;
-		// 10 - зонды 20 - усреднение
 		extern int PH_percent_from_sonde[10][20];
 		extern int Ro_percent_from_sonde[10][20];
 		extern V10 AIR;
@@ -5919,7 +5869,6 @@ private:void sonde_read_timer(System::Object^ source, ElapsedEventArgs^ e) {
 
 		bool stop = false;
 		int res = 0;
-		//получаем набор фаз от прибора
 
 		int mode = 0;
 		WriteLog("--- Получение данных от прибора ---");
@@ -5933,7 +5882,6 @@ private:void sonde_read_timer(System::Object^ source, ElapsedEventArgs^ e) {
 			ph_data = get_ph_from_AUTONOM(ComPort, mode, res);
 		}
 
-		// Логирование результата
 		{
 			stringstream ss;
 			ss << "Результат чтения (res): " << res << (res == 0 ? " (УСПЕХ)" : " (ОШИБКА)");
@@ -5943,7 +5891,6 @@ private:void sonde_read_timer(System::Object^ source, ElapsedEventArgs^ e) {
 		if (res == 0)
 			global_cntr++;
 		
-		// Логирование номера кадра и данных
 		{
 			stringstream ss;
 			ss << "Номер кадра: " << global_cntr << ", размер sonde_param: " << sonde_param.size();
@@ -5961,39 +5908,32 @@ private:void sonde_read_timer(System::Object^ source, ElapsedEventArgs^ e) {
 				WriteLog(ss.str());
 			}
 		}
-		//Console::WriteLine("global_cntr " + global_cntr);
-
-		/*/отладка ////////////////////////////////////////
-		if (global_cntr > 20)global_cntr = 0;
-		int add;
-		if (global_cntr % 2 == 0)add = global_cntr;// чет
-		else add = -global_cntr;// нечет
-		//Console::WriteLine( "add " + add + " " + (1.0f + 0.01f*add));
-		for (int N_sonde = 0; N_sonde < sonde_param.size(); N_sonde++) {
-			if (R_IDX != 0)
-				ph_data.VALUE[N_sonde] = PH_computed[R_IDX].VALUE[N_sonde] * (1.0f + 0.01f*add);
-			if (R_IDX == 0)
-				ph_data.VALUE[N_sonde] = 0.0001745*(N_sonde+1) * (1.0f + 0.01f*add);
+		float raw_ph_value[10] = { 0.0f, };
+		for (size_t i = 0; i < sonde_param.size() && i < 10; i++) {
+			raw_ph_value[i] = ph_data.VALUE[i];
 		}
-
-		*////////////////////////////////////////////////
-
-		// локальный воздух ////////////////////////////////////
-		// собираем данные и усредняем
+		// Сбор локальной воздушной поправки.
 		if (res == 0 && collect_air_data == true) {
 			if (air_set_cntr < air_data_aver) {
 				for (int N_sonde = 0; N_sonde < sonde_param.size(); N_sonde++) {
 					AIR.VALUE[N_sonde] += (ph_data.VALUE[N_sonde] / (float)(air_data_aver));
 				}
 				air_set_cntr++;
+				WriteLog("LOCAL_AIR: collecting sample " + to_string(air_set_cntr) + "/" + to_string(air_data_aver));
 			}
 			if (air_set_cntr == air_data_aver) {
 				collect_air_data = false;
 				local_air_is_set = true;
 				air_set_cntr = 0;
+				WriteLog("LOCAL_AIR: baseline collected (AIR.VALUE, mG):");
+				for (size_t i = 0; i < sonde_param.size() && i < 10; i++) {
+					stringstream ss;
+					ss << "  [" << i << "] " << AIR.VALUE[i] << " rad (" << AIR.VALUE[i] * mG << " mG)";
+					WriteLog(ss.str());
+				}
 			}
 		}
-		//сброс локального воздуха
+		// Сброс локальной воздушной поправки.
 		if (local_air_reset == true) {
 			for (int N_sonde = 0; N_sonde < sonde_param.size(); N_sonde++) {
 				AIR.VALUE[N_sonde] = 0;
@@ -6001,18 +5941,25 @@ private:void sonde_read_timer(System::Object^ source, ElapsedEventArgs^ e) {
 
 			local_air_reset = false;
 			local_air_is_set = false;
+			WriteLog("LOCAL_AIR: baseline reset to zero");
 		}
 
-		//Console::WriteLine("air_set_cntr " + air_set_cntr);
-		//////////////////////////////////////////////////////////
-
-		//вычитаем локальный воздух из фаз
+		// Применение локальной воздушной поправки.
 		for (int N_sonde = 0; N_sonde < sonde_param.size(); N_sonde++) {
 			ph_data.VALUE[N_sonde] -= AIR.VALUE[N_sonde];
 		}
+		if (res == 0 && sonde_param.size() > 0 && (local_air_is_set || collect_air_data)) {
+			WriteLog("LOCAL_AIR: raw minus AIR result (mG):");
+			for (size_t i = 0; i < sonde_param.size() && i < 10; i++) {
+				stringstream ss;
+				ss << "  [" << i << "] raw=" << raw_ph_value[i] * mG
+				   << " air=" << AIR.VALUE[i] * mG
+				   << " corrected=" << ph_data.VALUE[i] * mG;
+				WriteLog(ss.str());
+			}
+		}
 
-		//проталкиваем буфер на единицу
-
+		// Сдвиг буферов усреднения.
 		for (int N_sonde = 0; N_sonde < sonde_param.size(); N_sonde++) {
 			for (int aver = 19; aver > 0; aver--) {
 				PH_percent_from_sonde[N_sonde][aver] = PH_percent_from_sonde[N_sonde][aver - 1];
@@ -6020,25 +5967,52 @@ private:void sonde_read_timer(System::Object^ source, ElapsedEventArgs^ e) {
 			}
 		}
 
-		//вычисляем процентную разницу между вычисленными значениями фаз всех зондов VALUE[N_sonde] 
-		//для включенного сейчас сопротивления R_IDX и записываем в начало буфера PH_percent_from_sonde[N_sonde][0]
-		for (int N_sonde = 0; N_sonde < sonde_param.size(); N_sonde++)
+		// Процентное отклонение фаз от расчетных значений для выбранного сопротивления.
+		if (res == 0) {
+			WriteLog("PH_COMPARE: state R_IDX=" + to_string(R_IDX) +
+				", C_IDX=" + to_string(C_IDX) +
+				", start_R_measure=" + string(start_R_measure ? "true" : "false") +
+				", auto_vork=" + string(auto_vork ? "true" : "false") +
+				", skip_cntr=" + to_string(skip_cntr) +
+				", aver_cntr=" + to_string(aver_cntr) +
+				", PH_computed.size=" + to_string(PH_computed.size()));
+		}
+		for (int N_sonde = 0; N_sonde < sonde_param.size(); N_sonde++) {
 			PH_percent_from_sonde[N_sonde][0] =
 			100 * (ph_data.VALUE[N_sonde] - PH_computed[R_IDX].VALUE[N_sonde]) / (PH_computed[R_IDX].VALUE[N_sonde] + 0.000000001f);
-
-		/*/отладка////
-		for (int N_sonde = 0; N_sonde < sonde_param.size(); N_sonde++) {
-			cout << "aver arr "<< N_sonde << " ";
-			for (int i = 0; i < 20; i++)
-				cout << PH_percent_from_sonde[0][i] << " ";
-			cout << endl;
+			if (res == 0) {
+				stringstream ss;
+				int stride = ((sonde_param.size() + 1) / 2);
+				int freq = stride > 0 ? N_sonde / stride : 0;
+				int tx = stride > 0 ? N_sonde % stride : N_sonde;
+				ss << "PH_COMPARE: sonde=" << N_sonde
+				   << " freq=" << (freq == 0 ? "400" : "2000") << "kHz"
+				   << " Tx=" << tx
+				   << " measured=" << ph_data.VALUE[N_sonde] << " rad"
+				   << " (" << ph_data.VALUE[N_sonde] * mG << " mG)"
+				   << ", reference=" << PH_computed[R_IDX].VALUE[N_sonde] << " rad"
+				   << " (" << PH_computed[R_IDX].VALUE[N_sonde] * mG << " mG)"
+				   << ", percent=" << PH_percent_from_sonde[N_sonde][0];
+				WriteLog(ss.str());
+				if (fabs(ph_data.VALUE[N_sonde] * mG) > 10000.0f ||
+					fabs((float)PH_percent_from_sonde[N_sonde][0]) > 100.0f) {
+					stringstream alert;
+					alert << "PH_COMPARE_ALERT: sonde=" << N_sonde
+						  << " freq=" << (freq == 0 ? "400" : "2000") << "kHz"
+						  << " Tx=" << tx
+						  << " R_IDX=" << R_IDX
+						  << " C_IDX=" << C_IDX
+						  << " measured_mG=" << ph_data.VALUE[N_sonde] * mG
+						  << " reference_mG=" << PH_computed[R_IDX].VALUE[N_sonde] * mG
+						  << " percent=" << PH_percent_from_sonde[N_sonde][0];
+					WriteLog(alert.str());
+				}
+			}
 		}
-		/*////////////////
 
-		//вычисляем кажущееся УЭС от сигналов прибора
+		// Расчет УЭС по измеренным фазам.
 		ro_data = ro_dfi(sonde_param, ph_data);
 		
-		// Логирование вычисленного УЭС
 		if (res == 0 && sonde_param.size() > 0) {
 			WriteLog("Вычисленное УЭС (ro_data.VALUE):");
 			for (size_t i = 0; i < sonde_param.size() && i < 10; i++) {
@@ -6051,21 +6025,28 @@ private:void sonde_read_timer(System::Object^ source, ElapsedEventArgs^ e) {
 			}
 		}
 		
-		for (int N_sonde = 0; N_sonde < sonde_param.size(); N_sonde++)
+		for (int N_sonde = 0; N_sonde < sonde_param.size(); N_sonde++) {
 			Ro_percent_from_sonde[N_sonde][0] =
 			100 * (ro_data.VALUE[N_sonde] - Ro_computed[R_IDX].VALUE[N_sonde]) / (Ro_computed[R_IDX].VALUE[N_sonde] + 0.000000001f);
+			if (res == 0) {
+				stringstream ss;
+				ss << "RO_COMPARE: sonde=" << N_sonde
+				   << " R_IDX=" << R_IDX
+				   << " measured=" << ro_data.VALUE[N_sonde]
+				   << ", reference=" << Ro_computed[R_IDX].VALUE[N_sonde]
+				   << ", percent=" << Ro_percent_from_sonde[N_sonde][0];
+				WriteLog(ss.str());
+			}
+		}
 
 
-		//измерения от конкретного сопротивления
-		//переключаем конденсаторы  через N_averaging точек изм.
+		// Измерения для выбранного сопротивления.
 		if (res == 0 && start_R_measure == true) {
-			//переключение конденсатора для каждого зонда 
 			if (checkBox_express->Checked == false ||
 				(checkBox_express->Checked == true && R_IDX <= N_R_for_express)
 				) {
 				if (C_IDX <= sonde_param.size()) {
 					skip_cntr++;
-					//cout << " skip_cntr " << skip_cntr << endl;
 					if (skip_cntr > skip)
 						aver_cntr++;
 					Console::WriteLine(sonde_param.size() + " R_idx " + R_IDX + " C_idx " + C_IDX + " skip_cntr " + skip_cntr + " aver_cntr " + aver_cntr);
@@ -6095,13 +6076,11 @@ private:void sonde_read_timer(System::Object^ source, ElapsedEventArgs^ e) {
 				}
 
 			}
-			//переключение конденсатора для всех зондов, начиная с 3go сопротивления
 			if (checkBox_express->Checked == true && R_IDX > N_R_for_express) {
 				if (C_IDX <= sonde_param.size()) {
 					skip_cntr++;
 					if (skip_cntr > skip)
 						aver_cntr++;
-					//Console::WriteLine(sonde_param.size() + " R_idx " + R_IDX + " C_idx " + C_IDX + " aver_cntr " + aver_cntr);
 					if (aver_cntr > N_averaging) {
 						aver_cntr = 0;
 						C_IDX += (int)((sonde_param.size() / 2));
@@ -6162,7 +6141,7 @@ private: System::Void BT_ON(System::Object^  sender, System::EventArgs^  e) {
 		try { Str = serialPort_loop->ReadLine(); }
 		catch (System::Exception^ ex) { stop = 1; Console::WriteLine("[BT_ON] Таймаут ожидания ответа: " + ex->Message); }
 		if (!stop) {
-			// Выводим hex-представление каждого символа ответа для диагностики
+			// Диагностика ответа кольца.
 			System::Text::StringBuilder^ hexDump = gcnew System::Text::StringBuilder();
 			for (int ci = 0; ci < Str->Length; ci++)
 				hexDump->AppendFormat("{0:X2} ", (int)Str[ci]);
@@ -6191,6 +6170,8 @@ private: System::Void BT_ON(System::Object^  sender, System::EventArgs^  e) {
 
 int  Loop_work(int R_idx, int C_idx) {
 	int result = -1;
+	WriteLog("LOOP_WORK: request R_idx=" + to_string(R_idx) + ", C_idx=" + to_string(C_idx) +
+		", bt_on=" + string(bt_on ? "true" : "false"));
 	if (bt_on == true) {
 		Loop_Check_Timer->Enabled = false;
 		Sleep(200);
@@ -6201,6 +6182,8 @@ int  Loop_work(int R_idx, int C_idx) {
 
 		send_R = "RES " + (R_idx) + "\r\n"; resive_R = "RES=" + (R_idx) + " OK";
 		send_C = "CAP " + (C_idx) + "\r\n"; resive_C = "CAP=" + (C_idx) + " OK";
+		WriteLog("LOOP_WORK: send '" + msclr::interop::marshal_as<string>(send_R->TrimEnd()) +
+			"', then '" + msclr::interop::marshal_as<string>(send_C->TrimEnd()) + "'");
 		
 		Sleep(50);
 		serialPort_loop->DiscardInBuffer();
@@ -6224,11 +6207,20 @@ int  Loop_work(int R_idx, int C_idx) {
 			if (resive->StartsWith(resive_R) && resive1->StartsWith(resive_C)) 								
 				result = 0;			    
 			else result = 2;		    
+			WriteLog("LOOP_WORK: response1='" + msclr::interop::marshal_as<string>(resive->TrimEnd()) +
+				"', response2='" + msclr::interop::marshal_as<string>(resive1->TrimEnd()) +
+				"', result=" + to_string(result));
 		}
-		else result = 3;	
+		else {
+			result = 3;
+			WriteLog("LOOP_WORK: ReadLine error/timeout, result=3");
+		}
 		Loop_Check_Timer->Enabled = true;
 	}
-	else  result = 4; 
+	else {
+		result = 4;
+		WriteLog("LOOP_WORK: skipped because bt_on=false, result=4");
+	}
 
 	return result;
 }
@@ -6238,7 +6230,7 @@ private:  System::Void  Loop_check() {
 	Loop_Check_Timer->Elapsed += gcnew ElapsedEventHandler(this, &WorkForm::loop_check_timer);
 	Loop_Check_Timer->AutoReset = true;			
 }
-//проверка работы кольца		  		  
+// Проверка связи с кольцом.
 private:void loop_check_timer(System::Object^ source, ElapsedEventArgs^ e) {
 	bool stop = 0; 
 	String^ Str = "";	
@@ -6249,11 +6241,9 @@ private:void loop_check_timer(System::Object^ source, ElapsedEventArgs^ e) {
 	}
 	catch (...) {
 		stop = 1; 
-		//Loop_Check_Timer->Enabled = false;
 		this->button_BT_ON->BackColor = DefaultBackColor;
 		this->button_BT_ON->Text = " ВКЛЮЧИТЬ КОЛЬЦО";
 		bt_on = false;
-		//Console::WriteLine("no_BT_port");		
 		try {
 			if (serialPort_loop->IsOpen == true) 
 				serialPort_loop->Close();										
@@ -6262,7 +6252,6 @@ private:void loop_check_timer(System::Object^ source, ElapsedEventArgs^ e) {
 				this->button_BT_ON->BackColor = Color::DodgerBlue;
 				this->button_BT_ON->Text = "КОЛЬЦО ВКЛЮЧЕНО";
 				bt_on = true;
-				//Console::WriteLine("BT_port_is_on");
 			}
 		}
 		catch (...) {;}
@@ -6271,12 +6260,10 @@ private:void loop_check_timer(System::Object^ source, ElapsedEventArgs^ e) {
 		this->button_BT_ON->BackColor = Color::DodgerBlue;
 		this->button_BT_ON->Text = "КОЛЬЦО ВКЛЮЧЕНО";
 		bt_on = true;
-		//Console::WriteLine("BT_port_is_on");
 	}	
 	
 }
 
-///loop////////////////////////////////////////////////////////////////////////////////////////////////////////
 private: System::Void button_AIR_Click(System::Object^  sender, System::EventArgs^  e) {
 	WriteStepLog(11, "AIR: нажата кнопка. on_off=" + string(on_off ? "true" : "false") + ", bt_on=" + string(bt_on ? "true" : "false"));
 	if (on_off == true && bt_on == true) {
@@ -6315,7 +6302,6 @@ void R_Click(int R_idx, int C_idx) {
 
 			CheckBox^ CHECKBOX_R = (CheckBox^)this->tableLayoutPanel1->Controls["checkBox_R" + (R_idx).ToString()];
 			CHECKBOX_R->Checked = false;
-			//очищаем графики
 			for (int N_sonde = 1; N_sonde <= 10; N_sonde++) {
 				Label^ LABEL_T = (Label^)this->tableLayoutPanel1->Controls["labelT" + (N_sonde).ToString()];
 				LABEL_T->Text = "Tx ";
@@ -6453,7 +6439,7 @@ private: System::Void textBox_Z_loop9_KeyUp(System::Object^  sender, System::Win
 private: System::Void textBox_Z_loop10_KeyUp(System::Object^  sender, System::Windows::Forms::KeyEventArgs^  e) {
 	textBox_Z_loop10->BackColor = Color::LightYellow;
 }
-//загрузить параметры кольца
+// Чтение параметров кольца.
 private: System::Void button_read_loop_Z_Click(System::Object^  sender, System::EventArgs^  e) {
 	WriteStepLog(5, "ПРОЧИТАТЬ: нажата кнопка. bt_on=" + string(bt_on ? "true" : "false"));
 	int stop = 0;
@@ -6468,6 +6454,7 @@ private: System::Void button_read_loop_Z_Click(System::Object^  sender, System::
 	extern vector <LOOP_PARAM> loop_param;
 	extern vector <SONDE_PARAM> sonde_param;
 	Console::WriteLine("[ZREAD] === Начало чтения параметров кольца ===");
+	WriteLog("ZREAD_MANUAL: start. bt_on=" + string(bt_on ? "true" : "false"));
 	if (bt_on == true) {
 		Loop_Check_Timer->Enabled = false;
 		
@@ -6476,27 +6463,38 @@ private: System::Void button_read_loop_Z_Click(System::Object^  sender, System::
 			int stop = 0;
 			send_Z = "ZREAD " + (n)+"\r\n"; resive_Z = "Z" + (n)+" ";
 			Console::WriteLine("[ZREAD] n=" + n + "  Отправка: '" + send_Z->TrimEnd() + "'  Ожидаем префикс: '" + resive_Z + "'");
+			WriteLog("ZREAD_MANUAL: n=" + to_string(n) + " send='" +
+				msclr::interop::marshal_as<string>(send_Z->TrimEnd()) + "', expect='" +
+				msclr::interop::marshal_as<string>(resive_Z) + "'");
 			serialPort_loop->DiscardInBuffer();
 			serialPort_loop->Write(send_Z);
 			Sleep(50);
 			try { resive = serialPort_loop->ReadLine(); }
-			catch (System::Exception^ ex) { stop = 1; Console::WriteLine("[ZREAD] n=" + n + " Таймаут/ошибка ReadLine: " + ex->Message); }
+			catch (System::Exception^ ex) {
+				stop = 1;
+				Console::WriteLine("[ZREAD] n=" + n + " Таймаут/ошибка ReadLine: " + ex->Message);
+				WriteLog("ZREAD_MANUAL: n=" + to_string(n) + " ReadLine error: " + msclr::interop::marshal_as<string>(ex->Message));
+			}
 			if (!stop) {
-				// Выводим сырую строку и её hex-представление для диагностики символьных артефактов
+				// Диагностика ответа кольца.
 				System::Text::StringBuilder^ hexDump = gcnew System::Text::StringBuilder();
 				for (int ci = 0; ci < resive->Length; ci++)
 					hexDump->AppendFormat("{0:X2} ", (int)resive[ci]);
 				Console::WriteLine("[ZREAD] n=" + n + " Ответ (длина " + resive->Length + "): '" + resive + "'");
 				Console::WriteLine("[ZREAD] n=" + n + " HEX: " + hexDump->ToString());
+				WriteLog("ZREAD_MANUAL: n=" + to_string(n) + " raw='" +
+					msclr::interop::marshal_as<string>(resive->TrimEnd()) + "', hex='" +
+					msclr::interop::marshal_as<string>(hexDump->ToString()->TrimEnd()) + "'");
 				if (resive->StartsWith(resive_Z)) {
 					Str = resive->Substring(3);
 					int index_0 = Str->IndexOf(" ");
 					if (index_0 < 0) {
 						Console::WriteLine("[ZREAD] n=" + n + " ОШИБКА: разделитель ' ' не найден, строка пропущена.");
+						WriteLog("ZREAD_MANUAL: n=" + to_string(n) + " parse error: space separator not found in '" +
+							msclr::interop::marshal_as<string>(Str) + "'");
 						continue;
 					}
-					// Кольцо может вернуть "-nan"/"inf" для пустых ячеек памяти.
-					// TryParse не бросает исключений; нечисловые значения трактуются как 0.
+					// Нечисловые значения трактуются как пустая ячейка.
 					double rVal = 0.0, reVal = 0.0;
 					bool okR = Double::TryParse((Str->Substring(0, index_0))->Trim(),
 						System::Globalization::NumberStyles::Float,
@@ -6509,28 +6507,36 @@ private: System::Void button_read_loop_Z_Click(System::Object^  sender, System::
 					R[n] = (float)rVal;
 					Re[n] = (float)reVal;
 					Console::WriteLine("[ZREAD] n=" + n + " Результат: R=" + R[n] + "  Re=" + Re[n] + (okR && okRe ? "" : "  (ячейка пуста/нечисловая)"));
+					WriteLog("ZREAD_MANUAL: n=" + to_string(n) +
+						" parsed R=" + to_string(R[n]) +
+						", Re=" + to_string(Re[n]) +
+						", okR=" + string(okR ? "true" : "false") +
+						", okRe=" + string(okRe ? "true" : "false"));
 					TextBox^ TEXTBOX_Re = (TextBox^)this->tableLayoutPanel11->Controls["textBox_Z_loop" + (n + 1).ToString()];
 					TextBox^ TEXTBOX_R = (TextBox^)this->tableLayoutPanel11->Controls["textBox_R_loop" + (n + 1).ToString()];
 					TEXTBOX_Re->Text = Re[n].ToString("F4");
 					TEXTBOX_R->Text = R[n].ToString("F0");
+					WriteLog("ZREAD_MANUAL: n=" + to_string(n) + " UI set textBox_R_loop" + to_string(n + 1) +
+						"='" + msclr::interop::marshal_as<string>(TEXTBOX_R->Text) +
+						"', textBox_Z_loop" + to_string(n + 1) + "='" +
+						msclr::interop::marshal_as<string>(TEXTBOX_Re->Text) + "'");
 					TEXTBOX_Re->BackColor = Color::White;
 					Z_downloaded_from_loop = true;
 
 				}
 				else {
 					Z_downloaded_from_loop = false;
-					//button_read_loop->BackColor = DefaultBackColor;
-					//this->button_read_loop->Text = L"ПОЛУЧИТЬ НАСТРОЙКИ КОЛЬЦА";
+					WriteLog("ZREAD_MANUAL: n=" + to_string(n) + " unexpected response prefix. raw='" +
+						msclr::interop::marshal_as<string>(resive->TrimEnd()) + "'");
 					MessageBox::Show("Нет ответа от кольца " + n);
 
 				}
 			}
-			//else { this->button_BT_ON->BackColor = DefaultBackColor; MessageBox::Show("Соединение с кольцом прервано переподключите BT_ON 3!"); }
 		}
 		Loop_Check_Timer->Enabled = true;
 	}
 	if (bt_on == false) { MessageBox::Show("ВКЛЮЧИТЬ КОЛЬЦО"); }
-	//заполняем вектор параметров кольца
+	// Обновление параметров кольца.
 	if (Z_downloaded_from_loop == true) {
 		loop_param.clear();
 		for (int n = 0; n < 10; n++) {
@@ -6541,16 +6547,25 @@ private: System::Void button_read_loop_Z_Click(System::Object^  sender, System::
 				buff.Re = Re[n];
 				buff.R_Add_Wire = 0.5;
 				loop_param.push_back(buff);
+				WriteLog("ZREAD_MANUAL: loop_param push from cell " + to_string(n) +
+					": R=" + to_string(buff.R) + ", Re=" + to_string(buff.Re) +
+					", r=" + to_string(buff.r) + ", R_Add_Wire=" + to_string(buff.R_Add_Wire));
+			}
+			else {
+				WriteLog("ZREAD_MANUAL: loop_param skip cell " + to_string(n) +
+					" because Re=" + to_string(Re[n]));
 			}
 		}
-		//если прибор включен рассчитываем фазы и УЭС от всех сопротивлений кольца для всех зондов
 		WriteStepLog(5, "ПРОЧИТАТЬ: loop_param.size=" + to_string(loop_param.size()) + ", sonde_param.size=" + to_string(sonde_param.size()) + ", Z_downloaded=" + string(Z_downloaded_from_loop ? "true" : "false"));
+		WriteLog("ZREAD_MANUAL: finished. loop_param.size=" + to_string(loop_param.size()) +
+			", sonde_param.size=" + to_string(sonde_param.size()));
 	}
 
 }
 
 private: System::Void button_write_Z_Click(System::Object^  sender, System::EventArgs^  e) {
 	WriteStepLog(8, "ЗАПИСАТЬ: нажата кнопка. bt_on=" + string(bt_on ? "true" : "false"));
+	WriteLog("ZWRITE: start. bt_on=" + string(bt_on ? "true" : "false"));
 	bool write_ok = false;
 	int stop = 0;
 	String^ Str = "";
@@ -6559,8 +6574,7 @@ private: System::Void button_write_Z_Click(System::Object^  sender, System::Even
 	Byte resive = 0;
 	double R[32] = { 1.0, };
 	double Re[32] = { 0.0, };
-	//Команда: ZWRITE 0 1.0 2.0\r\n
-	//Ответ : WRITE Z0 OK!\r\n
+	// Формат обмена: ZWRITE n R Re -> WRITE Zn OK!
 	if (bt_on == true) {
 		Loop_Check_Timer->Enabled = false;
 		Sleep(200);
@@ -6569,23 +6583,37 @@ private: System::Void button_write_Z_Click(System::Object^  sender, System::Even
 			String^ resive = "";
 			TextBox^ TEXTBOX_Re = (TextBox^)this->tableLayoutPanel11->Controls["textBox_Z_loop" + (n + 1).ToString()];
 			TextBox^ TEXTBOX_R = (TextBox^)this->tableLayoutPanel11->Controls["textBox_R_loop" + (n + 1).ToString()];
+			string rText = msclr::interop::marshal_as<string>(TEXTBOX_R->Text);
+			string reText = msclr::interop::marshal_as<string>(TEXTBOX_Re->Text);
 			if (TEXTBOX_Re->Text != "") Re[n] = System::Double::Parse((TEXTBOX_Re->Text));
 			if (TEXTBOX_R->Text != "")   R[n] = System::Double::Parse((TEXTBOX_R->Text));
 			send_Z = "ZWRITE " + n + " " + ((R[n]).ToString())->Replace(",", ".") + " " + ((Re[n]).ToString())->Replace(",", ".") + "\r\n";
 			Console::WriteLine("send_Z " + send_Z);
+			WriteLog("ZWRITE: n=" + to_string(n) +
+				" textbox_R='" + rText + "', textbox_Re='" + reText +
+				"', parsed R=" + to_string(R[n]) +
+				", Re=" + to_string(Re[n]) +
+				", send='" + msclr::interop::marshal_as<string>(send_Z->TrimEnd()) + "'");
 			resive_Z = "WRITE Z" + (n) +" OK!";
 			serialPort_loop->DiscardInBuffer();
 			serialPort_loop->Write(send_Z);
 			Sleep(50);
 			try { resive = serialPort_loop->ReadLine(); }
-			catch (...) { stop = 1; }
+			catch (...) {
+				stop = 1;
+				WriteLog("ZWRITE: n=" + to_string(n) + " ReadLine error/timeout");
+			}
 			if (!stop) {
+				WriteLog("ZWRITE: n=" + to_string(n) + " raw response='" +
+					msclr::interop::marshal_as<string>(resive->TrimEnd()) + "', expect='" +
+					msclr::interop::marshal_as<string>(resive_Z) + "'");
 				if (resive->StartsWith(resive_Z)) {
 					TEXTBOX_Re->BackColor = Color::White;
 					write_ok = true;
 				}
 				else { 
 					write_ok = false;
+					WriteLog("ZWRITE: n=" + to_string(n) + " unexpected response");
 					MessageBox::Show("Нет ответа от кольца , нажмите  еще раз !"); 
 				}
 			}
@@ -6598,10 +6626,12 @@ private: System::Void button_write_Z_Click(System::Object^  sender, System::Even
 		if (write_ok == true) {
 			MessageBox::Show("запись прошла успешно");
 			WriteStepLog(8, "ЗАПИСАТЬ: УСПЕХ. write_ok=true");
+			WriteLog("ZWRITE: finished successfully");
 		}
 		else {
 			MessageBox::Show("ошибка, перезапишите");
 			WriteStepLog(8, "ЗАПИСАТЬ: ОШИБКА. write_ok=false");
+			WriteLog("ZWRITE: finished with error");
 		}
 
 		Loop_Check_Timer->Enabled = true;
@@ -6609,6 +6639,7 @@ private: System::Void button_write_Z_Click(System::Object^  sender, System::Even
 	if (bt_on == false) {
 		MessageBox::Show("Включите кольцо");
 		WriteStepLog(8, "ЗАПИСАТЬ: ОШИБКА — кольцо выключено.");
+		WriteLog("ZWRITE: skipped because bt_on=false");
 	}
 }
 
@@ -6621,8 +6652,7 @@ private: System::Void button_erase_Click(System::Object^  sender, System::EventA
 	Byte resive = 0;
 	double R = 1.0;
 	double Re = 0.0;
-	//Команда: ZERASE\r\n
-	//Ответ : ERASE OK!\r\n
+	// Формат обмена: ZERASE -> ERASE OK!
 	if (bt_on == true) {
 		Loop_Check_Timer->Enabled = false;
 		Sleep(200);
@@ -6700,16 +6730,29 @@ private: System::Void button_signature_Click(System::Object^  sender, System::Ev
 
 private: System::Void button_calc_z_to_loop_Click(System::Object^  sender, System::EventArgs^  e) {
 	WriteStepLog(7, "записать_Z_расчетное: нажата кнопка.");
+	WriteLog("ZCALC_TO_LOOP: start copy textBox_Z_calc -> textBox_Z_loop. R fields are logged but not changed.");
 	bool calc_z_exist = false;
 	for (int i = 0; i < 10; i++) {
 		TextBox^ TEXTBOX_Z_CALC = (TextBox^)this->tableLayoutPanel11->Controls["textBox_Z_calc" + (i + 1).ToString()];
 		TextBox^ TEXTBOX_Z_LOOP = (TextBox^)this->tableLayoutPanel11->Controls["textBox_Z_loop" + (i + 1).ToString()];
+		TextBox^ TEXTBOX_R_LOOP = (TextBox^)this->tableLayoutPanel11->Controls["textBox_R_loop" + (i + 1).ToString()];
+		string beforeZLoop = msclr::interop::marshal_as<string>(TEXTBOX_Z_LOOP->Text);
+		string rLoop = msclr::interop::marshal_as<string>(TEXTBOX_R_LOOP->Text);
+		string zCalc = msclr::interop::marshal_as<string>(TEXTBOX_Z_CALC->Text);
 		if (TEXTBOX_Z_CALC->Text != "") { 
 			TEXTBOX_Z_LOOP->Text = (System::Double::Parse((TEXTBOX_Z_CALC->Text))).ToString("F4");
 			calc_z_exist = true;
+			WriteLog("ZCALC_TO_LOOP: cell " + to_string(i) +
+				" z_calc='" + zCalc + "', z_loop_before='" + beforeZLoop +
+				"', z_loop_after='" + msclr::interop::marshal_as<string>(TEXTBOX_Z_LOOP->Text) +
+				"', r_loop_current='" + rLoop + "'");
 		}
-		else
+		else {
 			calc_z_exist = false;
+			WriteLog("ZCALC_TO_LOOP: cell " + to_string(i) +
+				" z_calc is empty, z_loop_before='" + beforeZLoop +
+				"', r_loop_current='" + rLoop + "'");
+		}
 	}
 	if(!calc_z_exist) {
 		MessageBox::Show("Требуется рассчитать реактивные сопротивления");
@@ -6718,12 +6761,14 @@ private: System::Void button_calc_z_to_loop_Click(System::Object^  sender, Syste
 	else {
 		button_write_Z->PerformClick();
 		WriteStepLog(7, "записать_Z_расчетное: расчётные Z записаны в кольцо (вызвана запись).");
-		//MessageBox::Show("теперь запишите");
 	}
 }
 
 private: System::Void button_calk_C_need_Click(System::Object^  sender, System::EventArgs^  e) {
+	extern vector <SONDE_PARAM> sonde_param;
 	WriteStepLog(6, "РАССЧИТАТЬ ЕМКОСТИ: нажата кнопка. checkBox_param_red=" + string(checkBox_param_red->Checked ? "true" : "false"));
+	WriteLog("CALC_CAP: start. checkBox_param_red=" + string(checkBox_param_red->Checked ? "true" : "false") +
+		", sonde_param.size=" + to_string(sonde_param.size()));
 	double L_loop = 4.6*1e-6;
 	double F_rez[10];
 	double C[10];
@@ -6734,43 +6779,59 @@ private: System::Void button_calk_C_need_Click(System::Object^  sender, System::
 	GP_TOOL_METROLOGY metrology_struct;
 	openFileDialog1->Filter = "text files (*.bin)|*.bin";
 	if (checkBox_param_red->Checked == false) {
-		if (openFileDialog1->ShowDialog() == System::Windows::Forms::DialogResult::OK) {
-			Metrology_in = (char*)Marshal::StringToHGlobalAnsi(openFileDialog1->FileName).ToPointer();
-			metro_in.open(Metrology_in, ios::binary);
-			metro_in.read((char*)&metrology_struct, sizeof(metrology_struct));
-			metro_in.close();
-			metro_convert(&metrology_struct, param);
-			
-			//расчетные значения емкостей и резонансных частот для кольца
-			for (int i = 0; i < param.size(); i++) {
-				//F_rez[i] = (int(F(param[i].F, 0.5, L_loop, param[i].L1, param[i].L2)));
-				C[i] = (C_max_fi(param[i].F, 0.5, L_loop, param[i].L1, param[i].L2));
-				//cout << "C" << i << " " << C[i] << endl;
-				TextBox^ TEXTBOX_L1 = (TextBox^)this->tableLayoutPanel11->Controls["textBox_L1_" + (i + 1).ToString()];
-				TEXTBOX_L1->Text = (param[i].L1).ToString("F3");
-				TextBox^ TEXTBOX_L2 = (TextBox^)this->tableLayoutPanel11->Controls["textBox_L2_" + (i + 1).ToString()];
-				TEXTBOX_L2->Text = (param[i].L2).ToString("F3");
-				TextBox^ TEXTBOX_F = (TextBox^)this->tableLayoutPanel11->Controls["textBox_f_" + (i + 1).ToString()];
-				TEXTBOX_F->Text = (param[i].F / 1000).ToString();
-				TextBox^ TEXTBOX_C = (TextBox^)this->tableLayoutPanel11->Controls["textBox_С" + (i + 1).ToString()];
-				TEXTBOX_C->Text = ((int)(1e12*C[i])).ToString("F0");
-				TextBox^ TEXTBOX_Z_CALC = (TextBox^)this->tableLayoutPanel11->Controls["textBox_Z_calc" + (i + 1).ToString()];
-				TEXTBOX_Z_CALC->Text = (imag(Z(1.0, L_loop, C[i], param[i].F))).ToString("F3");
-			}
+		// Расчет выполняется по метрологии, прочитанной из прибора.
+		if (sonde_param.size() > 0) {
+			WriteStepLog(6, "РАССЧИТАТЬ ЕМКОСТИ: используем sonde_param из прибора (size=" + to_string(sonde_param.size()) + ")");
+			param = sonde_param;
 		}
 		else {
-			for (int i = 0; i < 10; i++) {
-				TextBox^ TEXTBOX_L1 = (TextBox^)this->tableLayoutPanel11->Controls["textBox_L1_" + (i + 1).ToString()];
-				TEXTBOX_L1->Text = "";
-				TextBox^ TEXTBOX_L2 = (TextBox^)this->tableLayoutPanel11->Controls["textBox_L2_" + (i + 1).ToString()];
-				TEXTBOX_L2->Text = "";
-				TextBox^ TEXTBOX_F = (TextBox^)this->tableLayoutPanel11->Controls["textBox_f_" + (i + 1).ToString()];
-				TEXTBOX_F->Text = "";
-				TextBox^ TEXTBOX_C = (TextBox^)this->tableLayoutPanel11->Controls["textBox_С" + (i + 1).ToString()];
-				TEXTBOX_C->Text = "";
-				TextBox^ TEXTBOX_Z_CALC = (TextBox^)this->tableLayoutPanel11->Controls["textBox_Z_calc" + (i + 1).ToString()];
-				TEXTBOX_Z_CALC->Text = "";
+			openFileDialog1->Filter = "text files (*.bin)|*.bin";
+			if (openFileDialog1->ShowDialog() == System::Windows::Forms::DialogResult::OK) {
+				Metrology_in = (char*)Marshal::StringToHGlobalAnsi(openFileDialog1->FileName).ToPointer();
+				metro_in.open(Metrology_in, ios::binary);
+				metro_in.read((char*)&metrology_struct, sizeof(metrology_struct));
+				metro_in.close();
+				metro_convert(&metrology_struct, param);
+				WriteStepLog(6, "РАССЧИТАТЬ ЕМКОСТИ: метрология загружена из файла, param.size=" + to_string(param.size()));
 			}
+			else {
+				WriteStepLog(6, "РАССЧИТАТЬ ЕМКОСТИ: диалог файла отменён и sonde_param пуст — очистка полей.");
+				for (int i = 0; i < 10; i++) {
+					TextBox^ TEXTBOX_L1 = (TextBox^)this->tableLayoutPanel11->Controls["textBox_L1_" + (i + 1).ToString()];
+					TEXTBOX_L1->Text = "";
+					TextBox^ TEXTBOX_L2 = (TextBox^)this->tableLayoutPanel11->Controls["textBox_L2_" + (i + 1).ToString()];
+					TEXTBOX_L2->Text = "";
+					TextBox^ TEXTBOX_F = (TextBox^)this->tableLayoutPanel11->Controls["textBox_f_" + (i + 1).ToString()];
+					TEXTBOX_F->Text = "";
+					TextBox^ TEXTBOX_C = (TextBox^)this->tableLayoutPanel11->Controls["textBox_С" + (i + 1).ToString()];
+					TEXTBOX_C->Text = "";
+					TextBox^ TEXTBOX_Z_CALC = (TextBox^)this->tableLayoutPanel11->Controls["textBox_Z_calc" + (i + 1).ToString()];
+					TEXTBOX_Z_CALC->Text = "";
+				}
+				return;
+			}
+		}
+
+		// Расчет емкостей и реактивных сопротивлений.
+		for (int i = 0; i < param.size(); i++) {
+			C[i] = (C_max_fi(param[i].F, 0.5, L_loop, param[i].L1, param[i].L2));
+			TextBox^ TEXTBOX_L1 = (TextBox^)this->tableLayoutPanel11->Controls["textBox_L1_" + (i + 1).ToString()];
+			TEXTBOX_L1->Text = (param[i].L1).ToString("F3");
+			TextBox^ TEXTBOX_L2 = (TextBox^)this->tableLayoutPanel11->Controls["textBox_L2_" + (i + 1).ToString()];
+			TEXTBOX_L2->Text = (param[i].L2).ToString("F3");
+			TextBox^ TEXTBOX_F = (TextBox^)this->tableLayoutPanel11->Controls["textBox_f_" + (i + 1).ToString()];
+			TEXTBOX_F->Text = (param[i].F / 1000).ToString();
+			TextBox^ TEXTBOX_C = (TextBox^)this->tableLayoutPanel11->Controls["textBox_С" + (i + 1).ToString()];
+			TEXTBOX_C->Text = ((int)(1e12*C[i])).ToString("F0");
+			TextBox^ TEXTBOX_Z_CALC = (TextBox^)this->tableLayoutPanel11->Controls["textBox_Z_calc" + (i + 1).ToString()];
+			TEXTBOX_Z_CALC->Text = (imag(Z(1.0, L_loop, C[i], param[i].F))).ToString("F3");
+			WriteLog("CALC_CAP: cell " + to_string(i) +
+				" source=metrology L1=" + to_string(param[i].L1) +
+				", L2=" + to_string(param[i].L2) +
+				", F=" + to_string(param[i].F) +
+				", C_F=" + to_string(C[i]) +
+				", C_pF_text='" + msclr::interop::marshal_as<string>(TEXTBOX_C->Text) +
+				"', Re_calc_text='" + msclr::interop::marshal_as<string>(TEXTBOX_Z_CALC->Text) + "'");
 		}
 	}
 	if (checkBox_param_red->Checked == true) {
@@ -6786,10 +6847,18 @@ private: System::Void button_calk_C_need_Click(System::Object^  sender, System::
 			TextBox^ TEXTBOX_C = (TextBox^)this->tableLayoutPanel11->Controls["textBox_С" + (i + 1).ToString()];
 			TEXTBOX_C->Text = ((int)(1e12*C[i])).ToString("F0");
 			TextBox^ TEXTBOX_Z_CALC = (TextBox^)this->tableLayoutPanel11->Controls["textBox_Z_calc" + (i + 1).ToString()];
-			TEXTBOX_Z_CALC->Text = (imag(Z(1.0, L_loop, C[i], param[i].F))).ToString("F3");			
+			TEXTBOX_Z_CALC->Text = (imag(Z(1.0, L_loop, C[i], param[i].F))).ToString("F3");
+			WriteLog("CALC_CAP: cell " + to_string(i) +
+				" source=manual L1=" + to_string(param[i].L1) +
+				", L2=" + to_string(param[i].L2) +
+				", F=" + to_string(param[i].F) +
+				", C_F=" + to_string(C[i]) +
+				", C_pF_text='" + msclr::interop::marshal_as<string>(TEXTBOX_C->Text) +
+				"', Re_calc_text='" + msclr::interop::marshal_as<string>(TEXTBOX_Z_CALC->Text) + "'");
 		}
 	}
 	WriteStepLog(6, "РАССЧИТАТЬ ЕМКОСТИ: завершено. param.size=" + to_string(param.size()));
+	WriteLog("CALC_CAP: finished. param.size=" + to_string(param.size()));
 }
 
 private: System::Void checkBox_Re_red_CheckedChanged(System::Object^  sender, System::EventArgs^  e) {
@@ -6843,7 +6912,7 @@ private: System::Void checkBox_param_red_CheckedChanged(System::Object^  sender,
 		}
 	}
 }
-//убрать после отладки
+// Ручной пересчет расчетных фаз и УЭС.
 private: System::Void button_calk_Click(System::Object^  sender, System::EventArgs^  e) {
 	WriteStepLog(14, "РАССЧИТАТЬ: нажата кнопка.");
 	extern bool metro_check;
@@ -6945,21 +7014,18 @@ private: System::Void button_auto_Click(System::Object^  sender, System::EventAr
 	}
 
 }
-//отображение графиков и текста		 
+// Обновление графиков и текстовых полей.
 private: System::Void timer1_Tick(System::Object^  sender, System::EventArgs^  e) {
 	extern V10 ph_data;
 	extern V10 ro_data;
-	//длина вектора равна количеству зондов
 	extern vector <SONDE_PARAM> sonde_param;
-	//длина вектора равна количеству сопротивлений
 	extern vector <LOOP_PARAM> loop_param;
-	// 10 - зонды 20 - усреднение
 	extern int PH_percent_from_sonde[10][20];
 	extern int Ro_percent_from_sonde[10][20];
 	extern vector <V10> PH_computed;
 	extern vector <V10> Ro_computed;
 
-	//кнопка локального воздуха////////////
+	// Состояние кнопки локального воздуха.
 	int countdown = air_data_aver - air_set_cntr;
 	if (countdown < 0) countdown = 0;
 	if (collect_air_data == true) {
@@ -6976,15 +7042,13 @@ private: System::Void timer1_Tick(System::Object^  sender, System::EventArgs^  e
 			this->button_local_metro->Text = L"ЛОКАЛЬНЫЙ ВОЗДУХ ";
 		}
 	}
-	//////////////////////////////////////////////////////////////////////////
-	
-	// выводим фазы - воздух
+	// Фазы в режиме воздуха.
 	for (int N_sonde = 0; N_sonde < sonde_param.size(); N_sonde++) {
 		TextBox^ TEXTBOX_DFI = (TextBox^)this->tableLayoutPanel1->Controls["textBox_dfi" + (N_sonde + 1).ToString()];
 		TEXTBOX_DFI->Text = ((ph_data.VALUE[N_sonde])*mG).ToString("F0");
 	}
 
-	//выводим фазы на графики
+	// Графики фаз в режиме воздуха.
 	if (R_IDX == 0 && C_IDX == 0 && on_off == 1) {
 		pictureBox_legend_up->Image = nullptr;
 		do_legend(trashhold, AIR_MODE);
@@ -6994,7 +7058,7 @@ private: System::Void timer1_Tick(System::Object^  sender, System::EventArgs^  e
 		}
 	}
 
-	//если не на воздухе,то выводим УЭС
+	// УЭС в режиме измерения.
 	if (R_IDX != 0 && C_IDX != 0) {
 		pictureBox_legend_up->Image = nullptr;
 		do_legend(trashhold, MEAS_MODE);
@@ -7007,12 +7071,10 @@ private: System::Void timer1_Tick(System::Object^  sender, System::EventArgs^  e
 		}
 	}
 	
-	//////////////////////////////////////////////////////////////////////////////
-	
 	int N_last_points = aver_cntr;
 	if (N_last_points > 20)N_last_points = 20;
 
-	//переключение конденсатора для каждого зонда - отображаем по одному графику
+	// Обычный режим отображает график текущего зонда.
 	if (checkBox_express->Checked == false ||
 		(checkBox_express->Checked == true && R_IDX <= N_R_for_express)) {
 		if (C_IDX != 0 ) {
@@ -7020,9 +7082,8 @@ private: System::Void timer1_Tick(System::Object^  sender, System::EventArgs^  e
 		}
 			
 	}
-	//переключение конденсатора для всех зондов, начиная с 3го сопротивления
+	// Экспресс-режим отображает группу зондов по частоте.
 	if (checkBox_express->Checked == true && R_IDX > N_R_for_express) {
-		//отображаем 1е 4 или 5
 		if (C_IDX == 1 ){
 			for (int N_sonde = 1; N_sonde <= (int)((sonde_param.size() / 2)); N_sonde++) {
 				do_graf(N_sonde, &PH_percent_from_sonde[N_sonde-1][0], N_last_points, trashhold);
@@ -7034,12 +7095,8 @@ private: System::Void timer1_Tick(System::Object^  sender, System::EventArgs^  e
 			}
 		}
 	}
-	////////////////////////////////////////////////////////////////////
-
-	//рассчет фазы и УЭС от всех сопротивлений кольца для всех зондов 
-	//
+	// Расчет фаз и УЭС по параметрам кольца.
 	if (on_off == true && bt_on == true && PH_Ro_is_calculated == false) {
-		//получаем параметры от кольца//////////////////////////////////////////////////////////////////////////////
 		int stop = 0;
 		String^ Str = "";
 		String^ send_Z = "";
@@ -7050,38 +7107,49 @@ private: System::Void timer1_Tick(System::Object^  sender, System::EventArgs^  e
 
 		if (bt_on == true) {
 			Console::WriteLine("[ZREAD-AUTO] === Автоматическое чтение параметров кольца (timer1_Tick) ===");
+			WriteLog("ZREAD_AUTO: start from timer1_Tick. on_off=" + string(on_off ? "true" : "false") +
+				", bt_on=" + string(bt_on ? "true" : "false") +
+				", PH_Ro_is_calculated=" + string(PH_Ro_is_calculated ? "true" : "false"));
 			Loop_Check_Timer->Enabled = false;
-			// Пауза, чтобы уже запущенный обратный вызов loop_check_timer (пул потоков)
-			// завершил обмен по serialPort_loop до начала наших ZREAD-запросов.
+			// Пауза перед ZREAD, если loop_check_timer уже начал обмен по serialPort_loop.
 			Sleep(100);
 			serialPort_loop->DiscardInBuffer();
 			int stop = 0;
 			String^ resive = "";
 			for (int n = 0; n < 10; n++) {
 				send_Z = "ZREAD " + (n)+"\r\n"; resive_Z = "Z" + (n)+" ";
+				WriteLog("ZREAD_AUTO: n=" + to_string(n) + " send='" +
+					msclr::interop::marshal_as<string>(send_Z->TrimEnd()) + "', expect='" +
+					msclr::interop::marshal_as<string>(resive_Z) + "'");
 				serialPort_loop->DiscardInBuffer();
 				serialPort_loop->Write(send_Z);
 				Sleep(50);
 				try { resive = serialPort_loop->ReadLine(); }
-				catch (System::Exception^ ex) { stop = 1; Console::WriteLine("[ZREAD-AUTO] n=" + n + " Таймаут/ошибка ReadLine: " + ex->Message); }
+				catch (System::Exception^ ex) {
+					stop = 1;
+					Console::WriteLine("[ZREAD-AUTO] n=" + n + " Таймаут/ошибка ReadLine: " + ex->Message);
+					WriteLog("ZREAD_AUTO: n=" + to_string(n) + " ReadLine error: " + msclr::interop::marshal_as<string>(ex->Message));
+				}
 				if (!stop) {
-					// Диагностика: сырая строка + hex-дамп для выявления символьных артефактов
+					// Диагностика ответа кольца.
 					System::Text::StringBuilder^ hexDump = gcnew System::Text::StringBuilder();
 					for (int ci = 0; ci < resive->Length; ci++)
 						hexDump->AppendFormat("{0:X2} ", (int)resive[ci]);
 					Console::WriteLine("[ZREAD-AUTO] n=" + n + " Ответ (длина " + resive->Length + "): '" + resive + "'");
 					Console::WriteLine("[ZREAD-AUTO] n=" + n + " HEX: " + hexDump->ToString());
+					WriteLog("ZREAD_AUTO: n=" + to_string(n) + " raw='" +
+						msclr::interop::marshal_as<string>(resive->TrimEnd()) + "', hex='" +
+						msclr::interop::marshal_as<string>(hexDump->ToString()->TrimEnd()) + "'");
 					if (resive->StartsWith(resive_Z)) {
 						Str = resive->Substring(3);
 						int index_0 = Str->IndexOf(" ");
 						if (index_0 < 0) {
-							// Ответ не содержит разделитель — пропускаем во избежание исключения Substring
 							Console::WriteLine("[ZREAD-AUTO] n=" + n + " ОШИБКА: разделитель ' ' не найден, строка пропущена.");
+							WriteLog("ZREAD_AUTO: n=" + to_string(n) + " parse error: space separator not found in '" +
+								msclr::interop::marshal_as<string>(Str) + "'");
 							continue;
 						}
-						// Кольцо может возвращать "-nan"/"inf" для пустых ячеек памяти.
-						// TryParse не бросает исключений; нечисловые значения трактуются как 0
-						// (ячейка считается незаполненной и отфильтровывается ниже по Re > 0).
+						// Нечисловые значения трактуются как пустая ячейка.
 						double rVal = 0.0, reVal = 0.0;
 						bool okR = Double::TryParse(
 							(Str->Substring(0, index_0))->Trim(),
@@ -7091,7 +7159,6 @@ private: System::Void timer1_Tick(System::Object^  sender, System::EventArgs^  e
 							(Str->Substring(index_0 + 1))->Trim(),
 							System::Globalization::NumberStyles::Float,
 							System::Globalization::CultureInfo::InvariantCulture, reVal);
-						// Защита от nan/inf, прошедших парсинг в отдельных культурах.
 						if (!okR || Double::IsNaN(rVal) || Double::IsInfinity(rVal)) rVal = 0.0;
 						if (!okRe || Double::IsNaN(reVal) || Double::IsInfinity(reVal)) reVal = 0.0;
 						R[n] = (float)rVal;
@@ -7100,27 +7167,36 @@ private: System::Void timer1_Tick(System::Object^  sender, System::EventArgs^  e
 							Console::WriteLine("[ZREAD-AUTO] n=" + n + " Ячейка пуста/нечисловая (R=" + R[n] + " Re=" + Re[n] + ")");
 						else
 							Console::WriteLine("[ZREAD-AUTO] n=" + n + " Результат: R=" + R[n] + "  Re=" + Re[n]);
+						WriteLog("ZREAD_AUTO: n=" + to_string(n) +
+							" parsed R=" + to_string(R[n]) +
+							", Re=" + to_string(Re[n]) +
+							", okR=" + string(okR ? "true" : "false") +
+							", okRe=" + string(okRe ? "true" : "false"));
 						TextBox^ TEXTBOX_Re = (TextBox^)this->tableLayoutPanel11->Controls["textBox_Z_loop" + (n + 1).ToString()];
 						TextBox^ TEXTBOX_R = (TextBox^)this->tableLayoutPanel11->Controls["textBox_R_loop" + (n + 1).ToString()];
 						TEXTBOX_Re->Text = Re[n].ToString("F4");
 						TEXTBOX_R->Text = R[n].ToString("F0");
+						WriteLog("ZREAD_AUTO: n=" + to_string(n) + " UI set textBox_R_loop" + to_string(n + 1) +
+							"='" + msclr::interop::marshal_as<string>(TEXTBOX_R->Text) +
+							"', textBox_Z_loop" + to_string(n + 1) + "='" +
+							msclr::interop::marshal_as<string>(TEXTBOX_Re->Text) + "'");
 						TEXTBOX_Re->BackColor = Color::White;
-						// Прочитали корректный кадр (префикс Zn совпал) — отмечаем загрузку,
-						// чтобы timer1_Tick не зациклился на повторных чтениях.
+						// Флаг предотвращает повторное чтение кольца в каждом тике.
 						Z_downloaded_from_loop = true;
 
 					}
 					else {
 						Z_downloaded_from_loop = false;				
+						WriteLog("ZREAD_AUTO: n=" + to_string(n) + " unexpected response prefix. raw='" +
+							msclr::interop::marshal_as<string>(resive->TrimEnd()) + "'");
 						MessageBox::Show("Нет ответа от кольца " + n);
 					}
 				}
-				//else { this->button_BT_ON->BackColor = DefaultBackColor; MessageBox::Show("Соединение с кольцом прервано переподключите BT_ON 3!"); }
 			}
 			Loop_Check_Timer->Enabled = true;
 		}
 		if (bt_on == false) { MessageBox::Show("ВКЛЮЧИТЬ КОЛЬЦО"); }
-		//заполняем вектор параметров кольца
+		// Обновление параметров кольца.
 		if (Z_downloaded_from_loop == true) {
 			loop_param.clear();
 			for (int n = 0; n < 10; n++) {
@@ -7131,28 +7207,50 @@ private: System::Void timer1_Tick(System::Object^  sender, System::EventArgs^  e
 					buff.Re = Re[n];
 					buff.R_Add_Wire = 0.5;
 					loop_param.push_back(buff);
+					WriteLog("ZREAD_AUTO: loop_param push from cell " + to_string(n) +
+						": R=" + to_string(buff.R) + ", Re=" + to_string(buff.Re) +
+						", r=" + to_string(buff.r) + ", R_Add_Wire=" + to_string(buff.R_Add_Wire));
+				}
+				else {
+					WriteLog("ZREAD_AUTO: loop_param skip cell " + to_string(n) +
+						" because Re=" + to_string(Re[n]));
 				}
 			}
+			WriteLog("ZREAD_AUTO: finished reading. loop_param.size=" + to_string(loop_param.size()) +
+				", sonde_param.size=" + to_string(sonde_param.size()) +
+				", Z_downloaded=" + string(Z_downloaded_from_loop ? "true" : "false"));
 		}
 		else
 			MessageBox::Show("Параметры от кольца не получены");
-/////////////////////////////////////////////////////////////////////////////////
 		if(Z_downloaded_from_loop == true){
-			// Расчёт возможен только при наличии валидных сопротивлений кольца.
-			// Если все ячейки пусты (кольцо вернуло -nan), loop_param пуст —
-			// пропускаем расчёт во избежание обращения к пустым векторам и null-контролам.
+			// Расчет выполняется после чтения хотя бы одной заполненной ячейки кольца.
 			if (loop_param.size() > 0) {
 				calc_PH_from_loop(sonde_param, loop_param, PH_computed);
 				calc_Ro_from_loop(sonde_param, PH_computed, Ro_computed);
+				WriteLog("ZREAD_AUTO: calculated PH/Ro references. PH_computed.size=" + to_string(PH_computed.size()) +
+					", Ro_computed.size=" + to_string(Ro_computed.size()));
+				for (size_t rIdx = 0; rIdx < PH_computed.size(); rIdx++) {
+					for (size_t nSonde = 0; nSonde < sonde_param.size() && nSonde < 10; nSonde++) {
+						int activeLoopIndex = (rIdx > 0) ? (int)rIdx - 1 : -1;
+						stringstream ss;
+						ss << "ZREAD_AUTO: reference R_idx=" << rIdx
+						   << " sonde=" << nSonde
+						   << " active_loop_index=" << activeLoopIndex
+						   << " active_R=" << (activeLoopIndex >= 0 && activeLoopIndex < (int)loop_param.size() ? loop_param[activeLoopIndex].R : 0.0f)
+						   << " Re_for_sonde=" << (nSonde < loop_param.size() ? loop_param[nSonde].Re : 0.0f)
+						   << " PH=" << PH_computed[rIdx].VALUE[nSonde] << " rad"
+						   << " (" << PH_computed[rIdx].VALUE[nSonde] * mG << " mG)"
+						   << ", Ro=" << Ro_computed[rIdx].VALUE[nSonde];
+						WriteLog(ss.str());
+					}
+				}
 
 				for (int n = 0; n < 8; n++) {
 					Button^ BUTTON_R = (Button^)this->tableLayoutPanel1->Controls["button_R" + (n + 1).ToString()];
-					// Контрол может отсутствовать в данной панели — проверка перед доступом.
 					if (BUTTON_R != nullptr)
 						BUTTON_R->Text = R[n].ToString("F0");
 				}
 
-				//отладка/////////////////////////////////////////
 				for (size_t R_idx = 0; R_idx < PH_computed.size(); R_idx++) {
 					cout << "PH ";
 					for (size_t n_sonde = 0; n_sonde < sonde_param.size(); n_sonde++)
@@ -7166,23 +7264,21 @@ private: System::Void timer1_Tick(System::Object^  sender, System::EventArgs^  e
 						cout << Ro_computed[R_idx].VALUE[n_sonde] << " ";
 					cout << endl;
 				}
-				////////////////////////////////////////////////////////
 			}
 			else {
 				Console::WriteLine("[ZREAD-AUTO] Кольцо не содержит валидных Z (все ячейки -nan/пусты). "
 					"Расчёт пропущен. Запишите параметры Z в кольцо кнопкой 'Записать Z'.");
 			}
-			// Выставляем флаг в любом случае, чтобы timer1_Tick не перечитывал кольцо
-			// каждую секунду, пока состояние прибора/кольца не изменится.
+			// Флаг предотвращает повторный расчет до изменения состояния.
 			PH_Ro_is_calculated = true;
         }	
 	}
-	//если был выключен прибор или кольцо - заново читаем параметры кольца при следующем включении
+	// Повторное чтение кольца при следующем включении.
 	if (on_off == false || bt_on == false) {
 		PH_Ro_is_calculated = false;
 	}
 
-	// автоматические измерения
+	// Автоматические измерения.
 	if(auto_vork == true){
 		if (start_R_measure == false) {
 			Sleep(200);
@@ -7192,13 +7288,12 @@ private: System::Void timer1_Tick(System::Object^  sender, System::EventArgs^  e
 			auto_R_IDX++;
 		}
 		if (auto_R_IDX > 8) {
-			//auto_R_IDX = 1;
 			auto_vork = false;
 			button_auto->BackColor = DefaultBackColor;
 		}
 	}
 
-	//ставим галочку, если измерения в пределах нормы
+	// Отметка измерений, попавших в допустимую зону.
 	if (end_R_measure == true) {
 		for (int R_idx = 1; R_idx <= 8; R_idx++){
 
@@ -7234,7 +7329,7 @@ private: System::Void timer1_Tick(System::Object^  sender, System::EventArgs^  e
 
 }
 
-//сохранить рапорт
+// Сохранение рапорта.
 private: System::Void сохранитьРапортRtfToolStripMenuItem_Click(System::Object^  sender, System::EventArgs^  e) {
 	WriteStepLog(15, "РАПОРТ: нажата кнопка.");
 	extern vector <LOOP_PARAM> loop_param;
@@ -7275,9 +7370,7 @@ private: System::Void сохранитьРапортRtfToolStripMenuItem_Click(S
 
 		richTextBox1->AppendText("\r\n \r\n Расчет НЕсимметризованных фаз и УЭС на компьютере " + Environment::NewLine);
 
-		//УЭС
 		richTextBox1->AppendText("\r\n  ЗОНД        Погрешность % " + Environment::NewLine);
-		//номер сопротивления 
 		for (int R_idx = 1; R_idx <= 8; R_idx++) {
 			if (R_idx <= 8)R_index = "\r\n Мера импеданса № " + R_idx.ToString() + "  " + loop_param[R_idx-1].R + " Ом  \r\n";
 			else R_index = "\r\n Воздух________________________________________________________________________________ \r\n";
@@ -7286,7 +7379,6 @@ private: System::Void сохранитьРапортRtfToolStripMenuItem_Click(S
 			CheckBox^ CHECKBOX_R = (CheckBox^)this->tableLayoutPanel1->Controls["checkBox_R" + (R_idx).ToString()];
 			if (CHECKBOX_R->Checked == true) {
 				String^ frq; String^ nomer;
-				//номер передатчика 
 				for (int N_sonde = 1; N_sonde <= sonde_param.size(); N_sonde++) {
 					TextBox^ TEXTBOX_R_T = (TextBox^)this->tableLayoutPanel1->Controls["textBox_R" + R_idx + "_T" + (N_sonde).ToString()];
 
@@ -7326,7 +7418,6 @@ private: System::Void сохранитьРапортRtfToolStripMenuItem_Click(S
 
 		richTextBox1->AppendText("Ф И О, должность, подпись______________________________________________________" + t.tm_mday + month + (t.tm_year + 1900) + " г. " + t.tm_hour + " :" + t.tm_min);
 
-		// сохраняем рапорт	
 		saveFileDialog1->Filter = "text files (*.rtf)|*.rtf";
 		if (saveFileDialog1->ShowDialog() == System::Windows::Forms::DialogResult::OK) {
 			try {
@@ -7342,9 +7433,6 @@ private: System::Void сохранитьРапортRtfToolStripMenuItem_Click(S
 					TEXTBOX_R_T->Text = "";
 				}
 			}
-			//button_ON_OFF->PerformClick();
-			//on_off = false;
-			//return;
 		}
 	
 		if (on_off == true) {
@@ -7354,7 +7442,7 @@ private: System::Void сохранитьРапортRtfToolStripMenuItem_Click(S
     }
 
 }
-//выбор com портов
+// Выбор COM-портов.
 private: System::Void comboBox_sonde_com_DropDown(System::Object^  sender, System::EventArgs^  e) {
 	comboBox_sonde_com->Items->Clear();
 	cli::array<String^>^ ports = nullptr;
@@ -7392,9 +7480,9 @@ private: System::Void WorkForm_FormClosing(System::Object^  sender, System::Wind
 	conf_out << (char*)Marshal::StringToHGlobalAnsi(comboBox_tool_type->Text).ToPointer() << endl;	
 	conf_out.close();
 }
-//update
+// Проверка обновлений.
 private: System::Void MyForm_Load(System::Object^  sender, System::EventArgs^  e) {
-	start = 1;//убрать 
+	start = 1;
 	if (start == 0) {
 		remove("LOOP_TEST.exe");
 		MoveFile("LOOP_TEST_NEW.exe", "LOOP_TEST.exe");
@@ -7437,7 +7525,7 @@ private: System::Void MyForm_Load(System::Object^  sender, System::EventArgs^  e
 
 		cout << "hInet " << hInet << " hUrl " << hUrl << endl;
 		if (hUrl != 0) {
-			res = DeleteUrlCacheEntryA("ftp://89.189.156.184/VORONEJ_FTP/UPDATE/LOOP_TEST/version.txt");//вводить без пароля
+			res = DeleteUrlCacheEntryA("ftp://89.189.156.184/VORONEJ_FTP/UPDATE/LOOP_TEST/version.txt");
 			cout << "DeleteUrlCache " << res << endl;
 			res = URLDownloadToFile(NULL, "ftp://AMK_VORONEJ:DaJa1305@89.189.156.184/VORONEJ_FTP/UPDATE/LOOP_TEST/version.txt", "version_url.txt", BINDF_GETNEWESTVERSION, NULL);
 
@@ -7471,11 +7559,6 @@ private: System::Void MyForm_Load(System::Object^  sender, System::EventArgs^  e
 					Download_Dll = (char*)Marshal::StringToHGlobalAnsi(download_Dll).ToPointer();
 					Download_version = (char*)Marshal::StringToHGlobalAnsi(download_version).ToPointer();
 
-					/*
-					HRESULT res0 = URLDownloadToFile(NULL, "ftp://amkg:amkg@89.189.156.184/voronej/update/loop/LOOP_TEST.exe", Download_LOOPexe, 0, NULL);
-					HRESULT res1 = URLDownloadToFile(NULL, "ftp://amkg:amkg@89.189.156.184/voronej/update/loop/AMK_1DDS_AUTONOM.dll", Download_Dll, 0, NULL);
-					HRESULT res2 = URLDownloadToFile(NULL, "ftp://amkg:amkg@89.189.156.184/voronej/update/loop/version.txt", Download_version, 0, NULL);
-					*/
 					HRESULT res0 = URLDownloadToFile(NULL, "ftp://AMK_VORONEJ:DaJa1305@89.189.156.184/VORONEJ_FTP/UPDATE/LOOP_TEST/LOOP_TEST.exe", Download_LOOPexe, 0, NULL);
 					HRESULT res1 = URLDownloadToFile(NULL, "ftp://AMK_VORONEJ:DaJa1305@89.189.156.184/VORONEJ_FTP/UPDATE/LOOP_TEST/AMK_1DDS_AUTONOM.dll", Download_Dll, 0, NULL);
 					HRESULT res2 = URLDownloadToFile(NULL, "ftp://AMK_VORONEJ:DaJa1305@89.189.156.184/VORONEJ_FTP/UPDATE/LOOP_TEST/version.txt", Download_version, 0, NULL);
@@ -7554,7 +7637,6 @@ private: System::Void uploadToFTPToolStripMenuItem_Click(System::Object^  sender
 		HINTERNET hFtpSession = InternetConnect(hInternet, "89.189.156.184", 21, "AMK_VORONEJ", "DaJa1305", INTERNET_SERVICE_FTP, INTERNET_FLAG_PASSIVE, 0);
 
 		std::cout << "FtpSettDirectory "
-			//<< FtpSetCurrentDirectoryA(hFtpSession, "/voronej/update/loop")
 			<< FtpSetCurrentDirectoryA(hFtpSession, "VORONEJ_FTP/UPDATE/LOOP_TEST")
 			<< std::endl;
 
@@ -7576,8 +7658,7 @@ private: System::Void uploadToFTPToolStripMenuItem_Click(System::Object^  sender
 }
 private: System::Void работаСФайломМетрологииToolStripMenuItem_Click(System::Object^  sender, System::EventArgs^  e) {
 	AIRTEMP10::MyForm1^ Metro = gcnew AIRTEMP10::MyForm1;
-	// Передаём открытый порт прибора, чтобы MetroForm не пытался открыть
-	// тот же COM-порт повторно при нажатии "Прочитать из зонда".
+	// Открытый порт прибора передается в MetroForm для повторного использования.
 	Metro->ExternalPort = serialPort_sonde;
 	Metro->Show();
 }

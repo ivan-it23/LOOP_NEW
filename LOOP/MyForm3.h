@@ -36,9 +36,6 @@ namespace LOOP {
 		MyForm3(void)
 		{
 			InitializeComponent();
-			//
-			//TODO: добавьте код конструктора
-			//
 			extern vector <DAT> Temp_data;
 			extern int min_n, max_n;
 			extern struct V8 Phase_shift_chart;

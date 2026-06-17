@@ -6,7 +6,7 @@
 #include <vector>
 using namespace System;
 
-// Универсальное декодирование сигнатуры прибора.
+// Декодирование сигнатуры прибора.
 // low20 = младшие 20 бит сигнатуры; toolCode = low20/1000 = XYZ:
 //   X (тип): low20/100000, Y (число Tx): (low20%100000)/10000, Z (мод): (low20%10000)/1000.
 TOOL_IDENTITY decode_tool_signature(uint32_t signature) {
@@ -19,21 +19,17 @@ TOOL_IDENTITY decode_tool_signature(uint32_t signature) {
 	id.number = low20 % 1000;
 	id.valid = (id.device_type == DEVTYPE_AUTONOM || id.device_type == DEVTYPE_LWD)
 	           && (id.n_tx >= 3 && id.n_tx <= 5);
-	// Безопасный фолбэк по числу передатчиков для дальнейших расчётов.
 	if (id.n_tx < 3 || id.n_tx > 5) id.n_tx = 5;
 	return id;
 }
 
-//для новой программы
-//извлекаем из файла метрологии длины и частоты зондов
+// Конвертация метрологии в параметры зондов.
 void metro_convert(void *metrology_struct, vector <SONDE_PARAM> &sonde_param) {
 	GP_TOOL_METROLOGY metrology = *(GP_TOOL_METROLOGY*)metrology_struct;
 	TOOL_IDENTITY id = decode_tool_signature(metrology.signature);
 
 	sonde_param.clear();
 
-	// Раскладка зондов выполняется только при корректно распознанной сигнатуре,
-	// число передатчиков определяется из сигнатуры (универсально для 3/4/5 Tx).
 	if (id.valid) {
 		for (int freq = 0; freq < 2; freq++) {
 			for (uint32_t Tx = 0; Tx < id.n_tx; Tx++) {
@@ -47,39 +43,34 @@ void metro_convert(void *metrology_struct, vector <SONDE_PARAM> &sonde_param) {
 	}
 }
 
-//фаза от кольца
+// Фаза от кольца.
 float dfi_from_loop(SONDE_PARAM *param, LOOP_PARAM *loop_param) {
 	complex<float>ZFull;
 	if(param->F < 1000000)
 		ZFull = (loop_param->R + 0.3f) + 1if*loop_param->Re;
 	if (param->F > 1000000)
 		ZFull = (loop_param->R + 0.5f) + 1if*loop_param->Re;
-	//ZFull = (loop_param->R + loop_param->R_Add_Wire) + 1if*loop_param->Re;
 	cout << "param->F " << param->F << endl;
 	float piomegamu0 = (0.00002480502 * param->F);
 	float Q = pow((pow((param->L2 + param->L1) / 2, 2) + pow(loop_param->r, 2)) * (pow((param->L2 - param->L1) / 2, 2) + pow(loop_param->r, 2)), 1.5);
 	return arg(((2.0f * 1if*ZFull * Q + (float)(piomegamu0 * pow(loop_param->r, 4) * pow(param->L1, 3)))*(float)pow(param->L2, 3)) /
 		       ((2.0f * 1if*ZFull * Q + (float)(piomegamu0 * pow(loop_param->r, 4) * pow(param->L2, 3)))*(float)pow(param->L1, 3)));
-
-	//float omega = (2.0 * PI * param->F);
-	//float Q = pow((pow((param->L2 + param->L1) / 2, 2) + loop_param->r * loop_param->r) * (pow((param->L2 - param->L1) / 2, 2) + loop_param->r * loop_param->r), 1.5);
-	//return arg(((2.0f * 1if*ZFull * Q + (float)PI * omega * (float)mu0 * pow(loop_param->r, 4) * pow(param->L1, 3))*pow(param->L2, 3)) /
-	//	((2.0f * 1if*ZFull * Q + (float)PI * omega * (float)mu0 * pow(loop_param->r, 4) * pow(param->L2, 3))*pow(param->L1, 3)));
 	
 }
-// фаза от среды 
+
+// Фаза от среды.
 float dfi_ro(SONDE_PARAM *param, float ro) {
 	float omegamu0sigma = (0.0000078957f * param->F) / ro;
 	complex <float> ik = 1if * sqrt(1if * omegamu0sigma);
 	complex <float> SGN = exp(ik*(param->L2 - param->L1)) * ((1.0f - ik * param->L2) / (1.0f - ik * param->L1));
 	return arg(SGN);
 }
-// УЭС от фазы (обратная задача )
+// УЭС от фазы.
 float  ro_dfi(SONDE_PARAM *param, float PH_from_loop) {
 	float Ro0;
-	float epsilon_ARG = 0.0000005; // точность  фазы
-	float epsilon_INF = 0.000000005; // точность  фазы
-	float  Ro_0 = 0.01, Ro_max = 7000.0;  //мин. и мах. значение ус для расчета
+	float epsilon_ARG = 0.0000005;
+	float epsilon_INF = 0.000000005;
+	float  Ro_0 = 0.01, Ro_max = 7000.0;
 	bool stop_epsl_ARG = false;
 	bool stop_epsl_INF = false;
 	float  ro_0 = Ro_0;
@@ -88,8 +79,8 @@ float  ro_dfi(SONDE_PARAM *param, float PH_from_loop) {
 	do {
 		float X1 = ro_0 + 0.382*(ro_max - ro_0);
 		float X2 = ro_max - 0.382*(ro_max - ro_0);
-		float A = PH_from_loop - dfi_ro(param, X1);//
-		float B = PH_from_loop - dfi_ro(param, X2);//
+		float A = PH_from_loop - dfi_ro(param, X1);
+		float B = PH_from_loop - dfi_ro(param, X2);
 		if (fabs(A) > fabs(B)) { ro_0 = X1; }
 		else { ro_max = X2; }
 		if (fabs(A) < epsilon_ARG || fabs(B) < epsilon_ARG) { stop_epsl_ARG = true; }
@@ -102,7 +93,7 @@ float  ro_dfi(SONDE_PARAM *param, float PH_from_loop) {
 	ro_max = Ro_max;
 	return   Ro0;
 }
-//вычисляем кажущееся УЭС от сигналов прибора
+// Кажущееся УЭС по сигналам прибора.
 V10 ro_dfi(vector <SONDE_PARAM> &sonde_param, V10 PH_from_loop) {
 	V10 ro_data;
 	for (int i = 0; i < 10; i++)
@@ -112,39 +103,32 @@ V10 ro_dfi(vector <SONDE_PARAM> &sonde_param, V10 PH_from_loop) {
 	return ro_data;
 }
 
-//комплект фаз 10 зондов от всех сопротивлений
+// Расчет фаз по сопротивлениям кольца.
  void calc_PH_from_loop(vector <SONDE_PARAM> &sonde_param, vector <LOOP_PARAM> &loop_param, vector <V10> &PH_computed) {
 	 PH_computed.clear();
-	 // с первого по последнее сопротивления  
 	 V10 buff = { 0.0f, };
 	 PH_computed.push_back(buff);
-	 //for (int R_idx = 0; R_idx < loop_param.size(); R_idx++) {
 	 for (int R_idx = 0; R_idx < 8; R_idx++) {
 	
 		 LOOP_PARAM loop_param_local;
 		 loop_param_local.R = loop_param[R_idx].R;	
 		 loop_param_local.r = loop_param[R_idx].r;
 		 loop_param_local.R_Add_Wire = loop_param[R_idx].R_Add_Wire;
-		// для всех зондов
 		 for (int i = 0; i < sonde_param.size(); i++) {
 			 loop_param_local.Re = loop_param[i].Re;
 			 buff.VALUE[i] = dfi_from_loop(&sonde_param[i], &loop_param_local);
 		 } 
-		 //длина вектора равна количеству сопротивлений
 		  PH_computed.push_back(buff);
 	 }
  }
 
-//комплект кажущихся УЭС бесконечной среды 10 зондов от вычисленных фаз от кольца для всех сопротивлений кольца
+// Расчет УЭС по фазам кольца.
  void calc_Ro_from_loop(vector <SONDE_PARAM> &sonde_param, vector <V10> &PH_computed, vector <V10> &Ro_computed) {
 	 Ro_computed.clear();
-	 // с первого по последнее сопротивления  
 	 for (int R_idx = 0; R_idx < PH_computed.size(); R_idx++) {
 		 V10 buff;
-		 // для всех зондов
 		 for (int i = 0; i < sonde_param.size(); i++)
 			 buff.VALUE[i] = ro_dfi(&sonde_param[i], PH_computed[R_idx].VALUE[i]);
-		 //длина вектора равна количеству сопротивлений
 		 Ro_computed.push_back(buff);
 	 }
  }
@@ -155,7 +139,6 @@ V10 get_ph_from_SDR(System::IO::Ports::SerialPort^ COM, int mode, int &res) {
 	    ph_data.VALUE[i] = 0;
 		
 	GP_TOOL_DATA *All_Data_SDR = new GP_TOOL_DATA;
-	//const uint16_t length = sizeof(GP_TOOL_DATA) + 2;
 	const uint16_t length = 242;
 
 	uint8_t CMD = 0;
@@ -163,8 +146,7 @@ V10 get_ph_from_SDR(System::IO::Ports::SerialPort^ COM, int mode, int &res) {
 	int result;
 	bool stop = false;
 
-	// Порт должен быть открыт вызывающим кодом (button_ON_OFF_Click).
-	// Не закрываем/открываем его здесь, чтобы избежать гонок при опросе.
+	// Опрос выполняется только на открытом порту.
 	if (!COM->IsOpen) {
 		res = 3;
 		Console::WriteLine("no port 112");
@@ -179,15 +161,12 @@ V10 get_ph_from_SDR(System::IO::Ports::SerialPort^ COM, int mode, int &res) {
 	}
 	Sleep(50);
 	result = receive_from_tool(COM, CMD, DATA_IN, length);
-	//cout << "result " << result << endl;
 	res = result;
 	if (result == 0) {
 		All_Data_SDR = (GP_TOOL_DATA*)(DATA_IN + 2);
-		// Количество передатчиков определяется из toolCode сигнатуры (универсально 3/4/5 Tx).
 		uint32_t buff = (All_Data_SDR->signature << 12) >> 12;
 		uint32_t N_Tx = (buff % 100000) / 10000;
 		if (N_Tx < 3 || N_Tx > 5) N_Tx = 5;
-		// Сырая разница фаз укладывается freq-major (страйд = N_Tx) для совпадения с sonde_param.
 		for (uint32_t freq = 0; freq < 2; freq++) {
 			for (uint32_t Tx = 0; Tx < N_Tx; Tx++) {
 				uint32_t idx = freq * N_Tx + Tx;
@@ -196,10 +175,9 @@ V10 get_ph_from_SDR(System::IO::Ports::SerialPort^ COM, int mode, int &res) {
 				while (ph_data.VALUE[idx] <= -PI) ph_data.VALUE[idx] += 2 * PI;
 			}
 		}
-		// меняем знак для зеркальных передатчиков (Z1 повернут T1)
 		for (uint32_t i = 0; i < 2 * N_Tx; i++) {
 			if ((i & 1) == 0)
-				ph_data.VALUE[i] = -ph_data.VALUE[i]; // чётные инвертируем
+				ph_data.VALUE[i] = -ph_data.VALUE[i];
 		}
 	}
 
@@ -212,16 +190,13 @@ V10 get_ph_from_1DDS(System::IO::Ports::SerialPort^ COM, int mode, int &res) {
 		ph_data.VALUE[i] = 0;
 
 	GP_TOOL_DATA *All_Data_1DDS = new GP_TOOL_DATA;
-	// Эмулятор/прибор отвечает пакетом [CMD][LEN:2][GP_TOOL_DATA:240][CRC:2].
-	// receive_from_tool читает length+3 байт, поэтому полезная нагрузка 240 + 2 байта LEN = 242.
 	const uint16_t length = 242;
 	uint8_t CMD = 0;
 	uint8_t DATA_IN[length] = { 0, };
 	int result;
 	bool stop = false;
 
-	// Порт должен быть открыт вызывающим кодом (button_ON_OFF_Click).
-	// Не закрываем/открываем его здесь, чтобы избежать гонок при опросе.
+	// Опрос выполняется только на открытом порту.
 	if (!COM->IsOpen) {
 		res = 3;
 		Console::WriteLine("no port 112");
@@ -230,24 +205,18 @@ V10 get_ph_from_1DDS(System::IO::Ports::SerialPort^ COM, int mode, int &res) {
 	COM->ReadTimeout = 200;
 	COM->WriteTimeout = 200;
 
-	// Унифицированный протокол с Amk-Horizon-New-Chart: запрос кадра данных командой CMD_GET_DATA (0x11)
-	// с пустым payload (передаётся поле длины пакета 0x05 0x00).
 	uint8_t DATA[2] = { 0x05, 0x00 };
 	if (send_to_tool(COM, CMD_GET_DATA, DATA, 2) == 1) {
 		Console::WriteLine("Соединение с прибором прервано переподключите !");
 	}
 	Sleep(50);
 	result = receive_from_tool(COM, CMD, DATA_IN, length);
-	//cout << "result " << result << endl;
 	res = result;
 	if (result == 0) {
-		// Полезная нагрузка GP_TOOL_DATA начинается после 2-байтового поля длины (LEN).
 		All_Data_1DDS = (GP_TOOL_DATA*)(DATA_IN + 2);
-		// Количество передатчиков определяется из toolCode сигнатуры (универсально 3/4/5 Tx).
 		uint32_t buff = (All_Data_1DDS->signature << 12) >> 12;
 		uint32_t N_Tx = (buff % 100000) / 10000;
 		if (N_Tx < 3 || N_Tx > 5) N_Tx = 5;
-		// Готовая сырая разница фаз укладывается freq-major (страйд = N_Tx).
 		for (uint32_t freq = 0; freq < 2; freq++) {
 			for (uint32_t Tx = 0; Tx < N_Tx; Tx++) {
 				uint32_t idx = freq * N_Tx + Tx;
@@ -256,10 +225,9 @@ V10 get_ph_from_1DDS(System::IO::Ports::SerialPort^ COM, int mode, int &res) {
 				while (ph_data.VALUE[idx] <= -PI) ph_data.VALUE[idx] += 2 * PI;
 			}
 		}
-		// меняем знак для зеркальных передатчиков (Z1 повернут T1)
 		for (uint32_t i = 0; i < 2 * N_Tx; i++) {
-			if (i & 1)ph_data.VALUE[i];// нечётные нормальные
-			else ph_data.VALUE[i] = -ph_data.VALUE[i];// чётные инвертируем
+			if (i & 1)ph_data.VALUE[i];
+			else ph_data.VALUE[i] = -ph_data.VALUE[i];
 		}
 
 		cout << " SGN " << std::hex << All_Data_1DDS->signature << endl;
@@ -284,16 +252,13 @@ V10 get_ph_from_AUTONOM(void *ComPort, int mode, int &res) {
 	extern HINSTANCE AMK_DLL;
 	AMK_GetData = (GetData)GetProcAddress(AMK_DLL, "AMK_GetData");
 	_controlfp(_CW_DEFAULT, 0xfffff);
-	//ComPort = AMK_StartComPort(&ComPort, NULL);
 	int result = AMK_GetData(ComPort, All_Data_1DDS) ;
 
 	if (result == 1) {
 		res = 0;
-		// Количество передатчиков определяется из toolCode сигнатуры (универсально 3/4/5 Tx).
 		uint32_t buff = (All_Data_1DDS->signature << 12) >> 12;
 		uint32_t N_Tx = (buff % 100000) / 10000;
 		if (N_Tx < 3 || N_Tx > 5) N_Tx = 5;
-		// Готовая сырая разница фаз укладывается freq-major (страйд = N_Tx).
 		for (uint32_t freq = 0; freq < 2; freq++) {
 			for (uint32_t Tx = 0; Tx < N_Tx; Tx++) {
 				uint32_t idx = freq * N_Tx + Tx;
@@ -302,10 +267,9 @@ V10 get_ph_from_AUTONOM(void *ComPort, int mode, int &res) {
 				while (ph_data.VALUE[idx] <= -PI) ph_data.VALUE[idx] += 2 * PI;
 			}
 		}
-		// меняем знак для зеркальных передатчиков (Z1 повернут T1)
 		for (uint32_t i = 0; i < 2 * N_Tx; i++) {
-			if (i & 1)ph_data.VALUE[i];// нечётные нормальные
-			else ph_data.VALUE[i] = -ph_data.VALUE[i];// чётные инвертируем
+			if (i & 1)ph_data.VALUE[i];
+			else ph_data.VALUE[i] = -ph_data.VALUE[i];
 		}
 	}
 
@@ -314,7 +278,7 @@ V10 get_ph_from_AUTONOM(void *ComPort, int mode, int &res) {
 	return ph_data;
 }
 
-// Унифицированное чтение сигнатуры прибора (CMD_GET_SIGNATURE = 0x16).
+// Чтение сигнатуры прибора.
 int read_tool_signature(System::IO::Ports::SerialPort^ COM, uint32_t &signature) {
 	uint8_t DATA[2] = { 0x05, 0x00 };
 	if (send_to_tool(COM, CMD_GET_SIGNATURE, DATA, 2) != 0)
@@ -322,7 +286,7 @@ int read_tool_signature(System::IO::Ports::SerialPort^ COM, uint32_t &signature)
 
 	Sleep(50);
 
-	const uint16_t length = 6; // [LEN:2][signature:4]
+	const uint16_t length = 6;
 	uint8_t CMD = 0;
 	uint8_t DATA_IN[length] = { 0 };
 	int result = receive_from_tool(COM, CMD, DATA_IN, length);
@@ -336,10 +300,7 @@ int read_tool_signature(System::IO::Ports::SerialPort^ COM, uint32_t &signature)
 	return 0;
 }
 
-// Универсальный опрос кадра данных прибора.
-// Единая реализация для SDR и LWD1DDS; таймауты не переопределяются здесь.
-// CMD: 0x00 для SDR, CMD_GET_DATA (0x11) для LWD1DDS.
-// Добавлен retry (1 повтор) при таймауте для повышения надёжности.
+// Опрос кадра данных прибора.
 V10 get_ph_from_tool(System::IO::Ports::SerialPort^ COM, uint8_t CMD, int mode, int &res) {
 	V10 ph_data;
 	for (int i = 0; i < 10; i++)
@@ -349,7 +310,7 @@ V10 get_ph_from_tool(System::IO::Ports::SerialPort^ COM, uint8_t CMD, int mode, 
 	uint8_t recv_CMD = 0;
 	uint8_t DATA_IN[length] = { 0 };
 	int result;
-	const int MAX_RETRIES = 1; // количество повторов при таймауте
+	const int MAX_RETRIES = 1;
 
 	if (!COM->IsOpen) {
 		res = 3;
@@ -362,12 +323,9 @@ V10 get_ph_from_tool(System::IO::Ports::SerialPort^ COM, uint8_t CMD, int mode, 
 			Console::WriteLine("get_ph_from_tool: повторная попытка #{0}", retry);
 		}
 
-		// Логируем текущие таймауты и состояние COM-порта перед опросом
 		Console::WriteLine("get_ph_from_tool: ReadTimeout={0} WriteTimeout={1} BytesToRead={2}",
 							 COM->ReadTimeout, COM->WriteTimeout, COM->BytesToRead);
 
-		// Очистка входного буфера перед новым запросом — предотвращает чтение «хвостов»
-		// от предыдущих незавершённых обменов (например, таймаута метрологии).
 		COM->DiscardInBuffer();
 
 		uint8_t DATA[2] = { 0x05, 0x00 };
@@ -381,8 +339,6 @@ V10 get_ph_from_tool(System::IO::Ports::SerialPort^ COM, uint8_t CMD, int mode, 
 		res = result;
 
 		if (result == 0) {
-			// Старый протокол LOOP_NEW не гарантирует echo-команды в ответе;
-			// доверяем только CRC, которое проверяется в receive_from_tool.
 			GP_TOOL_DATA *All_Data = (GP_TOOL_DATA*)(DATA_IN + 2);
 			uint32_t buff = (All_Data->signature << 12) >> 12;
 			uint32_t N_Tx = (buff % 100000) / 10000;
@@ -400,16 +356,14 @@ V10 get_ph_from_tool(System::IO::Ports::SerialPort^ COM, uint8_t CMD, int mode, 
 				if ((i & 1) == 0)
 					ph_data.VALUE[i] = -ph_data.VALUE[i];
 			}
-			return ph_data; // Успех — выходим
+			return ph_data;
 		}
 
-		// При таймауте (result == 1) и не исчерпанных ретраях — пробуем снова
 		if (result == 1 && retry < MAX_RETRIES) {
-			Console::WriteLine("get_ph_from_tool: таймаут, пробуем ещё раз...");
+			Console::WriteLine("get_ph_from_tool: повтор после таймаута...");
 			continue;
 		}
 
-		// При других ошибках или исчерпании ретраев — выходим с ошибкой
 		if (result != 0) {
 			break;
 		}
@@ -418,19 +372,16 @@ V10 get_ph_from_tool(System::IO::Ports::SerialPort^ COM, uint8_t CMD, int mode, 
 	return ph_data;
 }
 
-//старое
-//вычисляет симметризованную разницу фаз от кольца  для всех передатчиков
+// Симметризованная разница фаз от кольца.
 V10 calc_phase_from_loop(GP_TOOL_METROLOGY *metrology_struct, double R, double R_Add_Wire, double *Re, double L, double C, double r, bool mode) {
 	V10 phase_loop, phase_loop_smt;
 	double L1[10], L2[10], F[10];
 
-	// Количество передатчиков определяется из toolCode сигнатуры (универсально 3/4/5 Tx).
 	uint32_t buff = (metrology_struct->signature << 12) >> 12;
 	uint32_t N_Tx = (buff % 100000) / 10000;
 	if (N_Tx < 3 || N_Tx > 5) N_Tx = 5;
 	uint32_t N = 2 * N_Tx;
 
-	// Линейный индекс i соответствует freq = i / N_Tx, Tx = i % N_Tx.
 	for (uint32_t i = 0; i < N; i++) {
 		uint32_t freq = i / N_Tx;
 		uint32_t Tx = i % N_Tx;
@@ -448,14 +399,11 @@ V10 calc_phase_from_loop(GP_TOOL_METROLOGY *metrology_struct, double R, double R
 		    ZFull[i] = (R + R_Add_Wire) + 1i*(omega[i]*L - 1 / (omega[i]*C));
 		if (mode == 1)
 			ZFull[i] = (R + R_Add_Wire) + 1i*Re[i];
-		//cout << "ZFull " << ZFull[i] << endl;
-		// разницы фаз от кольца
 		Q[i] = pow((pow((L2[i] + L1[i]) / 2, 2) + r * r) * (pow((L2[i] - L1[i]) / 2, 2) + r * r), 1.5);
 		phase_loop.VALUE[i] = arg(((2.0 * 1i*ZFull[i] * Q[i] + PI*omega[i]*mu0 * pow(r, 4) * pow(L1[i], 3))*pow(L2[i], 3)) / ((2.0 * 1i*ZFull[i] * Q[i] + PI*omega[i]*mu0 * pow(r, 4) * pow(L2[i], 3))*pow(L1[i], 3)));
 	}
 	
 	return phase_loop;
-	//return phase_loop_smt;
 }
 
 double SIGNAL( GP_TOOL_METROLOGY *metrology, uint16_t n, double ro) {
@@ -475,9 +423,9 @@ double SIGNAL( GP_TOOL_METROLOGY *metrology, uint16_t n, double ro) {
 
 int  RO(GP_TOOL_METROLOGY *metrology, uint16_t n, V10 *Signal_from_loop, V10 *Ro_calculated_adecvat_r_loop) {
 	float Ro0;
-	float epsilon_ARG = 0.0000005; // точность  фазы
-	float epsilon_INF = 0.000000005; // точность  фазы
-	float  Ro_0 = 0.01, Ro_max = 7000.0;  //мин. и мах. значение ус для расчета
+	float epsilon_ARG = 0.0000005;
+	float epsilon_INF = 0.000000005;
+	float  Ro_0 = 0.01, Ro_max = 7000.0;
 	bool stop_epsl_ARG = false;
 	bool stop_epsl_INF = false;
 	float  ro_0 = Ro_0;
@@ -486,8 +434,8 @@ int  RO(GP_TOOL_METROLOGY *metrology, uint16_t n, V10 *Signal_from_loop, V10 *Ro
 	do {
 		float X1 = ro_0 + 0.382*(ro_max - ro_0);
 		float X2 = ro_max - 0.382*(ro_max - ro_0);
-		float A = Signal_from_loop->VALUE[n] - SIGNAL(metrology, n, X1);//
-		float B = Signal_from_loop->VALUE[n] - SIGNAL(metrology, n, X2);//
+		float A = Signal_from_loop->VALUE[n] - SIGNAL(metrology, n, X1);
+		float B = Signal_from_loop->VALUE[n] - SIGNAL(metrology, n, X2);
 		if (fabs(A) > fabs(B)) { ro_0 = X1; }
 		else { ro_max = X2; }
 		if (fabs(A) < epsilon_ARG || fabs(B) < epsilon_ARG) { stop_epsl_ARG = true; }
@@ -495,7 +443,7 @@ int  RO(GP_TOOL_METROLOGY *metrology, uint16_t n, V10 *Signal_from_loop, V10 *Ro
 
 	} while (stop_epsl_ARG == false && stop_epsl_INF == false);
 	if (stop_epsl_ARG == true) Ro0 = (ro_0 + ro_max) / 2;
-	if (stop_epsl_INF == true) Ro0 = 7200;//-100
+	if (stop_epsl_INF == true) Ro0 = 7200;
 	ro_0 = Ro_0;
 	ro_max = Ro_max;
 	Ro_calculated_adecvat_r_loop->VALUE[n] = Ro0;
@@ -504,7 +452,6 @@ int  RO(GP_TOOL_METROLOGY *metrology, uint16_t n, V10 *Signal_from_loop, V10 *Ro
 
 V10  R0_adecvat_r_loop(GP_TOOL_METROLOGY *metrology, V10 *Signal_from_loop) {
 	V10 Ro_calculated_adecvat_r_loop = {0.0,};
-	// Количество передатчиков определяется из toolCode сигнатуры (универсально 3/4/5 Tx).
 	uint32_t buff = (metrology->signature << 12) >> 12;
 	uint32_t N_Tx = (buff % 100000) / 10000;
 	if (N_Tx < 3 || N_Tx > 5) N_Tx = 5;
@@ -516,7 +463,6 @@ V10  R0_adecvat_r_loop(GP_TOOL_METROLOGY *metrology, V10 *Signal_from_loop) {
 
 V10 get_phase_raw(GP_TOOL_DATA *P) {
 	V10 phase = { 0.0, };
-	// Количество передатчиков определяется из toolCode сигнатуры (универсально 3/4/5 Tx).
 	uint32_t buff = (P->signature << 12) >> 12;
 	uint32_t N_Tx = (buff % 100000) / 10000;
 	if (N_Tx < 3 || N_Tx > 5) N_Tx = 5;
@@ -533,11 +479,9 @@ V10 get_phase_raw(GP_TOOL_DATA *P) {
 
 V10 get_phase(GP_TOOL_DATA *P, GP_TOOL_METROLOGY *metrology) {
 	V10 phase = { 0.0, };
-	// Количество передатчиков определяется из toolCode сигнатуры (универсально 3/4/5 Tx).
 	uint32_t buff = (P->signature << 12) >> 12;
 	uint32_t N_Tx = (buff % 100000) / 10000;
 	if (N_Tx < 3 || N_Tx > 5) N_Tx = 5;
-	//получаем разности фаз
 	for (uint32_t freq = 0; freq < 2; freq++) {
 		for (uint32_t Tx = 0; Tx < N_Tx; Tx++) {
 			uint32_t idx = freq * N_Tx + Tx;
@@ -547,13 +491,12 @@ V10 get_phase(GP_TOOL_DATA *P, GP_TOOL_METROLOGY *metrology) {
 		}
 	}
 
-	// нормализуем разности фаз к воздуху  и меняем знак для зеркальных передатчиков
-	//Z1 повернут T1 
+	// Коррекция воздушных поправок и ориентации передатчиков.
 	for (uint32_t freq = 0; freq < 2; freq++) {
 		for (uint32_t Tx = 0; Tx < N_Tx; Tx++) {
 			uint32_t i = freq * N_Tx + Tx;
-			if (i & 1)phase.VALUE[i] -= (metrology->Air_zz[freq][Tx] / mG);//нечётные нормальные
-			else phase.VALUE[i] = -phase.VALUE[i] + (metrology->Air_zz[freq][Tx] / mG);//чётные инвертируем
+			if (i & 1)phase.VALUE[i] -= (metrology->Air_zz[freq][Tx] / mG);
+			else phase.VALUE[i] = -phase.VALUE[i] + (metrology->Air_zz[freq][Tx] / mG);
 		}
 	}
 	
@@ -563,11 +506,10 @@ V10 get_phase(GP_TOOL_DATA *P, GP_TOOL_METROLOGY *metrology) {
 V10 get_phase_smt(GP_TOOL_DATA *P, GP_TOOL_METROLOGY *metrology) {
 	V10 phase_smt = { 0.0f, };
 	V10 phase = { 0.0, };
-	double K[4][4] = { 0.0, };//
+	double K[4][4] = { 0.0, };
 	enum T_SMT {
 		T1, T2, T3, T4,
 	};
-	//получаем разности фаз для первых четырёх передатчиков каждой частоты
 	for (int freq = 0; freq < 2; freq++) {
 		for (int Tx = 0; Tx < 4; Tx++) {
 			int i = freq * 4 + Tx;
@@ -577,25 +519,24 @@ V10 get_phase_smt(GP_TOOL_DATA *P, GP_TOOL_METROLOGY *metrology) {
 		}
 	}
 
-	// нормализуем разности фаз к воздуху  и меняем знак для зеркальных передатчиков
-	//Z1 повернут T1 
+	// Коррекция воздушных поправок и ориентации передатчиков.
 	for (int freq = 0; freq < 2; freq++) {
 		for (int Tx = 0; Tx < 4; Tx++) {
 			int i = freq * 4 + Tx;
-			if (i & 1)phase.VALUE[i]-= (metrology->Air_zz[freq][Tx] / mG);//нечётные нормальные
-			else phase.VALUE[i] = - phase.VALUE[i] + (metrology->Air_zz[freq][Tx] / mG);//чётные инвертируем
+			if (i & 1)phase.VALUE[i]-= (metrology->Air_zz[freq][Tx] / mG);
+			else phase.VALUE[i] = - phase.VALUE[i] + (metrology->Air_zz[freq][Tx] / mG);
 		}
 	}
 
-	//задаем коэфф симметризации для различных версий зондов
-	if ((metrology->serial & (1 << 17)) == 0) {//3 transmitters LWD direct messurement
+	// Коэффициенты симметризации.
+	if ((metrology->serial & (1 << 17)) == 0) {
 		K[T1][T1] = 0.75; K[T1][T2] = 0.5; K[T1][T3] = -0.25; K[T1][T4] = 0.0;
 		K[T2][T1] = 0.25; K[T2][T2] = 0.5; K[T2][T3] = 0.25; K[T2][T4] = 0.0;
 		K[T3][T1] = -0.25; K[T3][T2] = 0.5; K[T3][T3] = 0.75; K[T3][T4] = 0.0;
 		K[T4][T1] = 0.0;  K[T4][T2] = 0.0; K[T4][T3] = 0.0;  K[T4][T4] = 0.0;
 	}
 
-	if ((metrology->serial & (1 << 17)) != 0) {//4 transmitters autonomy and LWD
+	if ((metrology->serial & (1 << 17)) != 0) {
 		K[T1][T1] = 0.75;  K[T1][T2] = 0.50; K[T1][T3] = -0.25; K[T1][T4] = 0.0;
 		K[T2][T1] = 0.25;  K[T2][T2] = 0.50; K[T2][T3] = 0.25; K[T2][T4] = 0.0;
 		K[T3][T1] = 0.00;  K[T3][T2] = 0.25; K[T3][T3] = 0.50; K[T3][T4] = 0.25;
@@ -612,20 +553,20 @@ V10 get_phase_smt(GP_TOOL_DATA *P, GP_TOOL_METROLOGY *metrology) {
 
 V10 get_air_smt(V10 *S, GP_TOOL_METROLOGY *metrology) {
 	V10 phase_smt;	
-	double K[4][4] = { 0.0, };//
+	double K[4][4] = { 0.0, };
 	enum T_SMT {
 		T1, T2, T3, T4,
 	};
 	
-	//задаем коэфф симметризации для различных версий зондов
-	if ((metrology->serial & (1 << 17)) == 0) {//3 transmitters LWD direct messurement
+	// Коэффициенты симметризации.
+	if ((metrology->serial & (1 << 17)) == 0) {
 		K[T1][T1] = 0.75; K[T1][T2] = 0.5; K[T1][T3] = -0.25; K[T1][T4] = 0.0;
 		K[T2][T1] = 0.25; K[T2][T2] = 0.5; K[T2][T3] = 0.25; K[T2][T4] = 0.0;
 		K[T3][T1] = -0.25; K[T3][T2] = 0.5; K[T3][T3] = 0.75; K[T3][T4] = 0.0;
 		K[T4][T1] = 0.0;  K[T4][T2] = 0.0; K[T4][T3] = 0.0;  K[T4][T4] = 0.0;
 	}
 
-	if ((metrology->serial & (1 << 17)) != 0) {//4 transmitters autonomy and LWD
+	if ((metrology->serial & (1 << 17)) != 0) {
 		K[T1][T1] = 0.75;  K[T1][T2] = 0.50; K[T1][T3] = -0.25; K[T1][T4] = 0.0;
 		K[T2][T1] = 0.25;  K[T2][T2] = 0.50; K[T2][T3] = 0.25; K[T2][T4] = 0.0;
 		K[T3][T1] = 0.00;  K[T3][T2] = 0.25; K[T3][T3] = 0.50; K[T3][T4] = 0.25;
@@ -640,10 +581,8 @@ V10 get_air_smt(V10 *S, GP_TOOL_METROLOGY *metrology) {
 
 }
 
-/////////////////////////////////////////////////////////////////////////////
-
 complex <double> Z(double R, double L, double C, double f) {
-	double Rd = 0.0007;//0.7mm
+	double Rd = 0.0007;
 	double omega = 2 * PI*f;
 	double K0 = PI * omega*mu0;
 	double R_Add_Wire = 0.3;
@@ -652,7 +591,7 @@ complex <double> Z(double R, double L, double C, double f) {
 }
 
 double L(double R_loop, double R_wire) {
-	return  mu0 * R_loop * (log(8 * R_loop / R_wire) - 1.75);//индуктивность кольца 
+	return  mu0 * R_loop * (log(8 * R_loop / R_wire) - 1.75);
 }
 
 double L(double L) {
@@ -662,7 +601,6 @@ double L(double L) {
 complex <double> Loop(double R,  double C, double L, double r, double f, double L1, double L2) {
 	double omega = 2 * PI*f;
 	double K0 = PI * omega*mu0;
-	//Импеданс кольца со вставкой
 	complex<double>ZFull = (R) + 1i*((omega*L) - 1 / (omega*C));
 	double Q = pow((pow((L2 + L1) / 2, 2) + r * r) * (pow((L2 - L1) / 2, 2) + r * r), 1.5);
 	complex<double> VzzR1R2 = ((2.0 * 1i*ZFull * Q + K0 * pow(r, 4) * pow(L1, 3))*pow(L2, 3)) / ((2.0 * 1i*ZFull * Q + K0 * pow(r, 4) * pow(L2, 3))*pow(L1, 3));
@@ -672,7 +610,6 @@ complex <double> Loop(double R,  double C, double L, double r, double f, double 
 complex <double> Loop_Re(double R,  double Re, double r, double f, double L1, double L2) {
 	double omega = 2 * PI*f;
 	double K0 = PI * omega*mu0;
-	//Импеданс кольца со вставкой
 	complex<double>ZFull = (R) + 1i*(Re);
 	double Q = pow((pow((L2 + L1) / 2, 2) + r * r) * (pow((L2 - L1) / 2, 2) + r * r), 1.5);
 	complex<double> VzzR1R2 = ((2.0 * 1i*ZFull * Q + K0 * pow(r, 4) * pow(L1, 3))*pow(L2, 3)) / ((2.0 * 1i*ZFull * Q + K0 * pow(r, 4) * pow(L2, 3))*pow(L1, 3));
@@ -680,7 +617,7 @@ complex <double> Loop_Re(double R,  double Re, double r, double f, double L1, do
 }
 
 double Re(double f, double r, double L, double L1, double L2) {
-	double left = 0.1, right = 50, EPS = 0.01; // входные данные
+	double left = 0.1, right = 50, EPS = 0.01;
 	double m1, m2;
 	while (right - left > EPS) {
 		m1 = left + (right - left) / 3;
@@ -694,7 +631,7 @@ double Re(double f, double r, double L, double L1, double L2) {
 }
 
 double C_max_fi(double f, double r, double L, double L1, double L2) {
-	double left = 500.0 / 1e12, right = 70000.0 / 1e12, EPS = 1.0 / 1e12; // входные данные
+	double left = 500.0 / 1e12, right = 70000.0 / 1e12, EPS = 1.0 / 1e12;
 	double m1, m2;
 	while (right - left > EPS) {
 		m1 = left + (right - left) / 3;
@@ -708,7 +645,7 @@ double C_max_fi(double f, double r, double L, double L1, double L2) {
 }
 
 double F(double f,  double r, double L, double L1, double L2) {
-	double left = 50000, right = 5000000, EPS = 1; // входные данные
+	double left = 50000, right = 5000000, EPS = 1;
 	double m1, m2;
 	while (right - left > EPS) {
 		m1 = left + (right - left) / 3;
@@ -725,9 +662,8 @@ double F(double f,  double r, double L, double L1, double L2) {
 double C_f(double L, double f) {
 	double R = 0;
 	return  L / (pow(2 * PI * f * L, 2) + R * R);
-	//return 1.0 /  pow(2 * PI*f, 2);
 }
-/////////////////////////////////////////////////////////////////////////////////////////
+
 uint16_t CRC16(const BYTE *nData, uint16_t wLength){
 	static const uint16_t wCRCTable[] = {
 	0X0000, 0XC0C1, 0XC181, 0X0140, 0XC301, 0X03C0, 0X0280, 0XC241,
@@ -772,13 +708,6 @@ uint16_t CRC16(const BYTE *nData, uint16_t wLength){
 		wCRCWord >>= 8;
 		wCRCWord ^= wCRCTable[nTemp];
 	}
-	/////////////////////////////////////
-	//char *myDataPtr = (char*)&(wCRCWord);
-	//char tmp;
-	//tmp = myDataPtr[0];
-	//myDataPtr[0] = myDataPtr[1];
-	//myDataPtr[1] = tmp;
-	//////////////////////////////////////
 	return wCRCWord;
 
 }
@@ -802,17 +731,6 @@ int send_to_tool(System::IO::Ports::SerialPort^ COM, uint8_t CMD, uint8_t* DATA,
 	}
 	catch (...) { stop = 1; }
 	if (!stop) {
-		/*
-		Console::Write("send_to_tool ");
-		for (int i = 0; i < length + 3; i++) {
-			Console::Write("{0:x}", packet_to_send[i]); Console::Write(" ");
-		}
-		Console::Write(" CRC ");
-		Console::Write("{0:x}", packet_to_send[length + 2]);
-		Console::Write("{0:x}", packet_to_send[length + 1]);
-		Console::WriteLine("");
-		*/
-		//Sleep(100);
 		delete packet;
 		delete packet_to_send;
 		return 0;
@@ -830,15 +748,11 @@ int receive_from_tool(System::IO::Ports::SerialPort^ COM, uint8_t& CMD, uint8_t*
 		packet_to_receive[i] = 0xff;
 	}
 
-	// Логируем сколько байт доступно в COM-буфере перед чтением
 	std::cout << "[receive_from_tool] BytesToRead=" << COM->BytesToRead
 			  << " need=" << (length + 3)
 			  << " ReadTimeout=" << COM->ReadTimeout << std::endl;
 
-	// SerialPort::Read возвращается, как только доступен хотя бы один байт, и не блокирует
-	// до получения всех запрошенных байт. Поэтому чтение выполняется в цикле с
-	// дедлайном: байты накапливаются, пока не собран весь пакет или не истечёт таймаут.
-	// Аналогично ReceivePacket в Amk-Horizon-New-Chart.
+	// Накопление пакета до полного размера или истечения таймаута.
 	const int total = length + 3;
 	int bytes_read = 0;
 	DateTime deadline = DateTime::Now.AddMilliseconds(COM->ReadTimeout);
@@ -851,8 +765,6 @@ int receive_from_tool(System::IO::Ports::SerialPort^ COM, uint8_t& CMD, uint8_t*
 		}
 	}
 	catch (...) {
-		// TimeoutException от Read: байтов больше нет в течение ReadTimeout.
-		// bytes_read хранит фактически принятое количество.
 		if (bytes_read == 0) stop = 1;
 	}
 
@@ -879,7 +791,6 @@ int receive_from_tool(System::IO::Ports::SerialPort^ COM, uint8_t& CMD, uint8_t*
 			return 0;
 		}
 		else {
-			// Hex-дамп пакета при CRC-ошибке для диагностики
 			std::stringstream hex_ss;
 			hex_ss << "crc no valid | CalcCRC=0x" << std::hex << calc_crc
 				   << " RecvCRC=0x" << recv_crc << std::dec
@@ -915,22 +826,19 @@ GP_TOOL_DATA READ_BLOK_GP_TOOL_DATA(ifstream &fin, int n) {
 ARGB rgb(double ratio)
 {
 	ARGB argb = { 0, };
-	//we want to normalize ratio so that it fits in to 6 regions
-	//where each region is 256 units long
 	int normalized = int(128 + ratio * 256 * 5.5);
 
-	//find the distance to the start of the closest region
 	unsigned char x = normalized % 256;
 
 	unsigned char red = 0, grn = 0, blu = 0;
 	switch (normalized / 256)
 	{
-	case 1: red = 255;      grn = x;        blu = 0;       break;//red
-	case 2: red = 255 - x;  grn = 255;      blu = 0;       break;//yellow
-	case 3: red = 0;        grn = 255;      blu = x;       break;//green
-	case 4: red = 0;        grn = 255 - x;  blu = 255;     break;//cyan
-	case 5: red = x;        grn = 0;        blu = 255;     break;//blue
-	case 0: red = 255;      grn = 0;        blu = 255 - x; break;//magenta
+	case 1: red = 255;      grn = x;        blu = 0;       break;
+	case 2: red = 255 - x;  grn = 255;      blu = 0;       break;
+	case 3: red = 0;        grn = 255;      blu = x;       break;
+	case 4: red = 0;        grn = 255 - x;  blu = 255;     break;
+	case 5: red = x;        grn = 0;        blu = 255;     break;
+	case 0: red = 255;      grn = 0;        blu = 255 - x; break;
 	}
 	argb.A = 255; argb.B = blu; argb.G = grn; argb.R = red;
 	return argb;
