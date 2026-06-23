@@ -99,6 +99,17 @@ enum R {
 #define Complex complex<long int>
 #define uint16_t unsigned short
 
+struct PHASE_ORIENTATION_DEBUG {
+	bool valid;
+	uint32_t signature;
+	uint32_t n_tx;
+	uint32_t rx_position;
+	float raw_delta[2][5];
+	float raw_normalized[2][5];
+	int orientation_sign[2][5];
+	float final_phase[2][5];
+};
+
 #pragma pack(push, 1)
 
 // Структура калибровки

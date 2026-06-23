@@ -5871,6 +5871,7 @@ private:void sonde_read_timer(System::Object^ source, ElapsedEventArgs^ e) {
 		extern V10 AIR;
 		extern V10 ph_data;
 		extern V10 ro_data;
+		extern PHASE_ORIENTATION_DEBUG phase_orientation_debug;
 
 		bool stop = false;
 		int res = 0;
@@ -5911,6 +5912,31 @@ private:void sonde_read_timer(System::Object^ source, ElapsedEventArgs^ e) {
 				ss << "  [" << i << "] freq=" << (freq == 0 ? "400" : "2000") << "kHz Tx=" << tx 
 				   << ": " << ph_data.VALUE[i] << " rad (" << ph_data.VALUE[i] * mG << " mG)";
 				WriteLog(ss.str());
+			}
+		}
+		if (res == 0 && phase_orientation_debug.valid) {
+			stringstream header;
+			header << "PH_ORIENTATION_DEBUG: signature=0x" << hex << phase_orientation_debug.signature << dec
+				   << ", n_tx=" << phase_orientation_debug.n_tx
+				   << ", Rx_Position=" << phase_orientation_debug.rx_position
+				   << ", convention: sign +1 keeps raw DELTA_PH, sign -1 inverts it";
+			WriteLog(header.str());
+			for (uint32_t freq = 0; freq < 2; freq++) {
+				for (uint32_t tx = 0; tx < phase_orientation_debug.n_tx && tx < 5; tx++) {
+					uint32_t idx = freq * phase_orientation_debug.n_tx + tx;
+					if (idx >= 10) continue;
+					stringstream ss;
+					ss << "  [" << idx << "] freq=" << (freq == 0 ? "400" : "2000") << "kHz"
+					   << " Tx=" << tx
+					   << " raw_DELTA_PH=" << phase_orientation_debug.raw_delta[freq][tx] << " rad"
+					   << " (" << phase_orientation_debug.raw_delta[freq][tx] * mG << " mG)"
+					   << ", raw_norm=" << phase_orientation_debug.raw_normalized[freq][tx] << " rad"
+					   << " (" << phase_orientation_debug.raw_normalized[freq][tx] * mG << " mG)"
+					   << ", orientation_sign=" << phase_orientation_debug.orientation_sign[freq][tx]
+					   << ", final_ph_data=" << phase_orientation_debug.final_phase[freq][tx] << " rad"
+					   << " (" << phase_orientation_debug.final_phase[freq][tx] * mG << " mG)";
+					WriteLog(ss.str());
+				}
 			}
 		}
 		float raw_ph_value[10] = { 0.0f, };

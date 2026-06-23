@@ -31,6 +31,7 @@ vector <V10> Ro_computed;
 V10 AIR = {0.0f,};
 V10 ph_data;
 V10 ro_data;
+PHASE_ORIENTATION_DEBUG phase_orientation_debug = {};
 
 // 10 - зонды 20 - усреднение
 int PH_percent_from_sonde[10][20];

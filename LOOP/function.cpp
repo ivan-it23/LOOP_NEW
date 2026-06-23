@@ -7,6 +7,7 @@
 using namespace System;
 
 extern GP_TOOL_METROLOGY metrology_struct;
+extern PHASE_ORIENTATION_DEBUG phase_orientation_debug;
 
 // Декодирование сигнатуры прибора.
 // low20 = младшие 20 бит сигнатуры; toolCode = low20/1000 = XYZ:
@@ -35,14 +36,17 @@ static uint32_t normalized_rx_position(uint32_t rx_position) {
 	return (rx_position == 1) ? 1 : 0;
 }
 
-static float apply_rx_phase_orientation(float raw_phase, float air_phase, uint32_t Tx, uint32_t rx_position) {
+static int rx_phase_orientation_sign(uint32_t Tx, uint32_t rx_position) {
 	const uint32_t rx = normalized_rx_position(rx_position);
 	const bool odd_tx_number = ((Tx + 1) & 1) != 0; // T1, T3, T5
 	bool invert = !odd_tx_number; // Rx_Position 0: R1->T1: T2/T4 = RX1-RX2
 	if (rx == 1) invert = !invert; // Rx_Position 1: R1->T2 
+	return invert ? -1 : 1;
+}
 
+static float apply_rx_phase_orientation(float raw_phase, float air_phase, uint32_t Tx, uint32_t rx_position) {
 	float phase = normalize_phase(raw_phase) - air_phase;
-	if (invert) phase = -phase;
+	if (rx_phase_orientation_sign(Tx, rx_position) < 0) phase = -phase;
 	return normalize_phase(phase);
 }
 
@@ -55,10 +59,20 @@ static void fill_phase_from_tool_data(GP_TOOL_DATA *data, V10 &ph_data) {
 
 	TOOL_IDENTITY id = decode_tool_signature(data->signature);
 	const uint32_t rx_position = normalized_rx_position(metrology_struct.Rx_Position);
+	phase_orientation_debug = {};
+	phase_orientation_debug.valid = true;
+	phase_orientation_debug.signature = data->signature;
+	phase_orientation_debug.n_tx = id.n_tx;
+	phase_orientation_debug.rx_position = rx_position;
 	for (uint32_t freq = 0; freq < 2; freq++) {
 		for (uint32_t Tx = 0; Tx < id.n_tx; Tx++) {
 			uint32_t idx = freq * id.n_tx + Tx;
+			const int sign = rx_phase_orientation_sign(Tx, rx_position);
 			ph_data.VALUE[idx] = apply_rx_phase_orientation(data->DELTA_PH[freq][Tx], 0.0f, Tx, rx_position);
+			phase_orientation_debug.raw_delta[freq][Tx] = data->DELTA_PH[freq][Tx];
+			phase_orientation_debug.raw_normalized[freq][Tx] = normalize_phase(data->DELTA_PH[freq][Tx]);
+			phase_orientation_debug.orientation_sign[freq][Tx] = sign;
+			phase_orientation_debug.final_phase[freq][Tx] = ph_data.VALUE[idx];
 		}
 	}
 }

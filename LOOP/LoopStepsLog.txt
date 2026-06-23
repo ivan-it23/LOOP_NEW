@@ -186,3 +186,10 @@
 п»ї[15:40:18] [ШАГ 12] АВТО: авто-режим запущен. auto_vork=true, R_IDX=1, C_IDX=1
 п»ї[15:40:19] [ШАГ 13] R1: выбрано сопротивление. on_off=true, bt_on=true, start_R_measure=false
 п»ї[15:44:12] [ШАГ 13] R2: выбрано сопротивление. on_off=true, bt_on=true, start_R_measure=false
+п»ї[15:48:05] [ШАГ 13] R3: выбрано сопротивление. on_off=true, bt_on=true, start_R_measure=false
+п»ї[15:48:53] [ШАГ 13] R4: выбрано сопротивление. on_off=true, bt_on=true, start_R_measure=false
+п»ї[15:49:40] [ШАГ 13] R5: выбрано сопротивление. on_off=true, bt_on=true, start_R_measure=false
+п»ї[15:50:27] [ШАГ 13] R6: выбрано сопротивление. on_off=true, bt_on=true, start_R_measure=false
+п»ї[15:51:15] [ШАГ 13] R7: выбрано сопротивление. on_off=true, bt_on=true, start_R_measure=false
+п»ї[15:52:02] [ШАГ 13] R8: выбрано сопротивление. on_off=true, bt_on=true, start_R_measure=false
+п»ї[22:01:08] [ШАГ 13] R1: выбрано сопротивление. on_off=false, bt_on=false, start_R_measure=false
