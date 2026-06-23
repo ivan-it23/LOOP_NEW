@@ -75,10 +75,10 @@ typedef unsigned long(__stdcall *SetIQPhaseOffset)(void *, void *);
 typedef unsigned long(__stdcall *DDS3FreqOffset)(void *, void *);
 typedef unsigned long(__stdcall *GetMetroData)(void *, void *);
 typedef unsigned long(__stdcall *SetMetroData)(void *, void *);
-typedef unsigned long(__stdcall *GetSerial)(void *, void *);  // это указатель на 16-разрядное целое
+typedef unsigned long(__stdcall *GetSerial)(void *, void *);  // указатель на 16-разрядное целое
 typedef unsigned long(__stdcall *CheckConnect)(void); // функция не зависит от запуска устройства и показывает
 												  // фактическое количество УСИ, подключенных к компьютеру.
-												  // Если число их не равно единице - есть смысл что-то предпринять
+											
 
 
 //Параметры зондов 

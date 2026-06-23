@@ -30,6 +30,7 @@
 #pragma comment (lib,"Wininet.lib")
 
 extern void *ComPort;
+extern GP_TOOL_METROLOGY metrology_struct;
 namespace LOOP {
 
 	using namespace System;
@@ -5603,6 +5604,7 @@ private: System::Void button_ON_OFF_Click(System::Object^  sender, System::Event
 								}
 							}
 							WriteLog("Конвертация метрологии в sonde_param...");
+							::metrology_struct = metrology_struct;
 							metro_convert(&metrology_struct, sonde_param);
 							{
 								stringstream ss;
@@ -5706,6 +5708,7 @@ private: System::Void button_ON_OFF_Click(System::Object^  sender, System::Event
 							metro_result = receive_from_tool(serialPort_sonde, CMD, DATA_IN, 242);
 							if (metro_result == 0) {
 								memcpy(&temp_metro, DATA_IN + 2, sizeof(GP_TOOL_METROLOGY));
+								::metrology_struct = temp_metro;
 								WriteLog("Метрология получена (попытка " + to_string(attempt + 1) + "), конвертация...");
 								metro_convert(DATA_IN + 2, sonde_param);
 							}
@@ -5734,6 +5737,7 @@ private: System::Void button_ON_OFF_Click(System::Object^  sender, System::Event
 							metro_result = receive_from_tool(serialPort_sonde, CMD, DATA_IN, 242);
 							if (metro_result == 0) {
 								memcpy(&temp_metro, DATA_IN + 2, sizeof(GP_TOOL_METROLOGY));
+								::metrology_struct = temp_metro;
 								WriteLog("Метрология получена (попытка " + to_string(attempt + 1) + "), конвертация...");
 								metro_convert(DATA_IN + 2, sonde_param);
 								sonde_kojuh_serial = temp_metro.serial;
@@ -5771,6 +5775,7 @@ private: System::Void button_ON_OFF_Click(System::Object^  sender, System::Event
 						WriteLog(ss.str());
 					}
 					WriteLog("Частоты: F[0]=" + to_string(temp_metro.F[0]) + "kHz, F[1]=" + to_string(temp_metro.F[1]) + "kHz");
+					WriteLog("Rx_Position: " + to_string(temp_metro.Rx_Position));
 					{
 						stringstream ss;
 						ss << "Количество sonde_param: " << sonde_param.size();

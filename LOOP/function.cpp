@@ -6,6 +6,8 @@
 #include <vector>
 using namespace System;
 
+extern GP_TOOL_METROLOGY metrology_struct;
+
 // Декодирование сигнатуры прибора.
 // low20 = младшие 20 бит сигнатуры; toolCode = low20/1000 = XYZ:
 //   X (тип): low20/100000, Y (число Tx): (low20%100000)/10000, Z (мод): (low20%10000)/1000.
@@ -21,6 +23,44 @@ TOOL_IDENTITY decode_tool_signature(uint32_t signature) {
 	           && (id.n_tx >= 3 && id.n_tx <= 5);
 	if (id.n_tx < 3 || id.n_tx > 5) id.n_tx = 5;
 	return id;
+}
+
+static float normalize_phase(float phase) {
+	while (phase > PI) phase -= 2 * PI;
+	while (phase <= -PI) phase += 2 * PI;
+	return phase;
+}
+
+static uint32_t normalized_rx_position(uint32_t rx_position) {
+	return (rx_position == 1) ? 1 : 0;
+}
+
+static float apply_rx_phase_orientation(float raw_phase, float air_phase, uint32_t Tx, uint32_t rx_position) {
+	const uint32_t rx = normalized_rx_position(rx_position);
+	const bool odd_tx_number = ((Tx + 1) & 1) != 0; // T1, T3, T5
+	bool invert = !odd_tx_number; // Rx_Position 0: R1->T1: T2/T4 = RX1-RX2
+	if (rx == 1) invert = !invert; // Rx_Position 1: R1->T2 
+
+	float phase = normalize_phase(raw_phase) - air_phase;
+	if (invert) phase = -phase;
+	return normalize_phase(phase);
+}
+
+static void fill_phase_from_tool_data(GP_TOOL_DATA *data, V10 &ph_data) {
+	for (int i = 0; i < 10; i++)
+		ph_data.VALUE[i] = 0;
+
+	if (data == nullptr)
+		return;
+
+	TOOL_IDENTITY id = decode_tool_signature(data->signature);
+	const uint32_t rx_position = normalized_rx_position(metrology_struct.Rx_Position);
+	for (uint32_t freq = 0; freq < 2; freq++) {
+		for (uint32_t Tx = 0; Tx < id.n_tx; Tx++) {
+			uint32_t idx = freq * id.n_tx + Tx;
+			ph_data.VALUE[idx] = apply_rx_phase_orientation(data->DELTA_PH[freq][Tx], 0.0f, Tx, rx_position);
+		}
+	}
 }
 
 // Конвертация метрологии в параметры зондов.
@@ -164,21 +204,7 @@ V10 get_ph_from_SDR(System::IO::Ports::SerialPort^ COM, int mode, int &res) {
 	res = result;
 	if (result == 0) {
 		All_Data_SDR = (GP_TOOL_DATA*)(DATA_IN + 2);
-		uint32_t buff = (All_Data_SDR->signature << 12) >> 12;
-		uint32_t N_Tx = (buff % 100000) / 10000;
-		if (N_Tx < 3 || N_Tx > 5) N_Tx = 5;
-		for (uint32_t freq = 0; freq < 2; freq++) {
-			for (uint32_t Tx = 0; Tx < N_Tx; Tx++) {
-				uint32_t idx = freq * N_Tx + Tx;
-				ph_data.VALUE[idx] = All_Data_SDR->DELTA_PH[freq][Tx];
-				while (ph_data.VALUE[idx] > PI) ph_data.VALUE[idx] -= 2 * PI;
-				while (ph_data.VALUE[idx] <= -PI) ph_data.VALUE[idx] += 2 * PI;
-			}
-		}
-		for (uint32_t i = 0; i < 2 * N_Tx; i++) {
-			if ((i & 1) == 0)
-				ph_data.VALUE[i] = -ph_data.VALUE[i];
-		}
+		fill_phase_from_tool_data(All_Data_SDR, ph_data);
 	}
 
 	return ph_data;
@@ -214,21 +240,7 @@ V10 get_ph_from_1DDS(System::IO::Ports::SerialPort^ COM, int mode, int &res) {
 	res = result;
 	if (result == 0) {
 		All_Data_1DDS = (GP_TOOL_DATA*)(DATA_IN + 2);
-		uint32_t buff = (All_Data_1DDS->signature << 12) >> 12;
-		uint32_t N_Tx = (buff % 100000) / 10000;
-		if (N_Tx < 3 || N_Tx > 5) N_Tx = 5;
-		for (uint32_t freq = 0; freq < 2; freq++) {
-			for (uint32_t Tx = 0; Tx < N_Tx; Tx++) {
-				uint32_t idx = freq * N_Tx + Tx;
-				ph_data.VALUE[idx] = All_Data_1DDS->DELTA_PH[freq][Tx];
-				while (ph_data.VALUE[idx] > PI) ph_data.VALUE[idx] -= 2 * PI;
-				while (ph_data.VALUE[idx] <= -PI) ph_data.VALUE[idx] += 2 * PI;
-			}
-		}
-		for (uint32_t i = 0; i < 2 * N_Tx; i++) {
-			if (i & 1)ph_data.VALUE[i];
-			else ph_data.VALUE[i] = -ph_data.VALUE[i];
-		}
+		fill_phase_from_tool_data(All_Data_1DDS, ph_data);
 
 		cout << " SGN " << std::hex << All_Data_1DDS->signature << endl;
 		cout << " condition " << std::dec << All_Data_1DDS->condition << endl;
@@ -256,21 +268,7 @@ V10 get_ph_from_AUTONOM(void *ComPort, int mode, int &res) {
 
 	if (result == 1) {
 		res = 0;
-		uint32_t buff = (All_Data_1DDS->signature << 12) >> 12;
-		uint32_t N_Tx = (buff % 100000) / 10000;
-		if (N_Tx < 3 || N_Tx > 5) N_Tx = 5;
-		for (uint32_t freq = 0; freq < 2; freq++) {
-			for (uint32_t Tx = 0; Tx < N_Tx; Tx++) {
-				uint32_t idx = freq * N_Tx + Tx;
-				ph_data.VALUE[idx] = All_Data_1DDS->DELTA_PH[freq][Tx];
-				while (ph_data.VALUE[idx] > PI) ph_data.VALUE[idx] -= 2 * PI;
-				while (ph_data.VALUE[idx] <= -PI) ph_data.VALUE[idx] += 2 * PI;
-			}
-		}
-		for (uint32_t i = 0; i < 2 * N_Tx; i++) {
-			if (i & 1)ph_data.VALUE[i];
-			else ph_data.VALUE[i] = -ph_data.VALUE[i];
-		}
+		fill_phase_from_tool_data(All_Data_1DDS, ph_data);
 	}
 
 	else res = 1;
@@ -340,22 +338,7 @@ V10 get_ph_from_tool(System::IO::Ports::SerialPort^ COM, uint8_t CMD, int mode, 
 
 		if (result == 0) {
 			GP_TOOL_DATA *All_Data = (GP_TOOL_DATA*)(DATA_IN + 2);
-			uint32_t buff = (All_Data->signature << 12) >> 12;
-			uint32_t N_Tx = (buff % 100000) / 10000;
-			if (N_Tx < 3 || N_Tx > 5) N_Tx = 5;
-
-			for (uint32_t freq = 0; freq < 2; freq++) {
-				for (uint32_t Tx = 0; Tx < N_Tx; Tx++) {
-					uint32_t idx = freq * N_Tx + Tx;
-					ph_data.VALUE[idx] = All_Data->DELTA_PH[freq][Tx];
-					while (ph_data.VALUE[idx] > PI) ph_data.VALUE[idx] -= 2 * PI;
-					while (ph_data.VALUE[idx] <= -PI) ph_data.VALUE[idx] += 2 * PI;
-				}
-			}
-			for (uint32_t i = 0; i < 2 * N_Tx; i++) {
-				if ((i & 1) == 0)
-					ph_data.VALUE[i] = -ph_data.VALUE[i];
-			}
+			fill_phase_from_tool_data(All_Data, ph_data);
 			return ph_data;
 		}
 
@@ -469,9 +452,7 @@ V10 get_phase_raw(GP_TOOL_DATA *P) {
 	for (uint32_t freq = 0; freq < 2; freq++) {
 		for (uint32_t Tx = 0; Tx < N_Tx; Tx++) {
 			uint32_t idx = freq * N_Tx + Tx;
-			phase.VALUE[idx] = P->DELTA_PH[freq][Tx];
-			while (phase.VALUE[idx] > PI) phase.VALUE[idx] -= 2 * PI;
-			while (phase.VALUE[idx] <= -PI) phase.VALUE[idx] += 2 * PI;
+			phase.VALUE[idx] = normalize_phase(P->DELTA_PH[freq][Tx]);
 		}
 	}
 	return phase;
@@ -485,18 +466,11 @@ V10 get_phase(GP_TOOL_DATA *P, GP_TOOL_METROLOGY *metrology) {
 	for (uint32_t freq = 0; freq < 2; freq++) {
 		for (uint32_t Tx = 0; Tx < N_Tx; Tx++) {
 			uint32_t idx = freq * N_Tx + Tx;
-			phase.VALUE[idx] = P->DELTA_PH[freq][Tx];
-			while (phase.VALUE[idx] > PI) phase.VALUE[idx] -= 2 * PI;
-			while (phase.VALUE[idx] <= -PI) phase.VALUE[idx] += 2 * PI;
-		}
-	}
-
-	// Коррекция воздушных поправок и ориентации передатчиков.
-	for (uint32_t freq = 0; freq < 2; freq++) {
-		for (uint32_t Tx = 0; Tx < N_Tx; Tx++) {
-			uint32_t i = freq * N_Tx + Tx;
-			if (i & 1)phase.VALUE[i] -= (metrology->Air_zz[freq][Tx] / mG);
-			else phase.VALUE[i] = -phase.VALUE[i] + (metrology->Air_zz[freq][Tx] / mG);
+			phase.VALUE[idx] = apply_rx_phase_orientation(
+				P->DELTA_PH[freq][Tx],
+				metrology->Air_zz[freq][Tx] / mG,
+				Tx,
+				metrology->Rx_Position);
 		}
 	}
 	
@@ -513,18 +487,11 @@ V10 get_phase_smt(GP_TOOL_DATA *P, GP_TOOL_METROLOGY *metrology) {
 	for (int freq = 0; freq < 2; freq++) {
 		for (int Tx = 0; Tx < 4; Tx++) {
 			int i = freq * 4 + Tx;
-			phase.VALUE[i] = P->DELTA_PH[freq][Tx];
-			while (phase.VALUE[i] > PI) phase.VALUE[i] -= 2 * PI;
-			while (phase.VALUE[i] <= -PI) phase.VALUE[i] += 2 * PI;
-		}
-	}
-
-	// Коррекция воздушных поправок и ориентации передатчиков.
-	for (int freq = 0; freq < 2; freq++) {
-		for (int Tx = 0; Tx < 4; Tx++) {
-			int i = freq * 4 + Tx;
-			if (i & 1)phase.VALUE[i]-= (metrology->Air_zz[freq][Tx] / mG);
-			else phase.VALUE[i] = - phase.VALUE[i] + (metrology->Air_zz[freq][Tx] / mG);
+			phase.VALUE[i] = apply_rx_phase_orientation(
+				P->DELTA_PH[freq][Tx],
+				metrology->Air_zz[freq][Tx] / mG,
+				Tx,
+				metrology->Rx_Position);
 		}
 	}
 

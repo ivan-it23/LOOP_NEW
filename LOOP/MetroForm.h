@@ -30,6 +30,7 @@ extern GetMetroData AMK_GetMetroData;
 extern SetMetroData AMK_SetMetroData;
 extern GetSerial AMK_GetSerial;
 extern void *ComPort;
+extern GP_TOOL_METROLOGY metrology_struct;
 extern uint32_t DDS_3FreqOffset;
 extern struct PhaseOffset phaseOffset;
 
@@ -64,7 +65,6 @@ namespace AIRTEMP10 {
 			const char* Metrology = "Metrology.bin";
 			unsigned int Sonde_serial;
 			ifstream metro_in;
-			extern GP_TOOL_METROLOGY metrology_struct;
 			metro_in.open(Metrology, ios::binary);
 			//metro_in.read((char*)&metrology_struct, sizeof(metrology_struct));
 			metro_in.close();
@@ -73,6 +73,7 @@ namespace AIRTEMP10 {
 			Sonde_serial = metrology_struct.serial;
 			//this->Width = 600;
 			checkBox_read_only->Checked = true;
+			comboBox_rx_position->SelectedIndex = (metrology_struct.Rx_Position == 1) ? 1 : 0;
 
 			for (int i = 0; i < 5; i++) {
 				TextBox^ TEXTBOX_L1 = (TextBox^)this->tableLayoutPanel1->Controls["textBoxL1T" + (i + 1).ToString()];
@@ -112,6 +113,8 @@ namespace AIRTEMP10 {
 
 	private: System::Windows::Forms::Panel^  panel9;
 	private: System::Windows::Forms::ComboBox^  comboBox_N_Tx;
+	private: System::Windows::Forms::ComboBox^  comboBox_rx_position;
+	private: System::Windows::Forms::Label^  label_rx_position;
 
 
 
@@ -324,6 +327,8 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			this->textBox_sign32 = (gcnew System::Windows::Forms::TextBox());
 			this->label39 = (gcnew System::Windows::Forms::Label());
 			this->comboBox_N_Tx = (gcnew System::Windows::Forms::ComboBox());
+			this->comboBox_rx_position = (gcnew System::Windows::Forms::ComboBox());
+			this->label_rx_position = (gcnew System::Windows::Forms::Label());
 			this->label37 = (gcnew System::Windows::Forms::Label());
 			this->button1 = (gcnew System::Windows::Forms::Button());
 			this->label40 = (gcnew System::Windows::Forms::Label());
@@ -421,60 +426,59 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			this->panel9->Controls->Add(this->textBox_sign32);
 			this->panel9->Controls->Add(this->label39);
 			this->panel9->Controls->Add(this->comboBox_N_Tx);
+			this->panel9->Controls->Add(this->comboBox_rx_position);
+			this->panel9->Controls->Add(this->label_rx_position);
 			this->panel9->Controls->Add(this->label37);
 			this->panel9->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 9, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
 				static_cast<System::Byte>(204)));
-			this->panel9->Location = System::Drawing::Point(13, 496);
-			this->panel9->Margin = System::Windows::Forms::Padding(2, 2, 2, 2);
+			this->panel9->Location = System::Drawing::Point(17, 610);
+			this->panel9->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
 			this->panel9->Name = L"panel9";
-			this->panel9->Size = System::Drawing::Size(478, 98);
+			this->panel9->Size = System::Drawing::Size(858, 120);
 			this->panel9->TabIndex = 9;
 			// 
 			// label41
 			// 
 			this->label41->AutoSize = true;
-			this->label41->Location = System::Drawing::Point(299, 50);
-			this->label41->Margin = System::Windows::Forms::Padding(2, 0, 2, 0);
+			this->label41->Location = System::Drawing::Point(399, 62);
 			this->label41->Name = L"label41";
-			this->label41->Size = System::Drawing::Size(136, 15);
+			this->label41->Size = System::Drawing::Size(157, 18);
 			this->label41->TabIndex = 32;
 			this->label41->Text = L"signature for pallete";
 			// 
 			// textBox_sign_for_pallete
 			// 
-			this->textBox_sign_for_pallete->Location = System::Drawing::Point(326, 66);
-			this->textBox_sign_for_pallete->Margin = System::Windows::Forms::Padding(2, 2, 2, 2);
+			this->textBox_sign_for_pallete->Location = System::Drawing::Point(435, 81);
+			this->textBox_sign_for_pallete->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
 			this->textBox_sign_for_pallete->Name = L"textBox_sign_for_pallete";
 			this->textBox_sign_for_pallete->ReadOnly = true;
-			this->textBox_sign_for_pallete->Size = System::Drawing::Size(76, 21);
+			this->textBox_sign_for_pallete->Size = System::Drawing::Size(100, 24);
 			this->textBox_sign_for_pallete->TabIndex = 31;
 			// 
 			// label67
 			// 
 			this->label67->AutoSize = true;
-			this->label67->Location = System::Drawing::Point(220, 2);
-			this->label67->Margin = System::Windows::Forms::Padding(2, 0, 2, 0);
+			this->label67->Location = System::Drawing::Point(293, 2);
 			this->label67->Name = L"label67";
-			this->label67->Size = System::Drawing::Size(49, 15);
+			this->label67->Size = System::Drawing::Size(57, 18);
 			this->label67->TabIndex = 27;
 			this->label67->Text = L"номер";
 			// 
 			// textBox_number
 			// 
-			this->textBox_number->Location = System::Drawing::Point(222, 20);
-			this->textBox_number->Margin = System::Windows::Forms::Padding(2, 2, 2, 2);
+			this->textBox_number->Location = System::Drawing::Point(296, 25);
+			this->textBox_number->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
 			this->textBox_number->Name = L"textBox_number";
-			this->textBox_number->Size = System::Drawing::Size(49, 21);
+			this->textBox_number->Size = System::Drawing::Size(64, 24);
 			this->textBox_number->TabIndex = 26;
 			this->textBox_number->KeyPress += gcnew System::Windows::Forms::KeyPressEventHandler(this, &MyForm1::digit);
 			// 
 			// label66
 			// 
 			this->label66->AutoSize = true;
-			this->label66->Location = System::Drawing::Point(172, 0);
-			this->label66->Margin = System::Windows::Forms::Padding(2, 0, 2, 0);
+			this->label66->Location = System::Drawing::Point(229, 0);
 			this->label66->Name = L"label66";
-			this->label66->Size = System::Drawing::Size(33, 15);
+			this->label66->Size = System::Drawing::Size(40, 18);
 			this->label66->TabIndex = 25;
 			this->label66->Text = L"мод";
 			// 
@@ -485,19 +489,18 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 				L"1", L"2", L"3", L"4", L"5", L"6", L"7", L"8",
 					L"9"
 			});
-			this->comboBox_mod->Location = System::Drawing::Point(166, 19);
-			this->comboBox_mod->Margin = System::Windows::Forms::Padding(2, 2, 2, 2);
+			this->comboBox_mod->Location = System::Drawing::Point(221, 23);
+			this->comboBox_mod->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
 			this->comboBox_mod->Name = L"comboBox_mod";
-			this->comboBox_mod->Size = System::Drawing::Size(42, 23);
+			this->comboBox_mod->Size = System::Drawing::Size(55, 26);
 			this->comboBox_mod->TabIndex = 24;
 			// 
 			// label38
 			// 
 			this->label38->AutoSize = true;
-			this->label38->Location = System::Drawing::Point(2, 0);
-			this->label38->Margin = System::Windows::Forms::Padding(2, 0, 2, 0);
+			this->label38->Location = System::Drawing::Point(3, 0);
 			this->label38->Name = L"label38";
-			this->label38->Size = System::Drawing::Size(35, 15);
+			this->label38->Size = System::Drawing::Size(42, 18);
 			this->label38->TabIndex = 23;
 			this->label38->Text = L"ТИП";
 			// 
@@ -505,46 +508,44 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			// 
 			this->comboBox_type->FormattingEnabled = true;
 			this->comboBox_type->Items->AddRange(gcnew cli::array< System::Object^  >(3) { L"АВТОНОМ", L"LWD", L"КАРТОГРАФ" });
-			this->comboBox_type->Location = System::Drawing::Point(-2, 19);
-			this->comboBox_type->Margin = System::Windows::Forms::Padding(2, 2, 2, 2);
+			this->comboBox_type->Location = System::Drawing::Point(-3, 23);
+			this->comboBox_type->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
 			this->comboBox_type->Name = L"comboBox_type";
-			this->comboBox_type->Size = System::Drawing::Size(113, 23);
+			this->comboBox_type->Size = System::Drawing::Size(149, 26);
 			this->comboBox_type->TabIndex = 22;
 			// 
 			// label44
 			// 
 			this->label44->AutoSize = true;
-			this->label44->Location = System::Drawing::Point(2, 50);
-			this->label44->Margin = System::Windows::Forms::Padding(2, 0, 2, 0);
+			this->label44->Location = System::Drawing::Point(3, 62);
 			this->label44->Name = L"label44";
-			this->label44->Size = System::Drawing::Size(192, 15);
+			this->label44->Size = System::Drawing::Size(222, 18);
 			this->label44->TabIndex = 15;
 			this->label44->Text = L"signature32 разр. бинарный";
 			// 
 			// textBoxSer
 			// 
-			this->textBoxSer->Location = System::Drawing::Point(292, 20);
-			this->textBoxSer->Margin = System::Windows::Forms::Padding(2, 2, 2, 2);
+			this->textBoxSer->Location = System::Drawing::Point(389, 25);
+			this->textBoxSer->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
 			this->textBoxSer->Name = L"textBoxSer";
-			this->textBoxSer->Size = System::Drawing::Size(126, 21);
+			this->textBoxSer->Size = System::Drawing::Size(167, 24);
 			this->textBoxSer->TabIndex = 2;
 			this->textBoxSer->KeyPress += gcnew System::Windows::Forms::KeyPressEventHandler(this, &MyForm1::digit);
 			// 
 			// textBox_sign32
 			// 
-			this->textBox_sign32->Location = System::Drawing::Point(2, 66);
-			this->textBox_sign32->Margin = System::Windows::Forms::Padding(2, 2, 2, 2);
+			this->textBox_sign32->Location = System::Drawing::Point(3, 81);
+			this->textBox_sign32->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
 			this->textBox_sign32->Name = L"textBox_sign32";
-			this->textBox_sign32->Size = System::Drawing::Size(284, 21);
+			this->textBox_sign32->Size = System::Drawing::Size(377, 24);
 			this->textBox_sign32->TabIndex = 10;
 			// 
 			// label39
 			// 
 			this->label39->AutoSize = true;
-			this->label39->Location = System::Drawing::Point(290, 2);
-			this->label39->Margin = System::Windows::Forms::Padding(2, 0, 2, 0);
+			this->label39->Location = System::Drawing::Point(387, 2);
 			this->label39->Name = L"label39";
-			this->label39->Size = System::Drawing::Size(144, 15);
+			this->label39->Size = System::Drawing::Size(170, 18);
 			this->label39->TabIndex = 2;
 			this->label39->Text = L"Серийный на кожухе";
 			// 
@@ -552,19 +553,38 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			// 
 			this->comboBox_N_Tx->FormattingEnabled = true;
 			this->comboBox_N_Tx->Items->AddRange(gcnew cli::array< System::Object^  >(3) { L"3 Tx", L"4 Tx", L"5 Tx" });
-			this->comboBox_N_Tx->Location = System::Drawing::Point(118, 19);
-			this->comboBox_N_Tx->Margin = System::Windows::Forms::Padding(2, 2, 2, 2);
+			this->comboBox_N_Tx->Location = System::Drawing::Point(157, 23);
+			this->comboBox_N_Tx->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
 			this->comboBox_N_Tx->Name = L"comboBox_N_Tx";
-			this->comboBox_N_Tx->Size = System::Drawing::Size(42, 23);
+			this->comboBox_N_Tx->Size = System::Drawing::Size(55, 26);
 			this->comboBox_N_Tx->TabIndex = 8;
+			// 
+			// comboBox_rx_position
+			// 
+			this->comboBox_rx_position->DropDownStyle = System::Windows::Forms::ComboBoxStyle::DropDownList;
+			this->comboBox_rx_position->FormattingEnabled = true;
+			this->comboBox_rx_position->Items->AddRange(gcnew cli::array< System::Object^  >(2) { L"0 - R1->T1", L"1 - R1->T2" });
+			this->comboBox_rx_position->Location = System::Drawing::Point(592, 23);
+			this->comboBox_rx_position->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
+			this->comboBox_rx_position->Name = L"comboBox_rx_position";
+			this->comboBox_rx_position->Size = System::Drawing::Size(233, 26);
+			this->comboBox_rx_position->TabIndex = 33;
+			// 
+			// label_rx_position
+			// 
+			this->label_rx_position->AutoSize = true;
+			this->label_rx_position->Location = System::Drawing::Point(592, 2);
+			this->label_rx_position->Name = L"label_rx_position";
+			this->label_rx_position->Size = System::Drawing::Size(101, 18);
+			this->label_rx_position->TabIndex = 34;
+			this->label_rx_position->Text = L"Позиция R1";
 			// 
 			// label37
 			// 
 			this->label37->AutoSize = true;
-			this->label37->Location = System::Drawing::Point(118, 2);
-			this->label37->Margin = System::Windows::Forms::Padding(2, 0, 2, 0);
+			this->label37->Location = System::Drawing::Point(157, 2);
 			this->label37->Name = L"label37";
-			this->label37->Size = System::Drawing::Size(40, 15);
+			this->label37->Size = System::Drawing::Size(47, 18);
 			this->label37->TabIndex = 6;
 			this->label37->Text = L"N_Tx";
 			// 
@@ -572,10 +592,10 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			// 
 			this->button1->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 9, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
 				static_cast<System::Byte>(204)));
-			this->button1->Location = System::Drawing::Point(13, 453);
-			this->button1->Margin = System::Windows::Forms::Padding(2, 2, 2, 2);
+			this->button1->Location = System::Drawing::Point(17, 558);
+			this->button1->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
 			this->button1->Name = L"button1";
-			this->button1->Size = System::Drawing::Size(154, 24);
+			this->button1->Size = System::Drawing::Size(205, 30);
 			this->button1->TabIndex = 10;
 			this->button1->Text = L"ЗАПИСАТЬ_В_ФАЙЛ";
 			this->button1->UseVisualStyleBackColor = true;
@@ -586,10 +606,9 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			this->label40->AutoSize = true;
 			this->label40->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 12, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
 				static_cast<System::Byte>(204)));
-			this->label40->Location = System::Drawing::Point(9, -2);
-			this->label40->Margin = System::Windows::Forms::Padding(2, 0, 2, 0);
+			this->label40->Location = System::Drawing::Point(12, -2);
 			this->label40->Name = L"label40";
-			this->label40->Size = System::Drawing::Size(164, 20);
+			this->label40->Size = System::Drawing::Size(198, 25);
 			this->label40->TabIndex = 11;
 			this->label40->Text = L"Файл Метрологии";
 			// 
@@ -597,10 +616,10 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			// 
 			this->button3->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 9, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
 				static_cast<System::Byte>(204)));
-			this->button3->Location = System::Drawing::Point(13, 407);
-			this->button3->Margin = System::Windows::Forms::Padding(2, 2, 2, 2);
+			this->button3->Location = System::Drawing::Point(17, 501);
+			this->button3->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
 			this->button3->Name = L"button3";
-			this->button3->Size = System::Drawing::Size(154, 24);
+			this->button3->Size = System::Drawing::Size(205, 30);
 			this->button3->TabIndex = 13;
 			this->button3->Text = L"ОТКРЫТЬ_ФАЙЛ";
 			this->button3->UseVisualStyleBackColor = true;
@@ -614,10 +633,10 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			// 
 			this->button4->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 9, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
 				static_cast<System::Byte>(204)));
-			this->button4->Location = System::Drawing::Point(179, 407);
-			this->button4->Margin = System::Windows::Forms::Padding(2, 2, 2, 2);
+			this->button4->Location = System::Drawing::Point(239, 501);
+			this->button4->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
 			this->button4->Name = L"button4";
-			this->button4->Size = System::Drawing::Size(175, 24);
+			this->button4->Size = System::Drawing::Size(233, 30);
 			this->button4->TabIndex = 14;
 			this->button4->Text = L"ПРОЧИТАТЬ_ИЗ_ЗОНДА";
 			this->button4->UseVisualStyleBackColor = true;
@@ -627,10 +646,10 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			// 
 			this->button5->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 9, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
 				static_cast<System::Byte>(204)));
-			this->button5->Location = System::Drawing::Point(179, 453);
-			this->button5->Margin = System::Windows::Forms::Padding(2, 2, 2, 2);
+			this->button5->Location = System::Drawing::Point(239, 558);
+			this->button5->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
 			this->button5->Name = L"button5";
-			this->button5->Size = System::Drawing::Size(175, 24);
+			this->button5->Size = System::Drawing::Size(233, 30);
 			this->button5->TabIndex = 15;
 			this->button5->Text = L"ЗАПИСАТЬ_В_ЗОНД";
 			this->button5->UseVisualStyleBackColor = true;
@@ -640,10 +659,10 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			// 
 			this->button_smt->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 9, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
 				static_cast<System::Byte>(204)));
-			this->button_smt->Location = System::Drawing::Point(365, 407);
-			this->button_smt->Margin = System::Windows::Forms::Padding(2, 2, 2, 2);
+			this->button_smt->Location = System::Drawing::Point(487, 501);
+			this->button_smt->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
 			this->button_smt->Name = L"button_smt";
-			this->button_smt->Size = System::Drawing::Size(124, 24);
+			this->button_smt->Size = System::Drawing::Size(165, 30);
 			this->button_smt->TabIndex = 17;
 			this->button_smt->Text = L"ВЗЯТЬ _dFI_SMT";
 			this->button_smt->UseVisualStyleBackColor = true;
@@ -653,10 +672,10 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			// 
 			this->button_dfi->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 9, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
 				static_cast<System::Byte>(204)));
-			this->button_dfi->Location = System::Drawing::Point(365, 453);
-			this->button_dfi->Margin = System::Windows::Forms::Padding(2, 2, 2, 2);
+			this->button_dfi->Location = System::Drawing::Point(487, 558);
+			this->button_dfi->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
 			this->button_dfi->Name = L"button_dfi";
-			this->button_dfi->Size = System::Drawing::Size(124, 24);
+			this->button_dfi->Size = System::Drawing::Size(165, 30);
 			this->button_dfi->TabIndex = 18;
 			this->button_dfi->Text = L"ВЗЯТЬ _dFI";
 			this->button_dfi->UseVisualStyleBackColor = true;
@@ -670,10 +689,10 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			// checkBox_read_only
 			// 
 			this->checkBox_read_only->AutoSize = true;
-			this->checkBox_read_only->Location = System::Drawing::Point(13, 377);
-			this->checkBox_read_only->Margin = System::Windows::Forms::Padding(2, 2, 2, 2);
+			this->checkBox_read_only->Location = System::Drawing::Point(17, 464);
+			this->checkBox_read_only->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
 			this->checkBox_read_only->Name = L"checkBox_read_only";
-			this->checkBox_read_only->Size = System::Drawing::Size(96, 17);
+			this->checkBox_read_only->Size = System::Drawing::Size(118, 20);
 			this->checkBox_read_only->TabIndex = 21;
 			this->checkBox_read_only->Text = L"L_F_read_only";
 			this->checkBox_read_only->UseVisualStyleBackColor = true;
@@ -685,10 +704,10 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 				| System::Windows::Forms::AnchorStyles::Right));
 			this->textBoxAIRT10->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 9, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
 				static_cast<System::Byte>(204)));
-			this->textBoxAIRT10->Location = System::Drawing::Point(390, 290);
-			this->textBoxAIRT10->Margin = System::Windows::Forms::Padding(2, 2, 2, 2);
+			this->textBoxAIRT10->Location = System::Drawing::Point(520, 362);
+			this->textBoxAIRT10->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
 			this->textBoxAIRT10->Name = L"textBoxAIRT10";
-			this->textBoxAIRT10->Size = System::Drawing::Size(57, 21);
+			this->textBoxAIRT10->Size = System::Drawing::Size(75, 24);
 			this->textBoxAIRT10->TabIndex = 159;
 			// 
 			// textBoxAIRT5
@@ -697,10 +716,10 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 				| System::Windows::Forms::AnchorStyles::Right));
 			this->textBoxAIRT5->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 9, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
 				static_cast<System::Byte>(204)));
-			this->textBoxAIRT5->Location = System::Drawing::Point(390, 130);
-			this->textBoxAIRT5->Margin = System::Windows::Forms::Padding(2, 2, 2, 2);
+			this->textBoxAIRT5->Location = System::Drawing::Point(520, 162);
+			this->textBoxAIRT5->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
 			this->textBoxAIRT5->Name = L"textBoxAIRT5";
-			this->textBoxAIRT5->Size = System::Drawing::Size(57, 21);
+			this->textBoxAIRT5->Size = System::Drawing::Size(75, 24);
 			this->textBoxAIRT5->TabIndex = 155;
 			// 
 			// textBoxL2T5
@@ -709,10 +728,10 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 				| System::Windows::Forms::AnchorStyles::Right));
 			this->textBoxL2T5->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 9, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
 				static_cast<System::Byte>(204)));
-			this->textBoxL2T5->Location = System::Drawing::Point(199, 130);
-			this->textBoxL2T5->Margin = System::Windows::Forms::Padding(2, 2, 2, 2);
+			this->textBoxL2T5->Location = System::Drawing::Point(266, 162);
+			this->textBoxL2T5->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
 			this->textBoxL2T5->Name = L"textBoxL2T5";
-			this->textBoxL2T5->Size = System::Drawing::Size(54, 21);
+			this->textBoxL2T5->Size = System::Drawing::Size(71, 24);
 			this->textBoxL2T5->TabIndex = 153;
 			// 
 			// textBoxL1T5
@@ -721,10 +740,10 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 				| System::Windows::Forms::AnchorStyles::Right));
 			this->textBoxL1T5->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 9, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
 				static_cast<System::Byte>(204)));
-			this->textBoxL1T5->Location = System::Drawing::Point(85, 130);
-			this->textBoxL1T5->Margin = System::Windows::Forms::Padding(2, 2, 2, 2);
+			this->textBoxL1T5->Location = System::Drawing::Point(114, 162);
+			this->textBoxL1T5->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
 			this->textBoxL1T5->Name = L"textBoxL1T5";
-			this->textBoxL1T5->Size = System::Drawing::Size(57, 21);
+			this->textBoxL1T5->Size = System::Drawing::Size(75, 24);
 			this->textBoxL1T5->TabIndex = 152;
 			// 
 			// label65
@@ -732,10 +751,9 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			this->label65->Anchor = static_cast<System::Windows::Forms::AnchorStyles>(((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Left)
 				| System::Windows::Forms::AnchorStyles::Right));
 			this->label65->AutoSize = true;
-			this->label65->Location = System::Drawing::Point(257, 128);
-			this->label65->Margin = System::Windows::Forms::Padding(2, 0, 2, 0);
+			this->label65->Location = System::Drawing::Point(343, 160);
 			this->label65->Name = L"label65";
-			this->label65->Size = System::Drawing::Size(129, 30);
+			this->label65->Size = System::Drawing::Size(171, 18);
 			this->label65->TabIndex = 151;
 			this->label65->Text = L"AIR_4_F_LOW_mDg";
 			this->label65->Click += gcnew System::EventHandler(this, &MyForm1::label65_Click);
@@ -745,10 +763,9 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			this->label64->Anchor = static_cast<System::Windows::Forms::AnchorStyles>(((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Left)
 				| System::Windows::Forms::AnchorStyles::Right));
 			this->label64->AutoSize = true;
-			this->label64->Location = System::Drawing::Point(257, 288);
-			this->label64->Margin = System::Windows::Forms::Padding(2, 0, 2, 0);
+			this->label64->Location = System::Drawing::Point(343, 360);
 			this->label64->Name = L"label64";
-			this->label64->Size = System::Drawing::Size(129, 15);
+			this->label64->Size = System::Drawing::Size(171, 18);
 			this->label64->TabIndex = 150;
 			this->label64->Text = L"AIR_5_F_HI_mDg";
 			// 
@@ -759,10 +776,9 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			this->label60->AutoSize = true;
 			this->label60->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 9, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
 				static_cast<System::Byte>(204)));
-			this->label60->Location = System::Drawing::Point(146, 128);
-			this->label60->Margin = System::Windows::Forms::Padding(2, 0, 2, 0);
+			this->label60->Location = System::Drawing::Point(195, 160);
 			this->label60->Name = L"label60";
-			this->label60->Size = System::Drawing::Size(49, 30);
+			this->label60->Size = System::Drawing::Size(65, 18);
 			this->label60->TabIndex = 146;
 			this->label60->Text = L"L2_mm";
 			// 
@@ -771,10 +787,9 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			this->label58->Anchor = static_cast<System::Windows::Forms::AnchorStyles>(((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Left)
 				| System::Windows::Forms::AnchorStyles::Right));
 			this->label58->AutoSize = true;
-			this->label58->Location = System::Drawing::Point(2, 128);
-			this->label58->Margin = System::Windows::Forms::Padding(2, 0, 2, 0);
+			this->label58->Location = System::Drawing::Point(3, 160);
 			this->label58->Name = L"label58";
-			this->label58->Size = System::Drawing::Size(79, 30);
+			this->label58->Size = System::Drawing::Size(105, 18);
 			this->label58->TabIndex = 144;
 			this->label58->Text = L"T5 _L1_mm";
 			// 
@@ -782,10 +797,10 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			// 
 			this->textBoxAIRT6->Anchor = static_cast<System::Windows::Forms::AnchorStyles>(((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Left)
 				| System::Windows::Forms::AnchorStyles::Right));
-			this->textBoxAIRT6->Location = System::Drawing::Point(390, 162);
-			this->textBoxAIRT6->Margin = System::Windows::Forms::Padding(2, 2, 2, 2);
+			this->textBoxAIRT6->Location = System::Drawing::Point(520, 202);
+			this->textBoxAIRT6->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
 			this->textBoxAIRT6->Name = L"textBoxAIRT6";
-			this->textBoxAIRT6->Size = System::Drawing::Size(57, 21);
+			this->textBoxAIRT6->Size = System::Drawing::Size(75, 24);
 			this->textBoxAIRT6->TabIndex = 41;
 			this->textBoxAIRT6->KeyPress += gcnew System::Windows::Forms::KeyPressEventHandler(this, &MyForm1::digit2);
 			// 
@@ -793,10 +808,10 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			// 
 			this->textBoxAIRT7->Anchor = static_cast<System::Windows::Forms::AnchorStyles>(((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Left)
 				| System::Windows::Forms::AnchorStyles::Right));
-			this->textBoxAIRT7->Location = System::Drawing::Point(390, 194);
-			this->textBoxAIRT7->Margin = System::Windows::Forms::Padding(2, 2, 2, 2);
+			this->textBoxAIRT7->Location = System::Drawing::Point(520, 242);
+			this->textBoxAIRT7->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
 			this->textBoxAIRT7->Name = L"textBoxAIRT7";
-			this->textBoxAIRT7->Size = System::Drawing::Size(57, 21);
+			this->textBoxAIRT7->Size = System::Drawing::Size(75, 24);
 			this->textBoxAIRT7->TabIndex = 60;
 			this->textBoxAIRT7->KeyPress += gcnew System::Windows::Forms::KeyPressEventHandler(this, &MyForm1::digit2);
 			// 
@@ -804,10 +819,10 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			// 
 			this->textBoxAIRT8->Anchor = static_cast<System::Windows::Forms::AnchorStyles>(((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Left)
 				| System::Windows::Forms::AnchorStyles::Right));
-			this->textBoxAIRT8->Location = System::Drawing::Point(390, 226);
-			this->textBoxAIRT8->Margin = System::Windows::Forms::Padding(2, 2, 2, 2);
+			this->textBoxAIRT8->Location = System::Drawing::Point(520, 282);
+			this->textBoxAIRT8->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
 			this->textBoxAIRT8->Name = L"textBoxAIRT8";
-			this->textBoxAIRT8->Size = System::Drawing::Size(57, 21);
+			this->textBoxAIRT8->Size = System::Drawing::Size(75, 24);
 			this->textBoxAIRT8->TabIndex = 61;
 			this->textBoxAIRT8->KeyPress += gcnew System::Windows::Forms::KeyPressEventHandler(this, &MyForm1::digit2);
 			// 
@@ -815,10 +830,10 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			// 
 			this->textBoxAIRT9->Anchor = static_cast<System::Windows::Forms::AnchorStyles>(((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Left)
 				| System::Windows::Forms::AnchorStyles::Right));
-			this->textBoxAIRT9->Location = System::Drawing::Point(390, 258);
-			this->textBoxAIRT9->Margin = System::Windows::Forms::Padding(2, 2, 2, 2);
+			this->textBoxAIRT9->Location = System::Drawing::Point(520, 322);
+			this->textBoxAIRT9->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
 			this->textBoxAIRT9->Name = L"textBoxAIRT9";
-			this->textBoxAIRT9->Size = System::Drawing::Size(57, 21);
+			this->textBoxAIRT9->Size = System::Drawing::Size(75, 24);
 			this->textBoxAIRT9->TabIndex = 62;
 			this->textBoxAIRT9->KeyPress += gcnew System::Windows::Forms::KeyPressEventHandler(this, &MyForm1::digit2);
 			// 
@@ -827,10 +842,9 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			this->label28->Anchor = static_cast<System::Windows::Forms::AnchorStyles>(((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Left)
 				| System::Windows::Forms::AnchorStyles::Right));
 			this->label28->AutoSize = true;
-			this->label28->Location = System::Drawing::Point(257, 160);
-			this->label28->Margin = System::Windows::Forms::Padding(2, 0, 2, 0);
+			this->label28->Location = System::Drawing::Point(343, 200);
 			this->label28->Name = L"label28";
-			this->label28->Size = System::Drawing::Size(129, 15);
+			this->label28->Size = System::Drawing::Size(171, 18);
 			this->label28->TabIndex = 52;
 			this->label28->Text = L"AIR_1_F_HI_mDg";
 			// 
@@ -839,10 +853,9 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			this->label29->Anchor = static_cast<System::Windows::Forms::AnchorStyles>(((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Left)
 				| System::Windows::Forms::AnchorStyles::Right));
 			this->label29->AutoSize = true;
-			this->label29->Location = System::Drawing::Point(257, 192);
-			this->label29->Margin = System::Windows::Forms::Padding(2, 0, 2, 0);
+			this->label29->Location = System::Drawing::Point(343, 240);
 			this->label29->Name = L"label29";
-			this->label29->Size = System::Drawing::Size(129, 15);
+			this->label29->Size = System::Drawing::Size(171, 18);
 			this->label29->TabIndex = 53;
 			this->label29->Text = L"AIR_2_F_HI_mDg";
 			// 
@@ -851,10 +864,9 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			this->label30->Anchor = static_cast<System::Windows::Forms::AnchorStyles>(((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Left)
 				| System::Windows::Forms::AnchorStyles::Right));
 			this->label30->AutoSize = true;
-			this->label30->Location = System::Drawing::Point(257, 224);
-			this->label30->Margin = System::Windows::Forms::Padding(2, 0, 2, 0);
+			this->label30->Location = System::Drawing::Point(343, 280);
 			this->label30->Name = L"label30";
-			this->label30->Size = System::Drawing::Size(129, 15);
+			this->label30->Size = System::Drawing::Size(171, 18);
 			this->label30->TabIndex = 54;
 			this->label30->Text = L"AIR_3_F_HI_mDg";
 			// 
@@ -863,10 +875,9 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			this->label31->Anchor = static_cast<System::Windows::Forms::AnchorStyles>(((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Left)
 				| System::Windows::Forms::AnchorStyles::Right));
 			this->label31->AutoSize = true;
-			this->label31->Location = System::Drawing::Point(257, 256);
-			this->label31->Margin = System::Windows::Forms::Padding(2, 0, 2, 0);
+			this->label31->Location = System::Drawing::Point(343, 320);
 			this->label31->Name = L"label31";
-			this->label31->Size = System::Drawing::Size(129, 15);
+			this->label31->Size = System::Drawing::Size(171, 18);
 			this->label31->TabIndex = 55;
 			this->label31->Text = L"AIR_4_F_HI_mDg";
 			// 
@@ -875,10 +886,9 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			this->label51->Anchor = static_cast<System::Windows::Forms::AnchorStyles>(((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Left)
 				| System::Windows::Forms::AnchorStyles::Right));
 			this->label51->AutoSize = true;
-			this->label51->Location = System::Drawing::Point(451, 224);
-			this->label51->Margin = System::Windows::Forms::Padding(2, 0, 2, 0);
+			this->label51->Location = System::Drawing::Point(601, 280);
 			this->label51->Name = L"label51";
-			this->label51->Size = System::Drawing::Size(123, 15);
+			this->label51->Size = System::Drawing::Size(163, 18);
 			this->label51->TabIndex = 73;
 			this->label51->Text = L"MIN_R2_T3_F_HI";
 			// 
@@ -887,10 +897,9 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			this->label50->Anchor = static_cast<System::Windows::Forms::AnchorStyles>(((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Left)
 				| System::Windows::Forms::AnchorStyles::Right));
 			this->label50->AutoSize = true;
-			this->label50->Location = System::Drawing::Point(451, 192);
-			this->label50->Margin = System::Windows::Forms::Padding(2, 0, 2, 0);
+			this->label50->Location = System::Drawing::Point(601, 240);
 			this->label50->Name = L"label50";
-			this->label50->Size = System::Drawing::Size(123, 15);
+			this->label50->Size = System::Drawing::Size(163, 18);
 			this->label50->TabIndex = 72;
 			this->label50->Text = L"MIN_R1_T2_F_HI";
 			// 
@@ -899,10 +908,9 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			this->label49->Anchor = static_cast<System::Windows::Forms::AnchorStyles>(((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Left)
 				| System::Windows::Forms::AnchorStyles::Right));
 			this->label49->AutoSize = true;
-			this->label49->Location = System::Drawing::Point(451, 160);
-			this->label49->Margin = System::Windows::Forms::Padding(2, 0, 2, 0);
+			this->label49->Location = System::Drawing::Point(601, 200);
 			this->label49->Name = L"label49";
-			this->label49->Size = System::Drawing::Size(123, 15);
+			this->label49->Size = System::Drawing::Size(163, 18);
 			this->label49->TabIndex = 71;
 			this->label49->Text = L"MIN_R2_T1_F_HI";
 			// 
@@ -911,10 +919,9 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			this->label48->Anchor = static_cast<System::Windows::Forms::AnchorStyles>(((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Left)
 				| System::Windows::Forms::AnchorStyles::Right));
 			this->label48->AutoSize = true;
-			this->label48->Location = System::Drawing::Point(451, 128);
-			this->label48->Margin = System::Windows::Forms::Padding(2, 0, 2, 0);
+			this->label48->Location = System::Drawing::Point(601, 160);
 			this->label48->Name = L"label48";
-			this->label48->Size = System::Drawing::Size(123, 30);
+			this->label48->Size = System::Drawing::Size(163, 18);
 			this->label48->TabIndex = 70;
 			this->label48->Text = L"MIN_R2_T5_F_LOW";
 			// 
@@ -923,10 +930,9 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			this->label36->Anchor = static_cast<System::Windows::Forms::AnchorStyles>(((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Left)
 				| System::Windows::Forms::AnchorStyles::Right));
 			this->label36->AutoSize = true;
-			this->label36->Location = System::Drawing::Point(451, 96);
-			this->label36->Margin = System::Windows::Forms::Padding(2, 0, 2, 0);
+			this->label36->Location = System::Drawing::Point(601, 120);
 			this->label36->Name = L"label36";
-			this->label36->Size = System::Drawing::Size(123, 30);
+			this->label36->Size = System::Drawing::Size(163, 18);
 			this->label36->TabIndex = 69;
 			this->label36->Text = L"MIN_R1_T4_F_LOW";
 			// 
@@ -935,10 +941,9 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			this->label35->Anchor = static_cast<System::Windows::Forms::AnchorStyles>(((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Left)
 				| System::Windows::Forms::AnchorStyles::Right));
 			this->label35->AutoSize = true;
-			this->label35->Location = System::Drawing::Point(451, 64);
-			this->label35->Margin = System::Windows::Forms::Padding(2, 0, 2, 0);
+			this->label35->Location = System::Drawing::Point(601, 80);
 			this->label35->Name = L"label35";
-			this->label35->Size = System::Drawing::Size(123, 30);
+			this->label35->Size = System::Drawing::Size(163, 18);
 			this->label35->TabIndex = 68;
 			this->label35->Text = L"MIN_R2_T3_F_LOW";
 			// 
@@ -947,10 +952,9 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			this->label34->Anchor = static_cast<System::Windows::Forms::AnchorStyles>(((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Left)
 				| System::Windows::Forms::AnchorStyles::Right));
 			this->label34->AutoSize = true;
-			this->label34->Location = System::Drawing::Point(451, 32);
-			this->label34->Margin = System::Windows::Forms::Padding(2, 0, 2, 0);
+			this->label34->Location = System::Drawing::Point(601, 40);
 			this->label34->Name = L"label34";
-			this->label34->Size = System::Drawing::Size(123, 30);
+			this->label34->Size = System::Drawing::Size(163, 18);
 			this->label34->TabIndex = 67;
 			this->label34->Text = L"MIN_R1_T2_F_LOW";
 			// 
@@ -959,10 +963,9 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			this->label33->Anchor = static_cast<System::Windows::Forms::AnchorStyles>(((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Left)
 				| System::Windows::Forms::AnchorStyles::Right));
 			this->label33->AutoSize = true;
-			this->label33->Location = System::Drawing::Point(451, 0);
-			this->label33->Margin = System::Windows::Forms::Padding(2, 0, 2, 0);
+			this->label33->Location = System::Drawing::Point(601, 0);
 			this->label33->Name = L"label33";
-			this->label33->Size = System::Drawing::Size(123, 30);
+			this->label33->Size = System::Drawing::Size(163, 18);
 			this->label33->TabIndex = 66;
 			this->label33->Text = L"MIN_R2_T1_F_LOW";
 			this->label33->Click += gcnew System::EventHandler(this, &MyForm1::label33_Click);
@@ -973,10 +976,10 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 				| System::Windows::Forms::AnchorStyles::Right));
 			this->textBoxAIRT4->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 9, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
 				static_cast<System::Byte>(204)));
-			this->textBoxAIRT4->Location = System::Drawing::Point(390, 98);
-			this->textBoxAIRT4->Margin = System::Windows::Forms::Padding(2, 2, 2, 2);
+			this->textBoxAIRT4->Location = System::Drawing::Point(520, 122);
+			this->textBoxAIRT4->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
 			this->textBoxAIRT4->Name = L"textBoxAIRT4";
-			this->textBoxAIRT4->Size = System::Drawing::Size(57, 21);
+			this->textBoxAIRT4->Size = System::Drawing::Size(75, 24);
 			this->textBoxAIRT4->TabIndex = 59;
 			this->textBoxAIRT4->KeyPress += gcnew System::Windows::Forms::KeyPressEventHandler(this, &MyForm1::digit2);
 			// 
@@ -986,10 +989,10 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 				| System::Windows::Forms::AnchorStyles::Right));
 			this->textBoxAIRT3->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 9, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
 				static_cast<System::Byte>(204)));
-			this->textBoxAIRT3->Location = System::Drawing::Point(390, 66);
-			this->textBoxAIRT3->Margin = System::Windows::Forms::Padding(2, 2, 2, 2);
+			this->textBoxAIRT3->Location = System::Drawing::Point(520, 82);
+			this->textBoxAIRT3->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
 			this->textBoxAIRT3->Name = L"textBoxAIRT3";
-			this->textBoxAIRT3->Size = System::Drawing::Size(57, 21);
+			this->textBoxAIRT3->Size = System::Drawing::Size(75, 24);
 			this->textBoxAIRT3->TabIndex = 58;
 			this->textBoxAIRT3->KeyPress += gcnew System::Windows::Forms::KeyPressEventHandler(this, &MyForm1::digit2);
 			// 
@@ -999,10 +1002,10 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 				| System::Windows::Forms::AnchorStyles::Right));
 			this->textBoxAIRT2->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 9, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
 				static_cast<System::Byte>(204)));
-			this->textBoxAIRT2->Location = System::Drawing::Point(390, 34);
-			this->textBoxAIRT2->Margin = System::Windows::Forms::Padding(2, 2, 2, 2);
+			this->textBoxAIRT2->Location = System::Drawing::Point(520, 42);
+			this->textBoxAIRT2->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
 			this->textBoxAIRT2->Name = L"textBoxAIRT2";
-			this->textBoxAIRT2->Size = System::Drawing::Size(57, 21);
+			this->textBoxAIRT2->Size = System::Drawing::Size(75, 24);
 			this->textBoxAIRT2->TabIndex = 57;
 			this->textBoxAIRT2->KeyPress += gcnew System::Windows::Forms::KeyPressEventHandler(this, &MyForm1::digit2);
 			// 
@@ -1012,10 +1015,10 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 				| System::Windows::Forms::AnchorStyles::Right));
 			this->textBoxAIRT1->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 9, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
 				static_cast<System::Byte>(204)));
-			this->textBoxAIRT1->Location = System::Drawing::Point(390, 2);
-			this->textBoxAIRT1->Margin = System::Windows::Forms::Padding(2, 2, 2, 2);
+			this->textBoxAIRT1->Location = System::Drawing::Point(520, 2);
+			this->textBoxAIRT1->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
 			this->textBoxAIRT1->Name = L"textBoxAIRT1";
-			this->textBoxAIRT1->Size = System::Drawing::Size(57, 21);
+			this->textBoxAIRT1->Size = System::Drawing::Size(75, 24);
 			this->textBoxAIRT1->TabIndex = 56;
 			this->textBoxAIRT1->KeyPress += gcnew System::Windows::Forms::KeyPressEventHandler(this, &MyForm1::digit2);
 			// 
@@ -1024,10 +1027,9 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			this->label27->Anchor = static_cast<System::Windows::Forms::AnchorStyles>(((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Left)
 				| System::Windows::Forms::AnchorStyles::Right));
 			this->label27->AutoSize = true;
-			this->label27->Location = System::Drawing::Point(257, 96);
-			this->label27->Margin = System::Windows::Forms::Padding(2, 0, 2, 0);
+			this->label27->Location = System::Drawing::Point(343, 120);
 			this->label27->Name = L"label27";
-			this->label27->Size = System::Drawing::Size(129, 30);
+			this->label27->Size = System::Drawing::Size(171, 18);
 			this->label27->TabIndex = 51;
 			this->label27->Text = L"AIR_3_F_LOW_mDg";
 			// 
@@ -1036,10 +1038,9 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			this->label26->Anchor = static_cast<System::Windows::Forms::AnchorStyles>(((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Left)
 				| System::Windows::Forms::AnchorStyles::Right));
 			this->label26->AutoSize = true;
-			this->label26->Location = System::Drawing::Point(257, 64);
-			this->label26->Margin = System::Windows::Forms::Padding(2, 0, 2, 0);
+			this->label26->Location = System::Drawing::Point(343, 80);
 			this->label26->Name = L"label26";
-			this->label26->Size = System::Drawing::Size(129, 30);
+			this->label26->Size = System::Drawing::Size(171, 18);
 			this->label26->TabIndex = 50;
 			this->label26->Text = L"AIR_3_F_LOW_mDg";
 			// 
@@ -1048,10 +1049,9 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			this->label25->Anchor = static_cast<System::Windows::Forms::AnchorStyles>(((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Left)
 				| System::Windows::Forms::AnchorStyles::Right));
 			this->label25->AutoSize = true;
-			this->label25->Location = System::Drawing::Point(257, 32);
-			this->label25->Margin = System::Windows::Forms::Padding(2, 0, 2, 0);
+			this->label25->Location = System::Drawing::Point(343, 40);
 			this->label25->Name = L"label25";
-			this->label25->Size = System::Drawing::Size(129, 30);
+			this->label25->Size = System::Drawing::Size(171, 18);
 			this->label25->TabIndex = 49;
 			this->label25->Text = L"AIR_2_F_LOW_mDg";
 			// 
@@ -1060,10 +1060,9 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			this->label24->Anchor = static_cast<System::Windows::Forms::AnchorStyles>(((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Left)
 				| System::Windows::Forms::AnchorStyles::Right));
 			this->label24->AutoSize = true;
-			this->label24->Location = System::Drawing::Point(257, 0);
-			this->label24->Margin = System::Windows::Forms::Padding(2, 0, 2, 0);
+			this->label24->Location = System::Drawing::Point(343, 0);
 			this->label24->Name = L"label24";
-			this->label24->Size = System::Drawing::Size(129, 30);
+			this->label24->Size = System::Drawing::Size(171, 18);
 			this->label24->TabIndex = 48;
 			this->label24->Text = L"AIR_1_F_LOW_mDg";
 			// 
@@ -1073,10 +1072,10 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 				| System::Windows::Forms::AnchorStyles::Right));
 			this->textBoxFT2->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 9, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
 				static_cast<System::Byte>(204)));
-			this->textBoxFT2->Location = System::Drawing::Point(85, 226);
-			this->textBoxFT2->Margin = System::Windows::Forms::Padding(2, 2, 2, 2);
+			this->textBoxFT2->Location = System::Drawing::Point(114, 282);
+			this->textBoxFT2->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
 			this->textBoxFT2->Name = L"textBoxFT2";
-			this->textBoxFT2->Size = System::Drawing::Size(57, 21);
+			this->textBoxFT2->Size = System::Drawing::Size(75, 24);
 			this->textBoxFT2->TabIndex = 41;
 			this->textBoxFT2->KeyPress += gcnew System::Windows::Forms::KeyPressEventHandler(this, &MyForm1::digit);
 			// 
@@ -1086,10 +1085,10 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 				| System::Windows::Forms::AnchorStyles::Right));
 			this->textBoxFT1->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 9, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
 				static_cast<System::Byte>(204)));
-			this->textBoxFT1->Location = System::Drawing::Point(85, 194);
-			this->textBoxFT1->Margin = System::Windows::Forms::Padding(2, 2, 2, 2);
+			this->textBoxFT1->Location = System::Drawing::Point(114, 242);
+			this->textBoxFT1->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
 			this->textBoxFT1->Name = L"textBoxFT1";
-			this->textBoxFT1->Size = System::Drawing::Size(57, 21);
+			this->textBoxFT1->Size = System::Drawing::Size(75, 24);
 			this->textBoxFT1->TabIndex = 40;
 			this->textBoxFT1->KeyPress += gcnew System::Windows::Forms::KeyPressEventHandler(this, &MyForm1::digit);
 			// 
@@ -1098,10 +1097,9 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			this->label17->Anchor = static_cast<System::Windows::Forms::AnchorStyles>(((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Left)
 				| System::Windows::Forms::AnchorStyles::Right));
 			this->label17->AutoSize = true;
-			this->label17->Location = System::Drawing::Point(2, 224);
-			this->label17->Margin = System::Windows::Forms::Padding(2, 0, 2, 0);
+			this->label17->Location = System::Drawing::Point(3, 280);
 			this->label17->Name = L"label17";
-			this->label17->Size = System::Drawing::Size(79, 15);
+			this->label17->Size = System::Drawing::Size(105, 18);
 			this->label17->TabIndex = 33;
 			this->label17->Text = L"F_HI_Hz";
 			// 
@@ -1112,10 +1110,9 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			this->label16->AutoSize = true;
 			this->label16->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 9, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
 				static_cast<System::Byte>(204)));
-			this->label16->Location = System::Drawing::Point(2, 192);
-			this->label16->Margin = System::Windows::Forms::Padding(2, 0, 2, 0);
+			this->label16->Location = System::Drawing::Point(3, 240);
 			this->label16->Name = L"label16";
-			this->label16->Size = System::Drawing::Size(79, 15);
+			this->label16->Size = System::Drawing::Size(105, 18);
 			this->label16->TabIndex = 32;
 			this->label16->Text = L"F_LOW_Hz";
 			// 
@@ -1125,10 +1122,10 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 				| System::Windows::Forms::AnchorStyles::Right));
 			this->textBoxL2T4->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 9, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
 				static_cast<System::Byte>(204)));
-			this->textBoxL2T4->Location = System::Drawing::Point(199, 98);
-			this->textBoxL2T4->Margin = System::Windows::Forms::Padding(2, 2, 2, 2);
+			this->textBoxL2T4->Location = System::Drawing::Point(266, 122);
+			this->textBoxL2T4->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
 			this->textBoxL2T4->Name = L"textBoxL2T4";
-			this->textBoxL2T4->Size = System::Drawing::Size(54, 21);
+			this->textBoxL2T4->Size = System::Drawing::Size(71, 24);
 			this->textBoxL2T4->TabIndex = 27;
 			this->textBoxL2T4->KeyPress += gcnew System::Windows::Forms::KeyPressEventHandler(this, &MyForm1::digit);
 			// 
@@ -1138,10 +1135,10 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 				| System::Windows::Forms::AnchorStyles::Right));
 			this->textBoxL2T3->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 9, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
 				static_cast<System::Byte>(204)));
-			this->textBoxL2T3->Location = System::Drawing::Point(199, 66);
-			this->textBoxL2T3->Margin = System::Windows::Forms::Padding(2, 2, 2, 2);
+			this->textBoxL2T3->Location = System::Drawing::Point(266, 82);
+			this->textBoxL2T3->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
 			this->textBoxL2T3->Name = L"textBoxL2T3";
-			this->textBoxL2T3->Size = System::Drawing::Size(54, 21);
+			this->textBoxL2T3->Size = System::Drawing::Size(71, 24);
 			this->textBoxL2T3->TabIndex = 26;
 			this->textBoxL2T3->KeyPress += gcnew System::Windows::Forms::KeyPressEventHandler(this, &MyForm1::digit);
 			// 
@@ -1151,10 +1148,10 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 				| System::Windows::Forms::AnchorStyles::Right));
 			this->textBoxL2T2->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 9, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
 				static_cast<System::Byte>(204)));
-			this->textBoxL2T2->Location = System::Drawing::Point(199, 34);
-			this->textBoxL2T2->Margin = System::Windows::Forms::Padding(2, 2, 2, 2);
+			this->textBoxL2T2->Location = System::Drawing::Point(266, 42);
+			this->textBoxL2T2->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
 			this->textBoxL2T2->Name = L"textBoxL2T2";
-			this->textBoxL2T2->Size = System::Drawing::Size(54, 21);
+			this->textBoxL2T2->Size = System::Drawing::Size(71, 24);
 			this->textBoxL2T2->TabIndex = 25;
 			this->textBoxL2T2->KeyPress += gcnew System::Windows::Forms::KeyPressEventHandler(this, &MyForm1::digit);
 			// 
@@ -1164,10 +1161,10 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 				| System::Windows::Forms::AnchorStyles::Right));
 			this->textBoxL2T1->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 9, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
 				static_cast<System::Byte>(204)));
-			this->textBoxL2T1->Location = System::Drawing::Point(199, 2);
-			this->textBoxL2T1->Margin = System::Windows::Forms::Padding(2, 2, 2, 2);
+			this->textBoxL2T1->Location = System::Drawing::Point(266, 2);
+			this->textBoxL2T1->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
 			this->textBoxL2T1->Name = L"textBoxL2T1";
-			this->textBoxL2T1->Size = System::Drawing::Size(54, 21);
+			this->textBoxL2T1->Size = System::Drawing::Size(71, 24);
 			this->textBoxL2T1->TabIndex = 24;
 			this->textBoxL2T1->KeyPress += gcnew System::Windows::Forms::KeyPressEventHandler(this, &MyForm1::digit);
 			// 
@@ -1178,10 +1175,9 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			this->label11->AutoSize = true;
 			this->label11->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 9, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
 				static_cast<System::Byte>(204)));
-			this->label11->Location = System::Drawing::Point(146, 96);
-			this->label11->Margin = System::Windows::Forms::Padding(2, 0, 2, 0);
+			this->label11->Location = System::Drawing::Point(195, 120);
 			this->label11->Name = L"label11";
-			this->label11->Size = System::Drawing::Size(49, 30);
+			this->label11->Size = System::Drawing::Size(65, 18);
 			this->label11->TabIndex = 19;
 			this->label11->Text = L"L2_mm";
 			// 
@@ -1190,10 +1186,9 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			this->label10->Anchor = static_cast<System::Windows::Forms::AnchorStyles>(((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Left)
 				| System::Windows::Forms::AnchorStyles::Right));
 			this->label10->AutoSize = true;
-			this->label10->Location = System::Drawing::Point(146, 64);
-			this->label10->Margin = System::Windows::Forms::Padding(2, 0, 2, 0);
+			this->label10->Location = System::Drawing::Point(195, 80);
 			this->label10->Name = L"label10";
-			this->label10->Size = System::Drawing::Size(49, 30);
+			this->label10->Size = System::Drawing::Size(65, 18);
 			this->label10->TabIndex = 18;
 			this->label10->Text = L"L2_mm";
 			// 
@@ -1202,10 +1197,9 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			this->label9->Anchor = static_cast<System::Windows::Forms::AnchorStyles>(((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Left)
 				| System::Windows::Forms::AnchorStyles::Right));
 			this->label9->AutoSize = true;
-			this->label9->Location = System::Drawing::Point(146, 32);
-			this->label9->Margin = System::Windows::Forms::Padding(2, 0, 2, 0);
+			this->label9->Location = System::Drawing::Point(195, 40);
 			this->label9->Name = L"label9";
-			this->label9->Size = System::Drawing::Size(49, 30);
+			this->label9->Size = System::Drawing::Size(65, 18);
 			this->label9->TabIndex = 17;
 			this->label9->Text = L"L2_mm";
 			// 
@@ -1216,10 +1210,9 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			this->label8->AutoSize = true;
 			this->label8->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 9, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
 				static_cast<System::Byte>(204)));
-			this->label8->Location = System::Drawing::Point(146, 0);
-			this->label8->Margin = System::Windows::Forms::Padding(2, 0, 2, 0);
+			this->label8->Location = System::Drawing::Point(195, 0);
 			this->label8->Name = L"label8";
-			this->label8->Size = System::Drawing::Size(49, 30);
+			this->label8->Size = System::Drawing::Size(65, 18);
 			this->label8->TabIndex = 16;
 			this->label8->Text = L"L2_mm";
 			// 
@@ -1228,10 +1221,9 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			this->label3->Anchor = static_cast<System::Windows::Forms::AnchorStyles>(((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Left)
 				| System::Windows::Forms::AnchorStyles::Right));
 			this->label3->AutoSize = true;
-			this->label3->Location = System::Drawing::Point(2, 96);
-			this->label3->Margin = System::Windows::Forms::Padding(2, 0, 2, 0);
+			this->label3->Location = System::Drawing::Point(3, 120);
 			this->label3->Name = L"label3";
-			this->label3->Size = System::Drawing::Size(79, 30);
+			this->label3->Size = System::Drawing::Size(105, 18);
 			this->label3->TabIndex = 11;
 			this->label3->Text = L"T4 _L1_mm";
 			// 
@@ -1240,10 +1232,9 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			this->label2->Anchor = static_cast<System::Windows::Forms::AnchorStyles>(((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Left)
 				| System::Windows::Forms::AnchorStyles::Right));
 			this->label2->AutoSize = true;
-			this->label2->Location = System::Drawing::Point(2, 64);
-			this->label2->Margin = System::Windows::Forms::Padding(2, 0, 2, 0);
+			this->label2->Location = System::Drawing::Point(3, 80);
 			this->label2->Name = L"label2";
-			this->label2->Size = System::Drawing::Size(79, 15);
+			this->label2->Size = System::Drawing::Size(105, 18);
 			this->label2->TabIndex = 10;
 			this->label2->Text = L"T3_L1_mm";
 			// 
@@ -1252,10 +1243,9 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			this->label1->Anchor = static_cast<System::Windows::Forms::AnchorStyles>(((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Left)
 				| System::Windows::Forms::AnchorStyles::Right));
 			this->label1->AutoSize = true;
-			this->label1->Location = System::Drawing::Point(2, 32);
-			this->label1->Margin = System::Windows::Forms::Padding(2, 0, 2, 0);
+			this->label1->Location = System::Drawing::Point(3, 40);
 			this->label1->Name = L"label1";
-			this->label1->Size = System::Drawing::Size(79, 30);
+			this->label1->Size = System::Drawing::Size(105, 18);
 			this->label1->TabIndex = 9;
 			this->label1->Text = L"T2 _L1_mm";
 			// 
@@ -1265,10 +1255,10 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 				| System::Windows::Forms::AnchorStyles::Right));
 			this->textBoxL1T4->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 9, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
 				static_cast<System::Byte>(204)));
-			this->textBoxL1T4->Location = System::Drawing::Point(85, 98);
-			this->textBoxL1T4->Margin = System::Windows::Forms::Padding(2, 2, 2, 2);
+			this->textBoxL1T4->Location = System::Drawing::Point(114, 122);
+			this->textBoxL1T4->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
 			this->textBoxL1T4->Name = L"textBoxL1T4";
-			this->textBoxL1T4->Size = System::Drawing::Size(57, 21);
+			this->textBoxL1T4->Size = System::Drawing::Size(75, 24);
 			this->textBoxL1T4->TabIndex = 4;
 			this->textBoxL1T4->KeyPress += gcnew System::Windows::Forms::KeyPressEventHandler(this, &MyForm1::digit);
 			// 
@@ -1278,10 +1268,10 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 				| System::Windows::Forms::AnchorStyles::Right));
 			this->textBoxL1T3->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 9, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
 				static_cast<System::Byte>(204)));
-			this->textBoxL1T3->Location = System::Drawing::Point(85, 66);
-			this->textBoxL1T3->Margin = System::Windows::Forms::Padding(2, 2, 2, 2);
+			this->textBoxL1T3->Location = System::Drawing::Point(114, 82);
+			this->textBoxL1T3->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
 			this->textBoxL1T3->Name = L"textBoxL1T3";
-			this->textBoxL1T3->Size = System::Drawing::Size(57, 21);
+			this->textBoxL1T3->Size = System::Drawing::Size(75, 24);
 			this->textBoxL1T3->TabIndex = 3;
 			this->textBoxL1T3->KeyPress += gcnew System::Windows::Forms::KeyPressEventHandler(this, &MyForm1::digit);
 			// 
@@ -1291,10 +1281,10 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 				| System::Windows::Forms::AnchorStyles::Right));
 			this->textBoxL1T2->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 9, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
 				static_cast<System::Byte>(204)));
-			this->textBoxL1T2->Location = System::Drawing::Point(85, 34);
-			this->textBoxL1T2->Margin = System::Windows::Forms::Padding(2, 2, 2, 2);
+			this->textBoxL1T2->Location = System::Drawing::Point(114, 42);
+			this->textBoxL1T2->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
 			this->textBoxL1T2->Name = L"textBoxL1T2";
-			this->textBoxL1T2->Size = System::Drawing::Size(57, 21);
+			this->textBoxL1T2->Size = System::Drawing::Size(75, 24);
 			this->textBoxL1T2->TabIndex = 2;
 			this->textBoxL1T2->KeyPress += gcnew System::Windows::Forms::KeyPressEventHandler(this, &MyForm1::digit);
 			// 
@@ -1304,10 +1294,10 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 				| System::Windows::Forms::AnchorStyles::Right));
 			this->textBoxL1T1->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 9, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
 				static_cast<System::Byte>(204)));
-			this->textBoxL1T1->Location = System::Drawing::Point(85, 2);
-			this->textBoxL1T1->Margin = System::Windows::Forms::Padding(2, 2, 2, 2);
+			this->textBoxL1T1->Location = System::Drawing::Point(114, 2);
+			this->textBoxL1T1->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
 			this->textBoxL1T1->Name = L"textBoxL1T1";
-			this->textBoxL1T1->Size = System::Drawing::Size(57, 21);
+			this->textBoxL1T1->Size = System::Drawing::Size(75, 24);
 			this->textBoxL1T1->TabIndex = 1;
 			this->textBoxL1T1->KeyPress += gcnew System::Windows::Forms::KeyPressEventHandler(this, &MyForm1::digit);
 			// 
@@ -1318,10 +1308,9 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			this->labelT0->AutoSize = true;
 			this->labelT0->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 9, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
 				static_cast<System::Byte>(204)));
-			this->labelT0->Location = System::Drawing::Point(2, 0);
-			this->labelT0->Margin = System::Windows::Forms::Padding(2, 0, 2, 0);
+			this->labelT0->Location = System::Drawing::Point(3, 0);
 			this->labelT0->Name = L"labelT0";
-			this->labelT0->Size = System::Drawing::Size(79, 15);
+			this->labelT0->Size = System::Drawing::Size(105, 18);
 			this->labelT0->TabIndex = 0;
 			this->labelT0->Text = L"T1_L1_mm";
 			// 
@@ -1329,21 +1318,21 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			// 
 			this->tableLayoutPanel1->ColumnCount = 8;
 			this->tableLayoutPanel1->ColumnStyles->Add((gcnew System::Windows::Forms::ColumnStyle(System::Windows::Forms::SizeType::Absolute,
-				83)));
+				111)));
 			this->tableLayoutPanel1->ColumnStyles->Add((gcnew System::Windows::Forms::ColumnStyle(System::Windows::Forms::SizeType::Absolute,
-				61)));
+				81)));
 			this->tableLayoutPanel1->ColumnStyles->Add((gcnew System::Windows::Forms::ColumnStyle(System::Windows::Forms::SizeType::Absolute,
-				53)));
+				71)));
 			this->tableLayoutPanel1->ColumnStyles->Add((gcnew System::Windows::Forms::ColumnStyle(System::Windows::Forms::SizeType::Absolute,
-				58)));
+				77)));
 			this->tableLayoutPanel1->ColumnStyles->Add((gcnew System::Windows::Forms::ColumnStyle(System::Windows::Forms::SizeType::Absolute,
-				133)));
+				177)));
 			this->tableLayoutPanel1->ColumnStyles->Add((gcnew System::Windows::Forms::ColumnStyle(System::Windows::Forms::SizeType::Absolute,
-				61)));
+				81)));
 			this->tableLayoutPanel1->ColumnStyles->Add((gcnew System::Windows::Forms::ColumnStyle(System::Windows::Forms::SizeType::Absolute,
-				127)));
+				169)));
 			this->tableLayoutPanel1->ColumnStyles->Add((gcnew System::Windows::Forms::ColumnStyle(System::Windows::Forms::SizeType::Absolute,
-				96)));
+				128)));
 			this->tableLayoutPanel1->Controls->Add(this->labelT0, 0, 0);
 			this->tableLayoutPanel1->Controls->Add(this->textBoxL1T1, 1, 0);
 			this->tableLayoutPanel1->Controls->Add(this->textBoxL1T2, 1, 1);
@@ -1410,8 +1399,8 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			this->tableLayoutPanel1->Controls->Add(this->textBoxFT1, 1, 6);
 			this->tableLayoutPanel1->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 9, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
 				static_cast<System::Byte>(204)));
-			this->tableLayoutPanel1->Location = System::Drawing::Point(13, 20);
-			this->tableLayoutPanel1->Margin = System::Windows::Forms::Padding(2, 2, 2, 2);
+			this->tableLayoutPanel1->Location = System::Drawing::Point(17, 25);
+			this->tableLayoutPanel1->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
 			this->tableLayoutPanel1->Name = L"tableLayoutPanel1";
 			this->tableLayoutPanel1->RowCount = 10;
 			this->tableLayoutPanel1->RowStyles->Add((gcnew System::Windows::Forms::RowStyle(System::Windows::Forms::SizeType::Percent, 10)));
@@ -1424,7 +1413,7 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			this->tableLayoutPanel1->RowStyles->Add((gcnew System::Windows::Forms::RowStyle(System::Windows::Forms::SizeType::Percent, 10)));
 			this->tableLayoutPanel1->RowStyles->Add((gcnew System::Windows::Forms::RowStyle(System::Windows::Forms::SizeType::Percent, 10)));
 			this->tableLayoutPanel1->RowStyles->Add((gcnew System::Windows::Forms::RowStyle(System::Windows::Forms::SizeType::Percent, 10)));
-			this->tableLayoutPanel1->Size = System::Drawing::Size(644, 325);
+			this->tableLayoutPanel1->Size = System::Drawing::Size(859, 400);
 			this->tableLayoutPanel1->TabIndex = 0;
 			// 
 			// label4
@@ -1432,10 +1421,9 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			this->label4->Anchor = static_cast<System::Windows::Forms::AnchorStyles>(((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Left)
 				| System::Windows::Forms::AnchorStyles::Right));
 			this->label4->AutoSize = true;
-			this->label4->Location = System::Drawing::Point(451, 256);
-			this->label4->Margin = System::Windows::Forms::Padding(2, 0, 2, 0);
+			this->label4->Location = System::Drawing::Point(601, 320);
 			this->label4->Name = L"label4";
-			this->label4->Size = System::Drawing::Size(123, 15);
+			this->label4->Size = System::Drawing::Size(163, 18);
 			this->label4->TabIndex = 160;
 			this->label4->Text = L"MIN_R1_T4_F_HI";
 			// 
@@ -1444,10 +1432,9 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			this->label5->Anchor = static_cast<System::Windows::Forms::AnchorStyles>(((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Left)
 				| System::Windows::Forms::AnchorStyles::Right));
 			this->label5->AutoSize = true;
-			this->label5->Location = System::Drawing::Point(451, 288);
-			this->label5->Margin = System::Windows::Forms::Padding(2, 0, 2, 0);
+			this->label5->Location = System::Drawing::Point(601, 360);
 			this->label5->Name = L"label5";
-			this->label5->Size = System::Drawing::Size(123, 15);
+			this->label5->Size = System::Drawing::Size(163, 18);
 			this->label5->TabIndex = 161;
 			this->label5->Text = L"MIN_R2_T5_F_HI";
 			// 
@@ -1457,10 +1444,10 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 				| System::Windows::Forms::AnchorStyles::Right));
 			this->textBox_min1->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 9, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
 				static_cast<System::Byte>(204)));
-			this->textBox_min1->Location = System::Drawing::Point(578, 2);
-			this->textBox_min1->Margin = System::Windows::Forms::Padding(2, 2, 2, 2);
+			this->textBox_min1->Location = System::Drawing::Point(770, 2);
+			this->textBox_min1->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
 			this->textBox_min1->Name = L"textBox_min1";
-			this->textBox_min1->Size = System::Drawing::Size(92, 21);
+			this->textBox_min1->Size = System::Drawing::Size(122, 24);
 			this->textBox_min1->TabIndex = 63;
 			// 
 			// textBox_min2
@@ -1469,10 +1456,10 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 				| System::Windows::Forms::AnchorStyles::Right));
 			this->textBox_min2->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 9, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
 				static_cast<System::Byte>(204)));
-			this->textBox_min2->Location = System::Drawing::Point(578, 34);
-			this->textBox_min2->Margin = System::Windows::Forms::Padding(2, 2, 2, 2);
+			this->textBox_min2->Location = System::Drawing::Point(770, 42);
+			this->textBox_min2->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
 			this->textBox_min2->Name = L"textBox_min2";
-			this->textBox_min2->Size = System::Drawing::Size(92, 21);
+			this->textBox_min2->Size = System::Drawing::Size(122, 24);
 			this->textBox_min2->TabIndex = 64;
 			// 
 			// textBox_min3
@@ -1481,10 +1468,10 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 				| System::Windows::Forms::AnchorStyles::Right));
 			this->textBox_min3->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 9, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
 				static_cast<System::Byte>(204)));
-			this->textBox_min3->Location = System::Drawing::Point(578, 66);
-			this->textBox_min3->Margin = System::Windows::Forms::Padding(2, 2, 2, 2);
+			this->textBox_min3->Location = System::Drawing::Point(770, 82);
+			this->textBox_min3->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
 			this->textBox_min3->Name = L"textBox_min3";
-			this->textBox_min3->Size = System::Drawing::Size(92, 21);
+			this->textBox_min3->Size = System::Drawing::Size(122, 24);
 			this->textBox_min3->TabIndex = 65;
 			this->textBox_min3->TextChanged += gcnew System::EventHandler(this, &MyForm1::textBoxAIRT3t1_TextChanged);
 			// 
@@ -1494,10 +1481,10 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 				| System::Windows::Forms::AnchorStyles::Right));
 			this->textBox_min5->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 9, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
 				static_cast<System::Byte>(204)));
-			this->textBox_min5->Location = System::Drawing::Point(578, 130);
-			this->textBox_min5->Margin = System::Windows::Forms::Padding(2, 2, 2, 2);
+			this->textBox_min5->Location = System::Drawing::Point(770, 162);
+			this->textBox_min5->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
 			this->textBox_min5->Name = L"textBox_min5";
-			this->textBox_min5->Size = System::Drawing::Size(92, 21);
+			this->textBox_min5->Size = System::Drawing::Size(122, 24);
 			this->textBox_min5->TabIndex = 75;
 			// 
 			// textBox_min6
@@ -1506,10 +1493,10 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 				| System::Windows::Forms::AnchorStyles::Right));
 			this->textBox_min6->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 9, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
 				static_cast<System::Byte>(204)));
-			this->textBox_min6->Location = System::Drawing::Point(578, 162);
-			this->textBox_min6->Margin = System::Windows::Forms::Padding(2, 2, 2, 2);
+			this->textBox_min6->Location = System::Drawing::Point(770, 202);
+			this->textBox_min6->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
 			this->textBox_min6->Name = L"textBox_min6";
-			this->textBox_min6->Size = System::Drawing::Size(92, 21);
+			this->textBox_min6->Size = System::Drawing::Size(122, 24);
 			this->textBox_min6->TabIndex = 76;
 			// 
 			// textBox_min7
@@ -1518,10 +1505,10 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 				| System::Windows::Forms::AnchorStyles::Right));
 			this->textBox_min7->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 9, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
 				static_cast<System::Byte>(204)));
-			this->textBox_min7->Location = System::Drawing::Point(578, 194);
-			this->textBox_min7->Margin = System::Windows::Forms::Padding(2, 2, 2, 2);
+			this->textBox_min7->Location = System::Drawing::Point(770, 242);
+			this->textBox_min7->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
 			this->textBox_min7->Name = L"textBox_min7";
-			this->textBox_min7->Size = System::Drawing::Size(92, 21);
+			this->textBox_min7->Size = System::Drawing::Size(122, 24);
 			this->textBox_min7->TabIndex = 77;
 			// 
 			// textBox_min8
@@ -1530,10 +1517,10 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 				| System::Windows::Forms::AnchorStyles::Right));
 			this->textBox_min8->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 9, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
 				static_cast<System::Byte>(204)));
-			this->textBox_min8->Location = System::Drawing::Point(578, 226);
-			this->textBox_min8->Margin = System::Windows::Forms::Padding(2, 2, 2, 2);
+			this->textBox_min8->Location = System::Drawing::Point(770, 282);
+			this->textBox_min8->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
 			this->textBox_min8->Name = L"textBox_min8";
-			this->textBox_min8->Size = System::Drawing::Size(92, 21);
+			this->textBox_min8->Size = System::Drawing::Size(122, 24);
 			this->textBox_min8->TabIndex = 78;
 			// 
 			// textBox_min9
@@ -1542,10 +1529,10 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 				| System::Windows::Forms::AnchorStyles::Right));
 			this->textBox_min9->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 9, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
 				static_cast<System::Byte>(204)));
-			this->textBox_min9->Location = System::Drawing::Point(578, 258);
-			this->textBox_min9->Margin = System::Windows::Forms::Padding(2, 2, 2, 2);
+			this->textBox_min9->Location = System::Drawing::Point(770, 322);
+			this->textBox_min9->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
 			this->textBox_min9->Name = L"textBox_min9";
-			this->textBox_min9->Size = System::Drawing::Size(92, 21);
+			this->textBox_min9->Size = System::Drawing::Size(122, 24);
 			this->textBox_min9->TabIndex = 112;
 			// 
 			// textBox_min10
@@ -1554,10 +1541,10 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 				| System::Windows::Forms::AnchorStyles::Right));
 			this->textBox_min10->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 9, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
 				static_cast<System::Byte>(204)));
-			this->textBox_min10->Location = System::Drawing::Point(578, 290);
-			this->textBox_min10->Margin = System::Windows::Forms::Padding(2, 2, 2, 2);
+			this->textBox_min10->Location = System::Drawing::Point(770, 362);
+			this->textBox_min10->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
 			this->textBox_min10->Name = L"textBox_min10";
-			this->textBox_min10->Size = System::Drawing::Size(92, 21);
+			this->textBox_min10->Size = System::Drawing::Size(122, 24);
 			this->textBox_min10->TabIndex = 162;
 			// 
 			// textBox_min4
@@ -1566,17 +1553,17 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 				| System::Windows::Forms::AnchorStyles::Right));
 			this->textBox_min4->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 9, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
 				static_cast<System::Byte>(204)));
-			this->textBox_min4->Location = System::Drawing::Point(578, 98);
-			this->textBox_min4->Margin = System::Windows::Forms::Padding(2, 2, 2, 2);
+			this->textBox_min4->Location = System::Drawing::Point(770, 122);
+			this->textBox_min4->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
 			this->textBox_min4->Name = L"textBox_min4";
-			this->textBox_min4->Size = System::Drawing::Size(92, 21);
+			this->textBox_min4->Size = System::Drawing::Size(122, 24);
 			this->textBox_min4->TabIndex = 74;
 			// 
 			// MyForm1
 			// 
-			this->AutoScaleDimensions = System::Drawing::SizeF(6, 13);
+			this->AutoScaleDimensions = System::Drawing::SizeF(8, 16);
 			this->AutoScaleMode = System::Windows::Forms::AutoScaleMode::Font;
-			this->ClientSize = System::Drawing::Size(687, 605);
+			this->ClientSize = System::Drawing::Size(916, 745);
 			this->Controls->Add(this->checkBox_read_only);
 			this->Controls->Add(this->button_dfi);
 			this->Controls->Add(this->button_smt);
@@ -1587,9 +1574,10 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			this->Controls->Add(this->button1);
 			this->Controls->Add(this->panel9);
 			this->Controls->Add(this->tableLayoutPanel1);
-			this->Margin = System::Windows::Forms::Padding(2, 2, 2, 2);
+			this->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
 			this->Name = L"MyForm1";
 			this->Text = L"MyForm1";
+			this->Load += gcnew System::EventHandler(this, &MyForm1::MyForm1_Load);
 			this->panel9->ResumeLayout(false);
 			this->panel9->PerformLayout();
 			this->tableLayoutPanel1->ResumeLayout(false);
@@ -1623,6 +1611,7 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 		}
 		metro_in.read((char*)&metrology_struct, sizeof(metrology_struct));
 		metro_in.close();
+		::metrology_struct = metrology_struct;
 
 		/////////////////////////////////////////////////////////////////////////////
 		uint32_t buff = (metrology_struct.signature << 12) >> 12;
@@ -1637,6 +1626,7 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 		if ((tool_type == 1 || tool_type == 2 || tool_type == 3) && (tool_N_Tx == 3 || tool_N_Tx == 4 || tool_N_Tx == 5)) {
 			comboBox_type->SelectedIndex = tool_type - 1;
 			comboBox_N_Tx->SelectedIndex = tool_N_Tx - 3;
+			comboBox_rx_position->SelectedIndex = (metrology_struct.Rx_Position == 1) ? 1 : 0;
 			comboBox_mod->SelectedIndex = tool_mod - 1;
 			textBox_number->Text = tool_number.ToString();
 			std::stringstream ss;
@@ -1676,7 +1666,7 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 
 	private: System::Void buttonWrite_tofile_Click(System::Object^  sender, System::EventArgs^  e) {
 		const char* Metrology_out = "Metrology.bin";
-		unsigned int Sonde_serial;
+		unsigned int Sonde_serial = 0;
 		GP_TOOL_METROLOGY metrology_struct = {};
 		ofstream metro_out;
 
@@ -1695,6 +1685,7 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 		metrology_struct.signature = buff;
 		if (textBoxSer->Text != "")Sonde_serial = System::Int32::Parse(textBoxSer->Text);
 		metrology_struct.serial = Sonde_serial;
+		metrology_struct.Rx_Position = (comboBox_rx_position->SelectedIndex == 1) ? 1 : 0;
 		//////////////////////////////////////////////////////////////////////////////////////
 		for (int i = 0; i < 5; i++) {
 			TextBox^ TEXTBOX_L1 = (TextBox^)this->tableLayoutPanel1->Controls["textBoxL1T" + (i + 1).ToString()];
@@ -1711,6 +1702,7 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			if (TEXTBOX_AIR->Text != "") metrology_struct.Air_zz[i / 5][i % 5] = System::Int64::Parse(TEXTBOX_AIR->Text);
 		}
 
+		::metrology_struct = metrology_struct;
 
 
 		saveFileDialog1->Filter = "text files (*.bin)|*.bin";
@@ -1792,6 +1784,7 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			metro_check = false;
 			return;
 		}
+		::metrology_struct = metrology_struct;
 
 		/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		uint32_t buff = (metrology_struct.signature << 12) >> 12;
@@ -1805,6 +1798,7 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 		if ((tool_type == 1 || tool_type == 2 || tool_type == 3) && (tool_N_Tx == 3 || tool_N_Tx == 4 || tool_N_Tx == 5)) {
 			comboBox_type->SelectedIndex = tool_type - 1;
 			comboBox_N_Tx->SelectedIndex = tool_N_Tx - 3;
+			comboBox_rx_position->SelectedIndex = (metrology_struct.Rx_Position == 1) ? 1 : 0;
 			comboBox_mod->SelectedIndex = tool_mod - 1;
 			textBox_number->Text = tool_number.ToString();
 			std::stringstream ss;
@@ -1840,14 +1834,14 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 
 	private: System::Void buttonWrite_to_sonde_Click(System::Object^  sender, System::EventArgs^  e) {
 		extern bool sonde_on_off;
-		unsigned int Sonde_serial;
+		unsigned int Sonde_serial = 0;
 		bool on_off_1dds = true;
 		extern string Com_Name;
 		extern bool metro_check;
 	    bool plateu_test = false;
 
 		if (on_off_1dds == true) {
-			GP_TOOL_METROLOGY metrology_struct;
+			GP_TOOL_METROLOGY metrology_struct = {};
 			///////////////////////////////////////////////////////////////////////
 			uint32_t tool_number = 0;
 			if (textBox_number->Text != "")  tool_number = System::Int64::Parse(textBox_number->Text);
@@ -1863,6 +1857,7 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 			metrology_struct.signature = buff;
 			if (textBoxSer->Text != "")Sonde_serial = System::Int32::Parse(textBoxSer->Text);
 			metrology_struct.serial = Sonde_serial;
+			metrology_struct.Rx_Position = (comboBox_rx_position->SelectedIndex == 1) ? 1 : 0;
 			//////////////////////////////////////////////////////////////////////////////////////
 			for (int i = 0; i < 5; i++) {
 				TextBox^ TEXTBOX_L1 = (TextBox^)this->tableLayoutPanel1->Controls["textBoxL1T" + (i + 1).ToString()];
@@ -1882,6 +1877,7 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 				if (TEXTBOX_AIR->Text != "") metrology_struct.Air_zz[i / 5][i % 5] = System::Int64::Parse(TEXTBOX_AIR->Text);
 			}
 
+			::metrology_struct = metrology_struct;
 
 			metrology_struct.serial = Sonde_serial;
 
@@ -1985,5 +1981,7 @@ private: System::Windows::Forms::TextBox^  textBoxAIRT9;
 	}
 	private: System::Void textBoxAIRT3t1_TextChanged(System::Object^  sender, System::EventArgs^  e) {
 	}
-	};
+	private: System::Void MyForm1_Load(System::Object^ sender, System::EventArgs^ e) {
+	}
+};
 }
