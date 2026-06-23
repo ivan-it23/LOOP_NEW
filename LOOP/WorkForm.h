@@ -471,7 +471,8 @@ internal:
 			comboBox_loop_com->Text = gcnew String(loop_com_Name.c_str());
 			comboBox_aver->Text = gcnew String(N_averaging_str.c_str());
 			comboBox_trashhold->Text = gcnew String(trashhold_str.c_str());
-			comboBox_tool_type->Text = gcnew String(comboBox_tool_type_str.c_str());
+			// Тип прибора больше не восстанавливается из Conf — он определяется из сигнатуры при подключении.
+			(void)comboBox_tool_type_str;
 			if (comboBox_aver->Text != "") N_averaging = Int32::Parse(comboBox_aver->Text);
 			checkBox_express->Checked = express;
 			
@@ -5250,6 +5251,8 @@ internal:
 			// 
 			this->comboBox_tool_type->FormattingEnabled = true;
 			this->comboBox_tool_type->Items->AddRange(gcnew cli::array< System::Object^  >(3) { L"LWD_1DDS", L"SDR", L"AUTONOM" });
+			// Комбобокс работает как индикатор: тип прибора определяется из сигнатуры, а не выбором пользователя.
+			this->comboBox_tool_type->DropDownStyle = System::Windows::Forms::ComboBoxStyle::DropDownList;
 			this->comboBox_tool_type->Location = System::Drawing::Point(123, 62);
 			this->comboBox_tool_type->Margin = System::Windows::Forms::Padding(3, 2, 3, 2);
 			this->comboBox_tool_type->Name = L"comboBox_tool_type";
@@ -5481,9 +5484,41 @@ void do_graf(int N_graf, int *X, int N, int trashhold) {
 	}
 }
 
+// Декодирует тип прибора и число передатчиков из сигнатуры в строку для индикатора.
+private: System::String^ DeviceTypeDisplayName(uint32_t signature) {
+	uint32_t low20 = (signature << 12) >> 12;
+	uint32_t dtype = low20 / 100000;
+	uint32_t ntx = (low20 % 100000) / 10000;
+	if (ntx < 3 || ntx > 5) ntx = 5;
+	System::String^ type_name;
+	if (dtype == DEVTYPE_AUTONOM) type_name = "Автономный";
+	else if (dtype == DEVTYPE_LWD) type_name = "LWD";
+	else type_name = "Неизвестно";
+	return type_name + " " + ntx.ToString() + "TX";
+}
+
+// Применяет к комбобоксу-индикатору строку с детектированным типом (UI-поток).
+private: System::Void ApplyToolTypeText(System::String^ name) {
+	this->comboBox_tool_type->Items->Clear();
+	this->comboBox_tool_type->Items->Add(name);
+	this->comboBox_tool_type->SelectedIndex = 0;
+}
+
+// Определяет тип прибора из сигнатуры и выводит его в комбобокс-индикатор.
+// Тип используется только для отображения/логов и не влияет на логику опроса.
+private: System::Void SetDetectedToolType(uint32_t signature) {
+	uint32_t low20 = (signature << 12) >> 12;
+	tool_type = (int)(low20 / 100000);
+	System::String^ name = DeviceTypeDisplayName(signature);
+	if (this->comboBox_tool_type->InvokeRequired)
+		this->comboBox_tool_type->Invoke(gcnew System::Action<System::String^>(this, &WorkForm::ApplyToolTypeText), name);
+	else
+		ApplyToolTypeText(name);
+}
+
 private: System::Void button_ON_OFF_Click(System::Object^  sender, System::EventArgs^  e) {		
 	WriteStepLog(3, "ВКЛЮЧИТЬ ПРИБОР: нажата кнопка. Текущее состояние on_off=" + string(on_off ? "true" : "false") + ", tool_type=" + to_string(tool_type));
-	if (tool_type == AUTONOM) {
+	if (false) { // AUTONOM: DLL-путь отключён — прибор опрашивается единым COM-алгоритмом (dormant-код сохранён)
 		int stop = 0, stop_ = 0;
 		extern string Com_LWD_Name;
 		extern vector <SONDE_PARAM> sonde_param;
@@ -5659,7 +5694,7 @@ private: System::Void button_ON_OFF_Click(System::Object^  sender, System::Event
 
 	}
 	
-	if (tool_type == SDR || tool_type == LWD1DDS) {
+	if (true) { // Единый COM-опрос для всех типов приборов; тип берётся из сигнатуры
 		int stop = 0, stop_ = 0;
 		extern string Com_LWD_Name;
 		extern string Com_Name;
@@ -5671,17 +5706,12 @@ private: System::Void button_ON_OFF_Click(System::Object^  sender, System::Event
 		memset(&temp_metro, 0, sizeof(GP_TOOL_METROLOGY));
 
 		if (on_off == false) {
-			WriteLog(tool_type == SDR ? "=== НАЧАЛО ВКЛЮЧЕНИЯ SDR ===" : "=== НАЧАЛО ВКЛЮЧЕНИЯ LWD1DDS ===");
+			WriteLog("=== НАЧАЛО ВКЛЮЧЕНИЯ ПРИБОРА (единый COM-опрос) ===");
 			serialPort_sonde->Close();
 			Sleep(100);
-			if (tool_type == SDR) {
-				serialPort_sonde->BaudRate = 115200;
-				WriteLog("Установка BaudRate = 115200 (SDR)");
-			}
-			if (tool_type == LWD1DDS) {
-				serialPort_sonde->BaudRate = 125000;
-				WriteLog("Установка BaudRate = 125000 (LWD1DDS)");
-			}
+			// Единая скорость обмена для всех приборов (алгоритм LWD_1DDS).
+			serialPort_sonde->BaudRate = 125000;
+			WriteLog("Установка BaudRate = 125000 (единый опрос)");
 			serialPort_sonde->ReadTimeout = 2000;
 			serialPort_sonde->WriteTimeout = 2000;
 			Com_LWD_Name = (char*)Marshal::StringToHGlobalAnsi(serialPort_sonde->PortName).ToPointer();
@@ -5696,7 +5726,7 @@ private: System::Void button_ON_OFF_Click(System::Object^  sender, System::Event
 				WriteLog("Порт открыт успешно");
 				serialPort_sonde->DiscardOutBuffer();
 				Sleep(150);
-				if (tool_type == SDR) {
+				if (false) { // SDR-специфичный путь метрологии (dormant, единый путь ниже)
 					WriteLog("Чтение метрологии SDR (команда 0x13)...");
 					uint8_t DATA[2] = { 0x05 ,0x00 };
 					int metro_result = -1;
@@ -5724,9 +5754,9 @@ private: System::Void button_ON_OFF_Click(System::Object^  sender, System::Event
 						}
 					}
 				}
-				if (tool_type == LWD1DDS) {
-					// Чтение метрологии LWD1DDS командой 0x13.
-					WriteLog("Чтение метрологии LWD1DDS (команда 0x13)...");
+				if (true) { // Единый путь чтения метрологии (команда 0x13) для всех приборов
+					// Чтение метрологии командой 0x13.
+					WriteLog("Чтение метрологии (команда 0x13)...");
 					uint8_t DATA[2] = { 0x05 ,0x00 };
 					int metro_result = -1;
 					for (int attempt = 0; attempt < 3 && metro_result != 0; attempt++) {
@@ -5761,6 +5791,8 @@ private: System::Void button_ON_OFF_Click(System::Object^  sender, System::Event
 				}
 				if (temp_metro.signature != 0) {
 					WriteLog("=== МЕТРОЛОГИЯ ПРИБОРА ===");
+					// Тип прибора определяется из сигнатуры и выводится в комбобокс-индикатор.
+					SetDetectedToolType(temp_metro.signature);
 					{
 						stringstream ss;
 						ss << "Signature: 0x" << hex << temp_metro.signature << dec;
@@ -5878,15 +5910,9 @@ private:void sonde_read_timer(System::Object^ source, ElapsedEventArgs^ e) {
 
 		int mode = 0;
 		WriteLog("--- Получение данных от прибора ---");
-		if (tool_type == SDR || tool_type == LWD1DDS) {
-			WriteLog(string("Тип: ") + (tool_type == SDR ? "SDR" : "LWD1DDS") + ", вызов get_ph_from_tool...");
-			uint8_t poll_cmd = (tool_type == SDR) ? 0x00 : CMD_GET_DATA;
-			ph_data = get_ph_from_tool(serialPort_sonde, poll_cmd, mode, res);
-		}
-		if (tool_type == AUTONOM) {
-			WriteLog("Тип: AUTONOM, вызов get_ph_from_AUTONOM...");
-			ph_data = get_ph_from_AUTONOM(ComPort, mode, res);
-		}
+		// Единый COM-опрос для всех типов приборов (CMD_GET_DATA = 0x11).
+		WriteLog("Единый COM-опрос: вызов get_ph_from_tool (CMD_GET_DATA)...");
+		ph_data = get_ph_from_tool(serialPort_sonde, CMD_GET_DATA, mode, res);
 
 		{
 			stringstream ss;
@@ -7703,7 +7729,8 @@ private: System::Void comboBox_aver_SelectedValueChanged(System::Object^  sender
 }
 
 private: System::Void comboBox_tool_type_SelectedIndexChanged(System::Object^  sender, System::EventArgs^  e) {
-	tool_type = comboBox_tool_type->SelectedIndex;
+	// Тип прибора определяется из сигнатуры (см. SetDetectedToolType), а не выбором пользователя.
+	// Комбобокс работает как индикатор; обработчик намеренно не управляет логикой опроса.
 }
 };
 }

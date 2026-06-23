@@ -1,6 +1,6 @@
-COM7
+COM5
 COM9
 5
 6
 1
-LWD_1DDS
+Автономный 5TX

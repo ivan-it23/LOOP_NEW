@@ -491,75 +491,261 @@ V10 get_phase(GP_TOOL_DATA *P, GP_TOOL_METROLOGY *metrology) {
 	return phase;
 }
 
+// ============================================================
+// Симметризация фаз (логика портирована из Amk-Horizon-New-Chart).
+// Матрица симметризации K выбирается по числу передатчиков N_Tx и по маске
+// работающих передатчиков condition. Поддерживаются приборы с 3/4/5 Tx.
+// Для приборов с N_Tx < 5 выходы для несуществующих передатчиков всегда нулевые.
+// ============================================================
+
+// Максимальное число передатчиков в раскладке матриц симметризации.
+static const int SMT_MAX_TX = 5;
+
+// Извлекает 8-битную маску работающих передатчиков для частоты из 32-битного
+// поля condition. Layout (LSB-first): byte0 = 2000 кГц (freq 1), byte1 = 400 кГц (freq 0).
+// Внутри байта: bit0 = T1, bit1 = T2, ..., bit4 = T5.
+static uint8_t extract_condition_byte(uint32_t raw_condition, int freq_idx) {
+	if (freq_idx == 0)
+		return (uint8_t)((raw_condition >> 8) & 0xFFu);
+	return (uint8_t)(raw_condition & 0xFFu);
+}
+
+static void zero_smt_matrix(float K[SMT_MAX_TX][SMT_MAX_TX]) {
+	for (int r = 0; r < SMT_MAX_TX; r++)
+		for (int c = 0; c < SMT_MAX_TX; c++)
+			K[r][c] = 0.0f;
+}
+
+static void copy_smt_matrix(float dst[SMT_MAX_TX][SMT_MAX_TX], const float src[SMT_MAX_TX][SMT_MAX_TX]) {
+	for (int r = 0; r < SMT_MAX_TX; r++)
+		for (int c = 0; c < SMT_MAX_TX; c++)
+			dst[r][c] = src[r][c];
+}
+
+// Identity по маске работающих передатчиков (T_t -> T_t при бите condition = 1).
+// Используется как fallback для нераспознанных комбинаций condition.
+static void fill_identity_symmetry_matrix(float K[SMT_MAX_TX][SMT_MAX_TX], uint8_t condition, int valid_tx_count) {
+	zero_smt_matrix(K);
+	for (int t = 0; t < valid_tx_count && t < SMT_MAX_TX; t++) {
+		const bool working = ((condition >> t) & 0x1u) != 0;
+		K[t][t] = working ? 1.0f : 0.0f;
+	}
+}
+
+// Матрицы симметризации для N_Tx = 5.
+static bool build_symmetry_matrix_5tx(float K[SMT_MAX_TX][SMT_MAX_TX], uint8_t condition) {
+	switch (condition) {
+	case 0x1F: // все 5 работают
+	case 0xFF: { // все 5 работают
+		static const float M[SMT_MAX_TX][SMT_MAX_TX] = {
+			{ +0.75f, +0.50f, -0.25f, +0.00f, +0.00f },
+			{ +0.25f, +0.50f, +0.25f, +0.00f, +0.00f },
+			{ +0.00f, +0.25f, +0.50f, +0.25f, +0.00f },
+			{ +0.00f, +0.00f, +0.25f, +0.50f, +0.25f },
+			{ +0.00f, +0.00f, -0.25f, +0.50f, +0.75f } };
+		copy_smt_matrix(K, M); return true; }
+	case 0x1E: { // не работает T1
+		static const float M[SMT_MAX_TX][SMT_MAX_TX] = {
+			{ +0.00f, +1.25f, +0.50f, -0.75f, +0.00f },
+			{ +0.00f, +0.75f, +0.50f, -0.25f, +0.00f },
+			{ +0.00f, +0.25f, +0.50f, +0.25f, +0.00f },
+			{ +0.00f, +0.00f, +0.25f, +0.50f, +0.25f },
+			{ +0.00f, +0.00f, -0.25f, +0.50f, +0.75f } };
+		copy_smt_matrix(K, M); return true; }
+	case 0x1D: { // не работает T2
+		static const float M[SMT_MAX_TX][SMT_MAX_TX] = {
+			{ +1.25f, +0.00f, -0.75f, +0.50f, +0.00f },
+			{ +0.75f, +0.00f, -0.25f, +0.50f, +0.00f },
+			{ +0.00f, +0.00f, +0.75f, +0.50f, -0.25f },
+			{ +0.00f, +0.00f, +0.25f, +0.50f, +0.25f },
+			{ +0.00f, +0.00f, -0.25f, +0.50f, +0.75f } };
+		copy_smt_matrix(K, M); return true; }
+	case 0x1B: { // не работает T3
+		static const float M[SMT_MAX_TX][SMT_MAX_TX] = {
+			{ +0.50f, +0.75f, +0.00f, -0.25f, +0.00f },
+			{ +0.00f, +1.25f, +0.00f, -0.75f, +0.50f },
+			{ +0.00f, +0.75f, +0.00f, -0.25f, +0.50f },
+			{ +0.00f, +0.25f, +0.00f, +0.25f, +0.05f },
+			{ +0.00f, -0.25f, +0.00f, +0.75f, +0.05f } };
+		copy_smt_matrix(K, M); return true; }
+	case 0x17: { // не работает T4
+		static const float M[SMT_MAX_TX][SMT_MAX_TX] = {
+			{ +0.75f, +0.50f, -0.25f, +0.00f, +0.00f },
+			{ +0.25f, +0.50f, +0.25f, +0.00f, +0.00f },
+			{ -0.25f, +0.50f, +0.75f, +0.00f, +0.00f },
+			{ +0.00f, +0.50f, -0.25f, +0.00f, +0.75f },
+			{ +0.00f, +0.50f, -0.75f, +0.00f, +1.25f } };
+		copy_smt_matrix(K, M); return true; }
+	case 0x0F: { // не работает T5
+		static const float M[SMT_MAX_TX][SMT_MAX_TX] = {
+			{ +0.75f, +0.50f, -0.25f, +0.00f, +0.00f },
+			{ +0.25f, +0.50f, +0.25f, +0.00f, +0.00f },
+			{ +0.05f, +0.25f, +0.50f, +0.25f, +0.00f },
+			{ +0.00f, -0.25f, +0.50f, +0.75f, +0.00f },
+			{ +0.00f, -0.75f, +0.50f, +1.25f, +0.00f } };
+		copy_smt_matrix(K, M); return true; }
+	case 0x00: { // несимметризованные значения для всех 5 передатчиков
+		zero_smt_matrix(K);
+		for (int t = 0; t < 5; t++) K[t][t] = 1.0f;
+		return true; }
+	default:
+		return false;
+	}
+}
+
+// Матрицы симметризации для N_Tx = 4 (T5 не существует).
+static bool build_symmetry_matrix_4tx(float K[SMT_MAX_TX][SMT_MAX_TX], uint8_t condition) {
+	switch (condition) {
+	case 0x0F: // все 4 работают
+	case 0xFF: { // все работают
+		static const float M[SMT_MAX_TX][SMT_MAX_TX] = {
+			{ +0.75f, +0.50f, -0.25f, +0.00f, +0.00f },
+			{ +0.25f, +0.50f, +0.25f, +0.00f, +0.00f },
+			{ +0.00f, +0.25f, +0.50f, +0.25f, +0.00f },
+			{ +0.00f, -0.25f, +0.50f, +0.75f, +0.00f },
+			{ +0.00f, +0.00f, +0.00f, +0.00f, +0.00f } };
+		copy_smt_matrix(K, M); return true; }
+	case 0x0E: { // не работает T1
+		static const float M[SMT_MAX_TX][SMT_MAX_TX] = {
+			{ +0.00f, +1.25f, +0.50f, -0.75f, +0.00f },
+			{ +0.00f, +0.75f, +0.50f, -0.25f, +0.00f },
+			{ +0.00f, +0.25f, +0.50f, +0.25f, +0.00f },
+			{ +0.00f, -0.25f, +0.50f, +0.75f, +0.00f },
+			{ +0.00f, +0.00f, +0.00f, +0.00f, +0.00f } };
+		copy_smt_matrix(K, M); return true; }
+	case 0x0D: { // не работает T2
+		static const float M[SMT_MAX_TX][SMT_MAX_TX] = {
+			{ +1.25f, +0.00f, -0.75f, +0.50f, +0.00f },
+			{ +0.75f, +0.00f, -0.25f, +0.50f, +0.00f },
+			{ +0.25f, +0.00f, +0.25f, +0.50f, +0.00f },
+			{ -0.25f, +0.00f, +0.75f, +0.50f, +0.00f },
+			{ +0.00f, +0.00f, +0.00f, +0.00f, +0.00f } };
+		copy_smt_matrix(K, M); return true; }
+	case 0x0B: { // не работает T3
+		static const float M[SMT_MAX_TX][SMT_MAX_TX] = {
+			{ +0.50f, +0.75f, +0.00f, -0.25f, +0.00f },
+			{ +0.50f, +0.25f, +0.00f, +0.25f, +0.00f },
+			{ +0.50f, -0.25f, +0.00f, +0.75f, +0.00f },
+			{ -0.50f, -0.75f, +0.00f, +1.25f, +0.00f },
+			{ +0.00f, +0.00f, +0.00f, +0.00f, +0.00f } };
+		copy_smt_matrix(K, M); return true; }
+	case 0x07: { // не работает T4
+		static const float M[SMT_MAX_TX][SMT_MAX_TX] = {
+			{ +0.75f, +0.50f, -0.25f, +0.00f, +0.00f },
+			{ +0.25f, +0.50f, +0.25f, +0.00f, +0.00f },
+			{ -0.25f, +0.50f, +0.75f, +0.00f, +0.00f },
+			{ -0.75f, +0.50f, +1.25f, +0.00f, +0.00f },
+			{ +0.00f, +0.00f, +0.00f, +0.00f, +0.00f } };
+		copy_smt_matrix(K, M); return true; }
+	case 0x00: { // несимметризованные значения (только T1..T4)
+		zero_smt_matrix(K);
+		for (int t = 0; t < 4; t++) K[t][t] = 1.0f;
+		return true; }
+	default:
+		return false;
+	}
+}
+
+// Матрицы симметризации для N_Tx = 3 (T4, T5 не существуют).
+static bool build_symmetry_matrix_3tx(float K[SMT_MAX_TX][SMT_MAX_TX], uint8_t condition) {
+	switch (condition) {
+	case 0x07: { // все 3 работают
+		static const float M[SMT_MAX_TX][SMT_MAX_TX] = {
+			{ +0.75f, +0.50f, -0.25f, +0.00f, +0.00f },
+			{ +0.25f, +0.50f, +0.25f, +0.00f, +0.00f },
+			{ -0.25f, +0.50f, +0.75f, +0.00f, +0.00f },
+			{ -0.75f, +0.50f, +1.25f, +0.00f, +0.00f },
+			{ +0.00f, +0.00f, +0.00f, +0.00f, +0.00f } };
+		copy_smt_matrix(K, M); return true; }
+	case 0x00: { // несимметризованные значения (только T1..T3)
+		zero_smt_matrix(K);
+		for (int t = 0; t < 3; t++) K[t][t] = 1.0f;
+		return true; }
+	default:
+		return false;
+	}
+}
+
+// Диспетчер: выбирает матрицу по (N_Tx, condition). Для нераспознанных
+// комбинаций возвращает identity по маске condition.
+static void build_symmetry_matrix(float K[SMT_MAX_TX][SMT_MAX_TX], uint32_t N_Tx, uint8_t condition) {
+	bool resolved = false;
+	if (N_Tx == 5)
+		resolved = build_symmetry_matrix_5tx(K, condition);
+	else if (N_Tx == 4)
+		resolved = build_symmetry_matrix_4tx(K, condition);
+	else if (N_Tx == 3)
+		resolved = build_symmetry_matrix_3tx(K, condition);
+	if (!resolved)
+		fill_identity_symmetry_matrix(K, condition, (int)N_Tx);
+}
+
 V10 get_phase_smt(GP_TOOL_DATA *P, GP_TOOL_METROLOGY *metrology) {
 	V10 phase_smt = { 0.0f, };
-	V10 phase = { 0.0, };
-	double K[4][4] = { 0.0, };
-	enum T_SMT {
-		T1, T2, T3, T4,
-	};
-	for (int freq = 0; freq < 2; freq++) {
-		for (int Tx = 0; Tx < 4; Tx++) {
-			int i = freq * 4 + Tx;
-			phase.VALUE[i] = apply_rx_phase_orientation(
+	if (P == nullptr || metrology == nullptr)
+		return phase_smt;
+
+	TOOL_IDENTITY id = decode_tool_signature(P->signature);
+	const uint32_t N_Tx = id.n_tx;
+
+	for (uint32_t freq = 0; freq < 2; freq++) {
+		const uint8_t condition = extract_condition_byte(P->condition, (int)freq);
+		float K[SMT_MAX_TX][SMT_MAX_TX];
+		build_symmetry_matrix(K, N_Tx, condition);
+
+		// Подготовка входных разностей фаз: нормализация к воздуху по Air_zz и
+		// применение знака ориентации (Tx + Rx_Position). Для Rx_Position 0 знаки
+		// чередуются как +,-,+,-,+ — совместимо с матрицами симметризации.
+		float deltas[SMT_MAX_TX] = { 0.0f, };
+		for (uint32_t Tx = 0; Tx < N_Tx && Tx < SMT_MAX_TX; Tx++) {
+			deltas[Tx] = apply_rx_phase_orientation(
 				P->DELTA_PH[freq][Tx],
 				metrology->Air_zz[freq][Tx] / mG,
 				Tx,
 				metrology->Rx_Position);
 		}
-	}
 
-	// Коэффициенты симметризации.
-	if ((metrology->serial & (1 << 17)) == 0) {
-		K[T1][T1] = 0.75; K[T1][T2] = 0.5; K[T1][T3] = -0.25; K[T1][T4] = 0.0;
-		K[T2][T1] = 0.25; K[T2][T2] = 0.5; K[T2][T3] = 0.25; K[T2][T4] = 0.0;
-		K[T3][T1] = -0.25; K[T3][T2] = 0.5; K[T3][T3] = 0.75; K[T3][T4] = 0.0;
-		K[T4][T1] = 0.0;  K[T4][T2] = 0.0; K[T4][T3] = 0.0;  K[T4][T4] = 0.0;
-	}
-
-	if ((metrology->serial & (1 << 17)) != 0) {
-		K[T1][T1] = 0.75;  K[T1][T2] = 0.50; K[T1][T3] = -0.25; K[T1][T4] = 0.0;
-		K[T2][T1] = 0.25;  K[T2][T2] = 0.50; K[T2][T3] = 0.25; K[T2][T4] = 0.0;
-		K[T3][T1] = 0.00;  K[T3][T2] = 0.25; K[T3][T3] = 0.50; K[T3][T4] = 0.25;
-		K[T4][T1] = 0.00;  K[T4][T2] = -0.25; K[T4][T3] = 0.50; K[T4][T4] = 0.75;
-	}
-
-	for (int i = 0; i < 4; i++) {
-		phase_smt.VALUE[i] = K[i][0] * phase.VALUE[0] + K[i][1] * phase.VALUE[1] + K[i][2] * phase.VALUE[2] + K[i][3] * phase.VALUE[3];
-		phase_smt.VALUE[i + 4] = K[i][0] * phase.VALUE[4] + K[i][1] * phase.VALUE[5] + K[i][2] * phase.VALUE[6] + K[i][3] * phase.VALUE[7];
+		// phase_smt[freq*N_Tx + t] = sum_j K[t][j] * deltas[j].
+		for (uint32_t t = 0; t < N_Tx && t < SMT_MAX_TX; t++) {
+			float sum = 0.0f;
+			for (uint32_t j = 0; j < SMT_MAX_TX; j++)
+				sum += K[t][j] * deltas[j];
+			uint32_t idx = freq * N_Tx + t;
+			if (idx < 10)
+				phase_smt.VALUE[idx] = sum;
+		}
 	}
 	return phase_smt;
-
 }
 
 V10 get_air_smt(V10 *S, GP_TOOL_METROLOGY *metrology) {
-	V10 phase_smt;	
-	double K[4][4] = { 0.0, };
-	enum T_SMT {
-		T1, T2, T3, T4,
-	};
-	
-	// Коэффициенты симметризации.
-	if ((metrology->serial & (1 << 17)) == 0) {
-		K[T1][T1] = 0.75; K[T1][T2] = 0.5; K[T1][T3] = -0.25; K[T1][T4] = 0.0;
-		K[T2][T1] = 0.25; K[T2][T2] = 0.5; K[T2][T3] = 0.25; K[T2][T4] = 0.0;
-		K[T3][T1] = -0.25; K[T3][T2] = 0.5; K[T3][T3] = 0.75; K[T3][T4] = 0.0;
-		K[T4][T1] = 0.0;  K[T4][T2] = 0.0; K[T4][T3] = 0.0;  K[T4][T4] = 0.0;
-	}
+	V10 phase_smt = { 0.0f, };
+	if (S == nullptr || metrology == nullptr)
+		return phase_smt;
 
-	if ((metrology->serial & (1 << 17)) != 0) {
-		K[T1][T1] = 0.75;  K[T1][T2] = 0.50; K[T1][T3] = -0.25; K[T1][T4] = 0.0;
-		K[T2][T1] = 0.25;  K[T2][T2] = 0.50; K[T2][T3] = 0.25; K[T2][T4] = 0.0;
-		K[T3][T1] = 0.00;  K[T3][T2] = 0.25; K[T3][T3] = 0.50; K[T3][T4] = 0.25;
-		K[T4][T1] = 0.00;  K[T4][T2] = -0.25; K[T4][T3] = 0.50; K[T4][T4] = 0.75;
-	}
+	TOOL_IDENTITY id = decode_tool_signature(metrology->signature);
+	const uint32_t N_Tx = id.n_tx;
+	// Для воздушной поправки считаем все физические передатчики работающими.
+	const uint8_t condition = (uint8_t)((1u << N_Tx) - 1u);
 
-	for (int i = 0; i < 4; i++) {
-		phase_smt.VALUE[i] = K[i][0] * S->VALUE[0] + K[i][1] * S->VALUE[1] + K[i][2] * S->VALUE[2] + K[i][3] * S->VALUE[3];
-		phase_smt.VALUE[i + 4] = K[i][0] * S->VALUE[4] + K[i][1] * S->VALUE[5] + K[i][2] * S->VALUE[6] + K[i][3] * S->VALUE[7];
+	float K[SMT_MAX_TX][SMT_MAX_TX];
+	build_symmetry_matrix(K, N_Tx, condition);
+
+	// Вход S и выход phase_smt раскладываются freq-major со страйдом N_Tx.
+	for (uint32_t freq = 0; freq < 2; freq++) {
+		for (uint32_t t = 0; t < N_Tx && t < SMT_MAX_TX; t++) {
+			float sum = 0.0f;
+			for (uint32_t j = 0; j < SMT_MAX_TX; j++) {
+				uint32_t in_idx = freq * N_Tx + j;
+				if (j < N_Tx && in_idx < 10)
+					sum += K[t][j] * S->VALUE[in_idx];
+			}
+			uint32_t idx = freq * N_Tx + t;
+			if (idx < 10)
+				phase_smt.VALUE[idx] = sum;
+		}
 	}
 	return phase_smt;
-
 }
 
 complex <double> Z(double R, double L, double C, double f) {

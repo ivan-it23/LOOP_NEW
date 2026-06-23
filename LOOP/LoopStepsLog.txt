@@ -193,3 +193,6 @@
 п»ї[15:51:15] [ШАГ 13] R7: выбрано сопротивление. on_off=true, bt_on=true, start_R_measure=false
 п»ї[15:52:02] [ШАГ 13] R8: выбрано сопротивление. on_off=true, bt_on=true, start_R_measure=false
 п»ї[22:01:08] [ШАГ 13] R1: выбрано сопротивление. on_off=false, bt_on=false, start_R_measure=false
+п»ї[22:57:21] [ШАГ 3] ВКЛЮЧИТЬ ПРИБОР: нажата кнопка. Текущее состояние on_off=false, tool_type=0
+п»ї[22:57:21] [ШАГ 3] ВКЛЮЧИТЬ ПРИБОР: УСПЕХ. on_off=true, sonde_param=10
+п»ї[22:57:34] [ШАГ 10] ЛОКАЛЬНЫЙ ВОЗДУХ: нажата кнопка. on_off=true, bt_on=false
