@@ -1,0 +1,56 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{827E0CD3-B72D-47B6-A68D-7590B98EB39B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LOOP.Next.App", "src\LOOP.Next.App\LOOP.Next.App.csproj", "{3E0F6AFD-CBFD-48B0-A366-950E754802B5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LOOP.Next.Core", "src\LOOP.Next.Core\LOOP.Next.Core.csproj", "{DB61CE07-320A-4D83-A75F-E7040A001D12}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LOOP.Next.Hardware", "src\LOOP.Next.Hardware\LOOP.Next.Hardware.csproj", "{0CC1E50C-1E8A-4D2F-BD1E-1DF0A1CD732C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LOOP.Next.Metrology", "src\LOOP.Next.Metrology\LOOP.Next.Metrology.csproj", "{2AE5C781-1432-4BC0-AE62-C7054A683E80}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LOOP.Next.Reporting", "src\LOOP.Next.Reporting\LOOP.Next.Reporting.csproj", "{A5016BAB-40FA-4C67-8543-E0589D73C50F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{3E0F6AFD-CBFD-48B0-A366-950E754802B5}.Debug|x64.ActiveCfg = Debug|x64
+		{3E0F6AFD-CBFD-48B0-A366-950E754802B5}.Debug|x64.Build.0 = Debug|x64
+		{3E0F6AFD-CBFD-48B0-A366-950E754802B5}.Release|x64.ActiveCfg = Release|x64
+		{3E0F6AFD-CBFD-48B0-A366-950E754802B5}.Release|x64.Build.0 = Release|x64
+		{DB61CE07-320A-4D83-A75F-E7040A001D12}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{DB61CE07-320A-4D83-A75F-E7040A001D12}.Debug|x64.Build.0 = Debug|Any CPU
+		{DB61CE07-320A-4D83-A75F-E7040A001D12}.Release|x64.ActiveCfg = Release|Any CPU
+		{DB61CE07-320A-4D83-A75F-E7040A001D12}.Release|x64.Build.0 = Release|Any CPU
+		{0CC1E50C-1E8A-4D2F-BD1E-1DF0A1CD732C}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{0CC1E50C-1E8A-4D2F-BD1E-1DF0A1CD732C}.Debug|x64.Build.0 = Debug|Any CPU
+		{0CC1E50C-1E8A-4D2F-BD1E-1DF0A1CD732C}.Release|x64.ActiveCfg = Release|Any CPU
+		{0CC1E50C-1E8A-4D2F-BD1E-1DF0A1CD732C}.Release|x64.Build.0 = Release|Any CPU
+		{2AE5C781-1432-4BC0-AE62-C7054A683E80}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{2AE5C781-1432-4BC0-AE62-C7054A683E80}.Debug|x64.Build.0 = Debug|Any CPU
+		{2AE5C781-1432-4BC0-AE62-C7054A683E80}.Release|x64.ActiveCfg = Release|Any CPU
+		{2AE5C781-1432-4BC0-AE62-C7054A683E80}.Release|x64.Build.0 = Release|Any CPU
+		{A5016BAB-40FA-4C67-8543-E0589D73C50F}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{A5016BAB-40FA-4C67-8543-E0589D73C50F}.Debug|x64.Build.0 = Debug|Any CPU
+		{A5016BAB-40FA-4C67-8543-E0589D73C50F}.Release|x64.ActiveCfg = Release|Any CPU
+		{A5016BAB-40FA-4C67-8543-E0589D73C50F}.Release|x64.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{3E0F6AFD-CBFD-48B0-A366-950E754802B5} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{DB61CE07-320A-4D83-A75F-E7040A001D12} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{0CC1E50C-1E8A-4D2F-BD1E-1DF0A1CD732C} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{2AE5C781-1432-4BC0-AE62-C7054A683E80} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{A5016BAB-40FA-4C67-8543-E0589D73C50F} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+	EndGlobalSection
+EndGlobal
+
