@@ -27,6 +27,7 @@ public partial class MainPageViewModel : ObservableObject
 
     public MainPageViewModel()
     {
+        BuildDefaultResistanceTable();
         RefreshPorts();
     }
 
@@ -35,6 +36,8 @@ public partial class MainPageViewModel : ObservableObject
     public ObservableCollection<string> RingPorts { get; } = new();
 
     public ObservableCollection<ChannelReadingViewModel> Channels { get; } = new();
+
+    public ObservableCollection<ResistanceTableRowViewModel> ResistanceRows { get; } = new();
 
     public ObservableCollection<int> FrameCountOptions { get; } = new() { 20, 30, 40, 50, 60 };
 
@@ -370,9 +373,54 @@ public partial class MainPageViewModel : ObservableObject
         table.SetHeaders(sondeParameters);
 
         Channels.Clear();
+        ResistanceRows.Clear();
         foreach (var header in table.Headers)
         {
             Channels.Add(new ChannelReadingViewModel(header.ChannelIndex, header.Label));
+            ResistanceRows.Add(new ResistanceTableRowViewModel(header.ChannelIndex, header.Label, string.Empty));
+        }
+
+        if (ResistanceRows.Count == 0)
+        {
+            BuildDefaultResistanceTable();
+        }
+    }
+
+    private void BuildDefaultResistanceTable()
+    {
+        ResistanceRows.Clear();
+
+        string[] labels =
+        {
+            "T1 401",
+            "T2 401",
+            "T3 401",
+            "T4 401",
+            "T5 401",
+            "T1 2001",
+            "T2 2001",
+            "T3 2001",
+            "T4 2001",
+            "T5 2001"
+        };
+
+        string[] airValues =
+        {
+            "1275",
+            "1285",
+            "1295",
+            "1305",
+            "1315",
+            "1228",
+            "1230",
+            "1232",
+            "1235",
+            "1237"
+        };
+
+        for (var i = 0; i < labels.Length; i++)
+        {
+            ResistanceRows.Add(new ResistanceTableRowViewModel(i, labels[i], airValues[i]));
         }
     }
 

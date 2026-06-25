@@ -9,394 +9,404 @@
     mc:Ignorable="d">
 
     <Page.Resources>
-        <ResourceDictionary>
-            <ResourceDictionary.ThemeDictionaries>
-                <ResourceDictionary x:Key="Light">
-                    <SolidColorBrush x:Key="LoopBandBrush" Color="#DCEBFF" />
-                    <SolidColorBrush x:Key="LoopBandBorderBrush" Color="#7F9DBD" />
-                    <SolidColorBrush x:Key="LoopAutoBrush" Color="#FFDADA" />
-                    <SolidColorBrush x:Key="LoopAutoBorderBrush" Color="#D78484" />
-                    <SolidColorBrush x:Key="LoopTableBrush" Color="#FFFFFF" />
-                </ResourceDictionary>
-                <ResourceDictionary x:Key="Dark">
-                    <SolidColorBrush x:Key="LoopBandBrush" Color="#1F344C" />
-                    <SolidColorBrush x:Key="LoopBandBorderBrush" Color="#52708F" />
-                    <SolidColorBrush x:Key="LoopAutoBrush" Color="#4B2C2C" />
-                    <SolidColorBrush x:Key="LoopAutoBorderBrush" Color="#9D5A5A" />
-                    <SolidColorBrush x:Key="LoopTableBrush" Color="#1B1B1B" />
-                </ResourceDictionary>
-            </ResourceDictionary.ThemeDictionaries>
-        </ResourceDictionary>
+        <SolidColorBrush x:Key="LoopBandBrush" Color="#DCEBFF" />
+        <SolidColorBrush x:Key="LoopBandBorderBrush" Color="#7F9DBD" />
+        <SolidColorBrush x:Key="LoopAutoBrush" Color="#FFDADA" />
+        <SolidColorBrush x:Key="LoopAutoBorderBrush" Color="#D78484" />
+        <SolidColorBrush x:Key="OldTableBorderBrush" Color="#9A9A9A" />
+        <SolidColorBrush x:Key="OldTableBackgroundBrush" Color="#F1F1F1" />
+        <SolidColorBrush x:Key="OldTableCellBrush" Color="#FFFFFF" />
+
+        <Style x:Key="OldTableCellBorderStyle" TargetType="Border">
+            <Setter Property="BorderBrush" Value="{StaticResource OldTableBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Background" Value="{StaticResource OldTableCellBrush}" />
+            <Setter Property="Margin" Value="1" />
+            <Setter Property="MinHeight" Value="32" />
+        </Style>
+
+        <Style x:Key="OldTableHeaderTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="18" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Foreground" Value="Black" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <Style x:Key="OldTableCellTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="20" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Foreground" Value="Black" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <Style x:Key="OldTableTextBoxStyle" TargetType="TextBox">
+            <Setter Property="MinHeight" Value="28" />
+            <Setter Property="Padding" Value="4,0" />
+            <Setter Property="Margin" Value="1" />
+            <Setter Property="FontSize" Value="16" />
+            <Setter Property="TextAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
     </Page.Resources>
 
-    <Grid>
+    <Grid RowSpacing="0">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="48" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
         <TabView
+            Grid.Row="0"
             TabWidthMode="SizeToContent"
             IsAddTabButtonVisible="False"
-            SelectedIndex="0">
+            SelectedIndex="-1"
+            Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+            <TabViewItem Header="Поверка кольца" IsClosable="False" />
+            <TabViewItem Header="Настройки" IsClosable="False" />
+        </TabView>
 
-            <TabViewItem Header="Поверка">
-                <Grid>
+        <Border
+            Grid.Row="1"
+            Background="{StaticResource LoopBandBrush}"
+            BorderBrush="{StaticResource LoopBandBorderBrush}"
+            BorderThickness="0,1,0,1"
+            Padding="6">
+            <Grid ColumnSpacing="10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <Grid Grid.Column="0" RowSpacing="6" ColumnSpacing="8" VerticalAlignment="Center">
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
-
-                    <Border
-                        Grid.Row="0"
-                        Background="{ThemeResource LoopBandBrush}"
-                        BorderBrush="{ThemeResource LoopBandBorderBrush}"
-                        BorderThickness="0,1,0,1"
-                        Padding="8">
-                        <Grid ColumnSpacing="16">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-
-                            <Grid Grid.Column="0" RowSpacing="8" ColumnSpacing="8">
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                </Grid.RowDefinitions>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="72" />
-                                </Grid.ColumnDefinitions>
-
-                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Усреднение:" VerticalAlignment="Center" FontWeight="SemiBold" />
-                                <ComboBox Grid.Row="0" Grid.Column="1" ItemsSource="{x:Bind ViewModel.AveragingOptions}" SelectedItem="{x:Bind ViewModel.SelectedAveraging, Mode=TwoWay}" />
-                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Порог %:" VerticalAlignment="Center" FontWeight="SemiBold" />
-                                <ComboBox Grid.Row="1" Grid.Column="1" ItemsSource="{x:Bind ViewModel.ThresholdOptions}" SelectedItem="{x:Bind ViewModel.ThresholdPercent, Mode=TwoWay}" />
-                            </Grid>
-
-                            <Button
-                                Grid.Column="1"
-                                Width="40"
-                                Height="40"
-                                VerticalAlignment="Center"
-                                IsEnabled="{x:Bind ViewModel.IsConnected, Mode=OneWay}"
-                                Command="{x:Bind ViewModel.TogglePollingCommand}"
-                                ToolTipService.ToolTip="{x:Bind ViewModel.PollingText, Mode=OneWay}">
-                                <FontIcon Glyph="{x:Bind ViewModel.PollingGlyph, Mode=OneWay}" FontSize="18" />
-                            </Button>
-
-                            <Grid Grid.Column="2" RowSpacing="8" ColumnSpacing="8">
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                </Grid.RowDefinitions>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="112" />
-                                    <ColumnDefinition Width="112" />
-                                    <ColumnDefinition Width="148" />
-                                    <ColumnDefinition Width="156" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-
-                                <Button Grid.Row="0" Grid.Column="0" Content="{x:Bind ViewModel.ToolToggleText, Mode=OneWay}" IsEnabled="{x:Bind ViewModel.CanToggleTool, Mode=OneWay}" Command="{x:Bind ViewModel.ToggleToolCommand}" />
-                                <Button Grid.Row="0" Grid.Column="1" Content="{x:Bind ViewModel.RingToggleText, Mode=OneWay}" IsEnabled="{x:Bind ViewModel.CanToggleRing, Mode=OneWay}" Command="{x:Bind ViewModel.ToggleRingCommand}" />
-                                <Button Grid.Row="0" Grid.Column="2" Content="Локальный воздух" IsEnabled="{x:Bind ViewModel.IsConnected, Mode=OneWay}" Command="{x:Bind ViewModel.LocalAirCommand}" />
-
-                                <ComboBox Grid.Row="1" Grid.Column="0" ItemsSource="{x:Bind ViewModel.ToolPorts}" SelectedItem="{x:Bind ViewModel.SelectedToolPort, Mode=TwoWay}" PlaceholderText="COM прибора" />
-                                <ComboBox Grid.Row="1" Grid.Column="1" ItemsSource="{x:Bind ViewModel.RingPorts}" SelectedItem="{x:Bind ViewModel.SelectedRingPort, Mode=TwoWay}" PlaceholderText="COM кольца" />
-                                <ComboBox Grid.Row="1" Grid.Column="2" ItemsSource="{x:Bind ViewModel.FrameCountOptions}" SelectedItem="{x:Bind ViewModel.SelectedFrameCount, Mode=TwoWay}" PlaceholderText="Кол-во кадров" />
-                                <ComboBox Grid.Row="1" Grid.Column="3" ItemsSource="{x:Bind ViewModel.PollIntervalOptions}" SelectedItem="{x:Bind ViewModel.PollIntervalMs, Mode=TwoWay}" PlaceholderText="Интервал, мс" />
-                                <Button Grid.Row="1" Grid.Column="4" Command="{x:Bind ViewModel.RefreshPortsCommand}" ToolTipService.ToolTip="Обновить список COM-портов" HorizontalAlignment="Left" Padding="8,4">
-                                    <FontIcon Glyph="&#xE72C;" FontSize="14" />
-                                </Button>
-                            </Grid>
-
-                            <ToggleButton
-                                Grid.Column="3"
-                                Width="120"
-                                Height="56"
-                                VerticalAlignment="Center"
-                                Background="{ThemeResource LoopAutoBrush}"
-                                BorderBrush="{ThemeResource LoopAutoBorderBrush}"
-                                IsChecked="{x:Bind ViewModel.IsAutoMode, Mode=TwoWay}">
-                                <TextBlock Text="Режим&#x0a;АВТО" TextAlignment="Center" />
-                            </ToggleButton>
-                        </Grid>
-                    </Border>
-
-                    <Border
-                        Grid.Row="1"
-                        Background="{ThemeResource LoopTableBrush}"
-                        BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
-                        BorderThickness="0,0,0,1"
-                        Padding="12">
-                        <Grid RowSpacing="6">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="*" />
-                            </Grid.RowDefinitions>
-
-                            <TextBlock Grid.Row="0" Text="Фазы по каналам, мГ" Style="{StaticResource SubtitleTextBlockStyle}" />
-
-                            <Grid Grid.Row="1" Padding="8,0">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="2*" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0" Text="Канал" Style="{StaticResource CaptionTextBlockStyle}" />
-                                <TextBlock Grid.Column="1" Text="Сырое" Style="{StaticResource CaptionTextBlockStyle}" />
-                                <TextBlock Grid.Column="2" Text="Воздух" Style="{StaticResource CaptionTextBlockStyle}" />
-                                <TextBlock Grid.Column="3" Text="Скорр." Style="{StaticResource CaptionTextBlockStyle}" />
-                            </Grid>
-
-                            <ListView Grid.Row="2" ItemsSource="{x:Bind ViewModel.Channels}" SelectionMode="None">
-                                <ListView.ItemContainerStyle>
-                                    <Style TargetType="ListViewItem">
-                                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                                        <Setter Property="MinHeight" Value="36" />
-                                        <Setter Property="Padding" Value="8,4" />
-                                    </Style>
-                                </ListView.ItemContainerStyle>
-                                <ListView.ItemTemplate>
-                                    <DataTemplate x:DataType="vm:ChannelReadingViewModel">
-                                        <Grid Padding="8,0">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="2*" />
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="*" />
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="0" Text="{x:Bind Label}" FontWeight="SemiBold" VerticalAlignment="Center" />
-                                            <TextBlock Grid.Column="1" Text="{x:Bind RawText, Mode=OneWay}" VerticalAlignment="Center" />
-                                            <TextBlock Grid.Column="2" Text="{x:Bind AirText, Mode=OneWay}" VerticalAlignment="Center" />
-                                            <TextBlock Grid.Column="3" Text="{x:Bind CorrectedText, Mode=OneWay}" VerticalAlignment="Center" FontWeight="SemiBold" />
-                                        </Grid>
-                                    </DataTemplate>
-                                </ListView.ItemTemplate>
-                            </ListView>
-                        </Grid>
-                    </Border>
-
-                    <Border
-                        Grid.Row="2"
-                        Background="{ThemeResource LoopBandBrush}"
-                        BorderBrush="{ThemeResource LoopBandBorderBrush}"
-                        BorderThickness="0,1,0,0"
-                        Padding="8">
-                        <Grid ColumnSpacing="28">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="160" />
-                            </Grid.ColumnDefinitions>
-
-                            <Grid Grid.Column="0" RowSpacing="4">
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                </Grid.RowDefinitions>
-
-                                <TextBlock Grid.Row="0" Text="Идентификация зонда" Style="{StaticResource CaptionTextBlockStyle}" />
-
-                                <Grid Grid.Row="1" ColumnSpacing="14">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="{x:Bind ViewModel.ToolTypeName, Mode=OneWay}" />
-                                    <TextBlock Grid.Column="1" Text="{x:Bind ViewModel.TransmitterCountText, Mode=OneWay}" />
-                                    <TextBlock Grid.Column="2" Text="{x:Bind ViewModel.ModificationText, Mode=OneWay}" />
-                                    <TextBlock Grid.Column="3" Text="{x:Bind ViewModel.NumberText, Mode=OneWay}" />
-                                    <TextBlock Grid.Column="4" Text="{x:Bind ViewModel.SerialText, Mode=OneWay}" />
-                                    <TextBlock Grid.Column="5" Text="{x:Bind ViewModel.RxPositionText, Mode=OneWay}" />
-                                </Grid>
-
-                                <Grid Grid.Row="2" ColumnSpacing="14">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="{x:Bind ViewModel.SignatureText, Mode=OneWay}" />
-                                    <TextBlock Grid.Column="1" Text="{x:Bind ViewModel.PaletteText, Mode=OneWay}" />
-                                    <TextBlock Grid.Column="2" Text="{x:Bind ViewModel.FrameCount, Mode=OneWay}" />
-                                    <TextBlock Grid.Column="3" Text="{x:Bind ViewModel.LocalAirState, Mode=OneWay}" />
-                                </Grid>
-                            </Grid>
-
-                            <Button Grid.Column="1" Content="Рапорт" Command="{x:Bind ViewModel.ReportCommand}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
-                        </Grid>
-                    </Border>
-
-                    <InfoBar Grid.Row="3" IsOpen="True" IsClosable="False" Severity="Informational" Message="{x:Bind ViewModel.StatusText, Mode=OneWay}" />
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="64" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Усреднение:" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    <ComboBox Grid.Row="0" Grid.Column="1" ItemsSource="{x:Bind ViewModel.AveragingOptions}" SelectedItem="{x:Bind ViewModel.SelectedAveraging, Mode=TwoWay}" />
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Порог %:" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    <ComboBox Grid.Row="1" Grid.Column="1" ItemsSource="{x:Bind ViewModel.ThresholdOptions}" SelectedItem="{x:Bind ViewModel.ThresholdPercent, Mode=TwoWay}" />
                 </Grid>
-            </TabViewItem>
 
-            <TabViewItem Header="Поверка кольца">
-                <Grid Padding="16" RowSpacing="12">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
+                <Button
+                    Grid.Column="1"
+                    Width="32"
+                    Height="32"
+                    Padding="0"
+                    VerticalAlignment="Center"
+                    IsEnabled="{x:Bind ViewModel.IsConnected, Mode=OneWay}"
+                    Command="{x:Bind ViewModel.TogglePollingCommand}"
+                    ToolTipService.ToolTip="{x:Bind ViewModel.PollingText, Mode=OneWay}">
+                    <FontIcon Glyph="{x:Bind ViewModel.PollingGlyph, Mode=OneWay}" FontSize="13" />
+                </Button>
 
-                    <TextBlock Text="Поверка кольца" Style="{StaticResource TitleTextBlockStyle}" HorizontalAlignment="Center" />
+                <StackPanel Grid.Column="2" Spacing="4">
+                    <Button
+                        Width="112"
+                        Content="{x:Bind ViewModel.ToolToggleText, Mode=OneWay}"
+                        IsEnabled="{x:Bind ViewModel.CanToggleTool, Mode=OneWay}"
+                        Command="{x:Bind ViewModel.ToggleToolCommand}" />
+                    <StackPanel Orientation="Horizontal" Spacing="4">
+                        <ComboBox
+                            Width="112"
+                            ItemsSource="{x:Bind ViewModel.ToolPorts}"
+                            SelectedItem="{x:Bind ViewModel.SelectedToolPort, Mode=TwoWay}"
+                            PlaceholderText="COM прибора" />
+                        <Button
+                            Width="32"
+                            Height="32"
+                            Padding="0"
+                            Command="{x:Bind ViewModel.RefreshPortsCommand}"
+                            ToolTipService.ToolTip="Обновить COM-порты прибора">
+                            <FontIcon Glyph="&#xE72C;" FontSize="13" />
+                        </Button>
+                    </StackPanel>
+                </StackPanel>
 
-                    <Grid Grid.Row="1" ColumnSpacing="18">
+                <StackPanel Grid.Column="3" Spacing="4">
+                    <Button
+                        Width="112"
+                        Content="{x:Bind ViewModel.RingToggleText, Mode=OneWay}"
+                        IsEnabled="{x:Bind ViewModel.CanToggleRing, Mode=OneWay}"
+                        Command="{x:Bind ViewModel.ToggleRingCommand}" />
+                    <StackPanel Orientation="Horizontal" Spacing="4">
+                        <ComboBox
+                            Width="112"
+                            ItemsSource="{x:Bind ViewModel.RingPorts}"
+                            SelectedItem="{x:Bind ViewModel.SelectedRingPort, Mode=TwoWay}"
+                            PlaceholderText="COM кольца" />
+                        <Button
+                            Width="32"
+                            Height="32"
+                            Padding="0"
+                            Command="{x:Bind ViewModel.RefreshPortsCommand}"
+                            ToolTipService.ToolTip="Обновить COM-порты кольца">
+                            <FontIcon Glyph="&#xE72C;" FontSize="13" />
+                        </Button>
+                    </StackPanel>
+                </StackPanel>
+
+                <StackPanel Grid.Column="4" Spacing="4">
+                    <Button
+                        Width="148"
+                        Content="Локальный воздух"
+                        IsEnabled="{x:Bind ViewModel.IsConnected, Mode=OneWay}"
+                        Command="{x:Bind ViewModel.LocalAirCommand}" />
+                    <ComboBox
+                        Width="148"
+                        ItemsSource="{x:Bind ViewModel.FrameCountOptions}"
+                        SelectedItem="{x:Bind ViewModel.SelectedFrameCount, Mode=TwoWay}"
+                        PlaceholderText="Кол-во кадров" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="5" Spacing="4" VerticalAlignment="Center">
+                    <TextBlock Text="Интервал опроса, мс" Style="{StaticResource CaptionTextBlockStyle}" />
+                    <ComboBox
+                        Width="150"
+                        ItemsSource="{x:Bind ViewModel.PollIntervalOptions}"
+                        SelectedItem="{x:Bind ViewModel.PollIntervalMs, Mode=TwoWay}" />
+                </StackPanel>
+
+                <ToggleButton
+                    Grid.Column="6"
+                    Width="120"
+                    Height="56"
+                    VerticalAlignment="Center"
+                    Background="{StaticResource LoopAutoBrush}"
+                    BorderBrush="{StaticResource LoopAutoBorderBrush}"
+                    IsChecked="{x:Bind ViewModel.IsAutoMode, Mode=TwoWay}">
+                    <TextBlock Text="Режим&#x0a;АВТО" TextAlignment="Center" />
+                </ToggleButton>
+
+                <ToggleSwitch
+                    Grid.Column="7"
+                    Header="Экспресс"
+                    IsOn="{x:Bind ViewModel.ExpressMode, Mode=TwoWay}"
+                    VerticalAlignment="Center" />
+            </Grid>
+        </Border>
+
+        <ScrollViewer
+            Grid.Row="2"
+            HorizontalScrollBarVisibility="Auto"
+            VerticalScrollBarVisibility="Auto">
+            <Grid
+                MinWidth="1400"
+                Background="{StaticResource OldTableBackgroundBrush}"
+                Padding="6">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="36" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="44" />
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="104" />
+                    <ColumnDefinition Width="94" />
+                    <ColumnDefinition Width="424" />
+                    <ColumnDefinition Width="88" />
+                    <ColumnDefinition Width="86" />
+                    <ColumnDefinition Width="86" />
+                    <ColumnDefinition Width="86" />
+                    <ColumnDefinition Width="86" />
+                    <ColumnDefinition Width="86" />
+                    <ColumnDefinition Width="86" />
+                    <ColumnDefinition Width="86" />
+                    <ColumnDefinition Width="86" />
+                </Grid.ColumnDefinitions>
+
+                <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource OldTableCellBorderStyle}">
+                    <TextBlock Text="№ Зонда" Style="{StaticResource OldTableHeaderTextStyle}" />
+                </Border>
+                <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource OldTableCellBorderStyle}">
+                    <TextBlock Text="AIR" Style="{StaticResource OldTableHeaderTextStyle}" />
+                </Border>
+                <Border Grid.Row="0" Grid.Column="2" Style="{StaticResource OldTableCellBorderStyle}">
+                    <Grid Margin="4,0">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="320" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
-
-                        <Border BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}" BorderThickness="1" Padding="12">
-                            <Grid RowSpacing="8" ColumnSpacing="8">
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                </Grid.RowDefinitions>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="48" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-
-                                <TextBlock Grid.Row="0" Grid.ColumnSpan="3" Text="Геометрия зонда" Style="{StaticResource CaptionTextBlockStyle}" />
-                                <TextBlock Grid.Row="1" Grid.Column="1" Text="L1, мм" HorizontalAlignment="Center" />
-                                <TextBlock Grid.Row="1" Grid.Column="2" Text="L2, мм" HorizontalAlignment="Center" />
-                                <TextBlock Grid.Row="2" Grid.Column="0" Text="T1" VerticalAlignment="Center" />
-                                <TextBox Grid.Row="2" Grid.Column="1" />
-                                <TextBox Grid.Row="2" Grid.Column="2" />
-                                <TextBlock Grid.Row="3" Grid.Column="0" Text="T2" VerticalAlignment="Center" />
-                                <TextBox Grid.Row="3" Grid.Column="1" />
-                                <TextBox Grid.Row="3" Grid.Column="2" />
-                                <TextBlock Grid.Row="4" Grid.Column="0" Text="T3" VerticalAlignment="Center" />
-                                <TextBox Grid.Row="4" Grid.Column="1" />
-                                <TextBox Grid.Row="4" Grid.Column="2" />
-                                <TextBlock Grid.Row="5" Grid.Column="0" Text="T4" VerticalAlignment="Center" />
-                                <TextBox Grid.Row="5" Grid.Column="1" />
-                                <TextBox Grid.Row="5" Grid.Column="2" />
-                                <TextBlock Grid.Row="6" Grid.Column="0" Text="T5" VerticalAlignment="Center" />
-                                <TextBox Grid.Row="6" Grid.Column="1" />
-                                <TextBox Grid.Row="6" Grid.Column="2" />
-                                <TextBlock Grid.Row="7" Grid.Column="0" Text="F1/F2" VerticalAlignment="Center" />
-                                <TextBox Grid.Row="7" Grid.Column="1" PlaceholderText="F1, кГц" />
-                                <TextBox Grid.Row="7" Grid.Column="2" PlaceholderText="F2, кГц" />
-                            </Grid>
-                        </Border>
-
-                        <Border Grid.Column="1" BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}" BorderThickness="1" Padding="12">
-                            <Grid RowSpacing="10" ColumnSpacing="10">
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                </Grid.RowDefinitions>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="120" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-
-                                <TextBlock Grid.Row="0" Grid.ColumnSpan="2" Text="Расчёт ёмкостей" Style="{StaticResource CaptionTextBlockStyle}" />
-                                <TextBlock Grid.Row="1" Grid.Column="0" Text="C_req, pF" VerticalAlignment="Center" />
-                                <TextBox Grid.Row="1" Grid.Column="1" />
-                                <TextBlock Grid.Row="2" Grid.Column="0" Text="RE_calc, ohm" VerticalAlignment="Center" />
-                                <TextBox Grid.Row="2" Grid.Column="1" />
-                                <TextBlock Grid.Row="3" Grid.Column="0" Text="R, ohm" VerticalAlignment="Center" />
-                                <TextBox Grid.Row="3" Grid.Column="1" />
-                                <TextBlock Grid.Row="4" Grid.Column="0" Text="Re meas" VerticalAlignment="Center" />
-                                <TextBox Grid.Row="4" Grid.Column="1" />
-                                <StackPanel Grid.Row="5" Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="8">
-                                    <Button Content="Рассчитать" />
-                                    <Button Content="Прочитать" />
-                                    <Button Content="Записать" />
-                                    <CheckBox Content="Редактировать" Margin="12,0,0,0" />
-                                </StackPanel>
-                            </Grid>
-                        </Border>
+                        <TextBlock Grid.Column="0" Text="-90mG" Style="{StaticResource OldTableHeaderTextStyle}" FontSize="14" />
+                        <TextBlock Grid.Column="1" Text="-60mG" Style="{StaticResource OldTableHeaderTextStyle}" FontSize="14" />
+                        <TextBlock Grid.Column="2" Text="-30mG" Style="{StaticResource OldTableHeaderTextStyle}" FontSize="14" />
+                        <TextBlock Grid.Column="3" Text="30mG" Style="{StaticResource OldTableHeaderTextStyle}" FontSize="14" />
+                        <TextBlock Grid.Column="4" Text="60mG" Style="{StaticResource OldTableHeaderTextStyle}" FontSize="14" />
+                        <TextBlock Grid.Column="5" Text="90mG" Style="{StaticResource OldTableHeaderTextStyle}" FontSize="14" />
                     </Grid>
+                </Border>
+                <Border Grid.Row="0" Grid.Column="3" Style="{StaticResource OldTableCellBorderStyle}">
+                    <TextBlock Text="УЭС Ом" Style="{StaticResource OldTableHeaderTextStyle}" />
+                </Border>
+                <Border Grid.Row="0" Grid.Column="4" Style="{StaticResource OldTableCellBorderStyle}">
+                    <TextBlock Text="R1" Style="{StaticResource OldTableHeaderTextStyle}" />
+                </Border>
+                <Border Grid.Row="0" Grid.Column="5" Style="{StaticResource OldTableCellBorderStyle}">
+                    <TextBlock Text="R2" Style="{StaticResource OldTableHeaderTextStyle}" />
+                </Border>
+                <Border Grid.Row="0" Grid.Column="6" Style="{StaticResource OldTableCellBorderStyle}">
+                    <TextBlock Text="R3" Style="{StaticResource OldTableHeaderTextStyle}" />
+                </Border>
+                <Border Grid.Row="0" Grid.Column="7" Style="{StaticResource OldTableCellBorderStyle}">
+                    <TextBlock Text="R4" Style="{StaticResource OldTableHeaderTextStyle}" />
+                </Border>
+                <Border Grid.Row="0" Grid.Column="8" Style="{StaticResource OldTableCellBorderStyle}">
+                    <TextBlock Text="R5" Style="{StaticResource OldTableHeaderTextStyle}" />
+                </Border>
+                <Border Grid.Row="0" Grid.Column="9" Style="{StaticResource OldTableCellBorderStyle}">
+                    <TextBlock Text="R6" Style="{StaticResource OldTableHeaderTextStyle}" />
+                </Border>
+                <Border Grid.Row="0" Grid.Column="10" Style="{StaticResource OldTableCellBorderStyle}">
+                    <TextBlock Text="R7" Style="{StaticResource OldTableHeaderTextStyle}" />
+                </Border>
+                <Border Grid.Row="0" Grid.Column="11" Style="{StaticResource OldTableCellBorderStyle}">
+                    <TextBlock Text="R8" Style="{StaticResource OldTableHeaderTextStyle}" />
+                </Border>
 
-                    <StackPanel Grid.Row="2" Spacing="8">
-                        <Border BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}" BorderThickness="1" Padding="8">
-                            <StackPanel Spacing="4">
-                                <TextBlock Text="Идентификация зонда" Style="{StaticResource CaptionTextBlockStyle}" />
-                                <Grid ColumnSpacing="14">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="{x:Bind ViewModel.ToolTypeName, Mode=OneWay}" />
-                                    <TextBlock Grid.Column="1" Text="{x:Bind ViewModel.TransmitterCountText, Mode=OneWay}" />
-                                    <TextBlock Grid.Column="2" Text="{x:Bind ViewModel.ModificationText, Mode=OneWay}" />
-                                    <TextBlock Grid.Column="3" Text="{x:Bind ViewModel.NumberText, Mode=OneWay}" />
-                                    <TextBlock Grid.Column="4" Text="{x:Bind ViewModel.SerialText, Mode=OneWay}" />
-                                    <TextBlock Grid.Column="5" Text="{x:Bind ViewModel.RxPositionText, Mode=OneWay}" />
-                                </Grid>
-                                <Grid ColumnSpacing="14">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="{x:Bind ViewModel.SignatureText, Mode=OneWay}" />
-                                    <TextBlock Grid.Column="1" Text="{x:Bind ViewModel.PaletteText, Mode=OneWay}" />
-                                </Grid>
-                            </StackPanel>
-                        </Border>
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <Button Content="Метрология -> Зонд" />
-                            <Button Content="Метрология -> Файл" />
-                        </StackPanel>
+                <ItemsControl
+                    Grid.Row="1"
+                    Grid.ColumnSpan="12"
+                    ItemsSource="{x:Bind ViewModel.ResistanceRows}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:ResistanceTableRowViewModel">
+                            <Grid Height="35">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="104" />
+                                    <ColumnDefinition Width="94" />
+                                    <ColumnDefinition Width="424" />
+                                    <ColumnDefinition Width="88" />
+                                    <ColumnDefinition Width="86" />
+                                    <ColumnDefinition Width="86" />
+                                    <ColumnDefinition Width="86" />
+                                    <ColumnDefinition Width="86" />
+                                    <ColumnDefinition Width="86" />
+                                    <ColumnDefinition Width="86" />
+                                    <ColumnDefinition Width="86" />
+                                    <ColumnDefinition Width="86" />
+                                </Grid.ColumnDefinitions>
+
+                                <Border Grid.Column="0" Style="{StaticResource OldTableCellBorderStyle}">
+                                    <TextBlock Text="{x:Bind SondeLabel}" Style="{StaticResource OldTableCellTextStyle}" />
+                                </Border>
+                                <Border Grid.Column="1" Style="{StaticResource OldTableCellBorderStyle}">
+                                    <TextBlock Text="{x:Bind AirText, Mode=OneWay}" Style="{StaticResource OldTableCellTextStyle}" />
+                                </Border>
+                                <Border Grid.Column="2" Style="{StaticResource OldTableCellBorderStyle}" Padding="4">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="2*" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <Border Grid.Column="0" Background="Red" />
+                                        <Border Grid.Column="1" Background="Yellow" />
+                                        <Border Grid.Column="2" Background="LimeGreen" />
+                                        <Border Grid.Column="3" Background="Yellow" />
+                                        <Border Grid.Column="4" Background="Red" />
+                                    </Grid>
+                                </Border>
+                                <TextBox Grid.Column="3" Text="{x:Bind UesText, Mode=TwoWay}" Style="{StaticResource OldTableTextBoxStyle}" />
+                                <TextBox Grid.Column="4" Text="{x:Bind R1Text, Mode=TwoWay}" Style="{StaticResource OldTableTextBoxStyle}" />
+                                <TextBox Grid.Column="5" Text="{x:Bind R2Text, Mode=TwoWay}" Style="{StaticResource OldTableTextBoxStyle}" />
+                                <TextBox Grid.Column="6" Text="{x:Bind R3Text, Mode=TwoWay}" Style="{StaticResource OldTableTextBoxStyle}" />
+                                <TextBox Grid.Column="7" Text="{x:Bind R4Text, Mode=TwoWay}" Style="{StaticResource OldTableTextBoxStyle}" />
+                                <TextBox Grid.Column="8" Text="{x:Bind R5Text, Mode=TwoWay}" Style="{StaticResource OldTableTextBoxStyle}" />
+                                <TextBox Grid.Column="9" Text="{x:Bind R6Text, Mode=TwoWay}" Style="{StaticResource OldTableTextBoxStyle}" />
+                                <TextBox Grid.Column="10" Text="{x:Bind R7Text, Mode=TwoWay}" Style="{StaticResource OldTableTextBoxStyle}" />
+                                <TextBox Grid.Column="11" Text="{x:Bind R8Text, Mode=TwoWay}" Style="{StaticResource OldTableTextBoxStyle}" />
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <Border Grid.Row="2" Grid.Column="0" Style="{StaticResource OldTableCellBorderStyle}" />
+                <Border Grid.Row="2" Grid.Column="1" Style="{StaticResource OldTableCellBorderStyle}" />
+                <Border Grid.Row="2" Grid.Column="2" Style="{StaticResource OldTableCellBorderStyle}" />
+                <Border Grid.Row="2" Grid.Column="3" Style="{StaticResource OldTableCellBorderStyle}" />
+                <CheckBox Grid.Row="2" Grid.Column="4" HorizontalAlignment="Left" VerticalAlignment="Center" />
+                <CheckBox Grid.Row="2" Grid.Column="5" HorizontalAlignment="Left" VerticalAlignment="Center" />
+                <CheckBox Grid.Row="2" Grid.Column="6" HorizontalAlignment="Left" VerticalAlignment="Center" />
+                <CheckBox Grid.Row="2" Grid.Column="7" HorizontalAlignment="Left" VerticalAlignment="Center" />
+                <CheckBox Grid.Row="2" Grid.Column="8" HorizontalAlignment="Left" VerticalAlignment="Center" />
+                <CheckBox Grid.Row="2" Grid.Column="9" HorizontalAlignment="Left" VerticalAlignment="Center" />
+                <CheckBox Grid.Row="2" Grid.Column="10" HorizontalAlignment="Left" VerticalAlignment="Center" />
+                <CheckBox Grid.Row="2" Grid.Column="11" HorizontalAlignment="Left" VerticalAlignment="Center" />
+            </Grid>
+        </ScrollViewer>
+
+        <Border
+            Grid.Row="3"
+            Background="{StaticResource LoopBandBrush}"
+            BorderBrush="{StaticResource LoopBandBorderBrush}"
+            BorderThickness="0,1,0,0"
+            Padding="8">
+            <Grid ColumnSpacing="24">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="160" />
+                </Grid.ColumnDefinitions>
+
+                <Grid Grid.Column="0" RowSpacing="5">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Text="Идентификация зонда" Style="{StaticResource CaptionTextBlockStyle}" />
+
+                    <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="12">
+                        <TextBlock><Run Text="Тип: " /><Run Text="{x:Bind ViewModel.ToolTypeName, Mode=OneWay}" /></TextBlock>
+                        <TextBlock><Run Text="Кол-во TX: " /><Run Text="{x:Bind ViewModel.TransmitterCountText, Mode=OneWay}" /></TextBlock>
+                        <TextBlock><Run Text="Модификация: " /><Run Text="{x:Bind ViewModel.ModificationText, Mode=OneWay}" /></TextBlock>
+                        <TextBlock><Run Text="Номер: " /><Run Text="{x:Bind ViewModel.NumberText, Mode=OneWay}" /></TextBlock>
+                        <TextBlock><Run Text="Серийный №: " /><Run Text="{x:Bind ViewModel.SerialText, Mode=OneWay}" /></TextBlock>
+                        <TextBlock><Run Text="Позиция R1: " /><Run Text="{x:Bind ViewModel.RxPositionText, Mode=OneWay}" /></TextBlock>
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="12">
+                        <TextBlock><Run Text="Сигнатура: " /><Run Text="{x:Bind ViewModel.SignatureText, Mode=OneWay}" /></TextBlock>
+                        <TextBlock><Run Text="Pallet: " /><Run Text="{x:Bind ViewModel.PaletteText, Mode=OneWay}" /></TextBlock>
+                        <TextBlock><Run Text="Кадров принято: " /><Run Text="{x:Bind ViewModel.FrameCount, Mode=OneWay}" /></TextBlock>
+                        <TextBlock><Run Text="Локальный воздух: " /><Run Text="{x:Bind ViewModel.LocalAirState, Mode=OneWay}" /></TextBlock>
                     </StackPanel>
                 </Grid>
-            </TabViewItem>
 
-            <TabViewItem Header="Настройки">
-                <Grid Padding="24">
-                    <StackPanel Width="360" HorizontalAlignment="Left" Spacing="16">
-                        <TextBlock Text="Настройки" Style="{StaticResource SubtitleTextBlockStyle}" />
+                <Button
+                    Grid.Column="1"
+                    Content="Рапорт"
+                    Command="{x:Bind ViewModel.ReportCommand}"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch" />
+            </Grid>
+        </Border>
 
-                        <Border BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}" BorderThickness="1" Padding="12">
-                            <StackPanel Spacing="10">
-                                <TextBlock Text="Прибор" Style="{StaticResource CaptionTextBlockStyle}" />
-                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <TextBlock Text="Интервал опроса:" VerticalAlignment="Center" />
-                                    <ComboBox Width="100" ItemsSource="{x:Bind ViewModel.PollIntervalOptions}" SelectedItem="{x:Bind ViewModel.PollIntervalMs, Mode=TwoWay}" />
-                                    <TextBlock Text="мс" VerticalAlignment="Center" />
-                                </StackPanel>
-                                <TextBlock Text="{x:Bind ViewModel.ConnectionStateText, Mode=OneWay}" />
-                                <TextBlock Text="{x:Bind ViewModel.FrameCount, Mode=OneWay}" />
-                            </StackPanel>
-                        </Border>
-
-                        <Border BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}" BorderThickness="1" Padding="12">
-                            <StackPanel Spacing="10">
-                                <TextBlock Text="Режим измерений" Style="{StaticResource CaptionTextBlockStyle}" />
-                                <ToggleSwitch Header="Экспресс" IsOn="{x:Bind ViewModel.ExpressMode, Mode=TwoWay}" />
-                            </StackPanel>
-                        </Border>
-                    </StackPanel>
-                </Grid>
-            </TabViewItem>
-        </TabView>
+        <InfoBar
+            Grid.Row="4"
+            IsOpen="True"
+            IsClosable="False"
+            Severity="Informational"
+            Message="{x:Bind ViewModel.StatusText, Mode=OneWay}" />
     </Grid>
 </Page>
