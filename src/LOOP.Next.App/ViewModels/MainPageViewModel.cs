@@ -63,10 +63,10 @@ public partial class MainPageViewModel : ObservableObject
     // Усреднение и порог отклонения используются логикой таблицы (этап 6);
     // здесь хранятся для отображения и последующей привязки.
     [ObservableProperty]
-    public partial int SelectedAveraging { get; set; } = 10;
+    public partial int SelectedAveraging { get; set; } = 5;
 
     [ObservableProperty]
-    public partial int ThresholdPercent { get; set; } = 5;
+    public partial int ThresholdPercent { get; set; } = 6;
 
     // Режим АВТО и экспресс-режим: индикаторы интерфейса до переноса оркестрации измерений.
     [ObservableProperty]
@@ -238,7 +238,7 @@ public partial class MainPageViewModel : ObservableObject
         _rxPosition = result.Metrology.RxPosition;
 
         ApplyIdentification(result.Metrology);
-        BuildChannels(_sondeParameters);
+        BuildChannels(_sondeParameters, result.Metrology);
 
         IsConnected = true;
         _frameCounter = 0;
@@ -367,23 +367,45 @@ public partial class MainPageViewModel : ObservableObject
         SignatureBitsText = identity.SignatureBits;
     }
 
-    private void BuildChannels(IReadOnlyList<SondeParameter> sondeParameters)
+    private void BuildChannels(IReadOnlyList<SondeParameter> sondeParameters, in GpToolMetrology metrology)
     {
         var table = new MeasurementTable();
         table.SetHeaders(sondeParameters);
+        var transmitterCount = table.Headers.Count / MetrologyConverter.FrequencyCount;
 
         Channels.Clear();
         ResistanceRows.Clear();
         foreach (var header in table.Headers)
         {
             Channels.Add(new ChannelReadingViewModel(header.ChannelIndex, header.Label));
-            ResistanceRows.Add(new ResistanceTableRowViewModel(header.ChannelIndex, header.Label, string.Empty));
+            ResistanceRows.Add(new ResistanceTableRowViewModel(
+                header.ChannelIndex,
+                header.Label,
+                GetAirZzText(in metrology, header.ChannelIndex, transmitterCount)));
         }
 
         if (ResistanceRows.Count == 0)
         {
             BuildDefaultResistanceTable();
         }
+    }
+
+    private static string GetAirZzText(in GpToolMetrology metrology, int channelIndex, int transmitterCount)
+    {
+        if (transmitterCount <= 0)
+        {
+            return string.Empty;
+        }
+
+        var frequencyIndex = channelIndex / transmitterCount;
+        var transmitterIndex = channelIndex % transmitterCount;
+        if (frequencyIndex >= GpToolMetrology.FrequencyCount ||
+            transmitterIndex >= GpToolMetrology.MaxTransmitterCount)
+        {
+            return string.Empty;
+        }
+
+        return metrology.GetAirZz(frequencyIndex, transmitterIndex).ToString();
     }
 
     private void BuildDefaultResistanceTable()
@@ -404,23 +426,9 @@ public partial class MainPageViewModel : ObservableObject
             "T5 2001"
         };
 
-        string[] airValues =
-        {
-            "1275",
-            "1285",
-            "1295",
-            "1305",
-            "1315",
-            "1228",
-            "1230",
-            "1232",
-            "1235",
-            "1237"
-        };
-
         for (var i = 0; i < labels.Length; i++)
         {
-            ResistanceRows.Add(new ResistanceTableRowViewModel(i, labels[i], airValues[i]));
+            ResistanceRows.Add(new ResistanceTableRowViewModel(i, labels[i], string.Empty));
         }
     }
 
