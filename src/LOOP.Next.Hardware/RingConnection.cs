@@ -1,5 +1,6 @@
 using System.IO.Ports;
 using System.Globalization;
+using LoopNext.Core.Logging;
 using LoopNext.Core.Models;
 
 namespace LoopNext.Hardware;
@@ -22,8 +23,12 @@ public static class RingConnection
     // ответственность вышележащего слоя (button_AIR/таймеры в эталоне).
     public static RingConnectStatus Connect(SerialPort port)
     {
+        AppLogger.Write("=== НАЧАЛО ВКЛЮЧЕНИЯ КОЛЬЦА ===");
+        AppLogger.Write($"Порт кольца={port.PortName}, BaudRate={RingProtocolConstants.BaudRate}, Timeout={RingProtocolConstants.TimeoutMs}ms");
+
         if (port.IsOpen)
         {
+            AppLogger.Write("Порт кольца уже открыт, закрываем перед переподключением.");
             port.Close();
         }
 
@@ -33,14 +38,18 @@ public static class RingConnection
 
         try
         {
+            AppLogger.Write("Открытие COM-порта кольца...");
             port.Open();
+            AppLogger.Write("Порт кольца открыт успешно.");
         }
-        catch
+        catch (Exception ex)
         {
+            AppLogger.Write(ex, "ОШИБКА открытия порта кольца");
             return RingConnectStatus.PortOpenFailed;
         }
 
         port.DiscardInBuffer();
+        AppLogger.Write("Отправка команды идентификации '$'...");
         port.Write(RingProtocolConstants.IdentifyCommand);
 
         string response;
@@ -48,17 +57,22 @@ public static class RingConnection
         {
             response = port.ReadLine();
         }
-        catch
+        catch (Exception ex)
         {
+            AppLogger.Write(ex, "Таймаут ожидания ответа кольца");
             port.Close();
             return RingConnectStatus.NoResponse;
         }
 
+        AppLogger.Write($"Ответ кольца (длина {response.Length}): '{response}'");
+
         if (response.StartsWith(RingProtocolConstants.ExpectedReplyPrefix, StringComparison.Ordinal))
         {
+            AppLogger.Write("=== КОЛЬЦО УСПЕШНО ПОДКЛЮЧЕНО ===");
             return RingConnectStatus.Connected;
         }
 
+        AppLogger.Write("Ответ не содержит 'Unknown'. Подключение отклонено.");
         port.Close();
         return RingConnectStatus.Rejected;
     }
@@ -68,14 +82,18 @@ public static class RingConnection
     {
         if (port.IsOpen)
         {
+            AppLogger.Write("=== ВЫКЛЮЧЕНИЕ КОЛЬЦА ===");
             port.Close();
+            AppLogger.Write("Порт кольца закрыт.");
         }
     }
 
     public static RingLoopParameterReadResult ReadLoopParameters(SerialPort port)
     {
+        AppLogger.Write("=== ЧТЕНИЕ ПАРАМЕТРОВ КОЛЬЦА ===");
         if (!port.IsOpen)
         {
+            AppLogger.Write("ОШИБКА: порт кольца не открыт.");
             return new RingLoopParameterReadResult(false, Array.Empty<RingLoopParameterCell>(), Array.Empty<LoopParameter>());
         }
 
@@ -89,13 +107,16 @@ public static class RingConnection
             {
                 port.DiscardInBuffer();
                 port.Write(command);
+                AppLogger.Write($"ZREAD n={index}: отправлено '{command.Trim()}'");
                 Thread.Sleep(50);
 
                 var response = port.ReadLine();
+                AppLogger.Write($"ZREAD n={index}: ответ '{response.Trim()}'");
                 cells.Add(ParseLoopParameterCell(index, response, prefix));
             }
-            catch
+            catch (Exception ex)
             {
+                AppLogger.Write(ex, $"ZREAD n={index}: ошибка чтения");
                 cells.Add(new RingLoopParameterCell(index, 0f, 0f, false));
             }
         }
@@ -117,6 +138,7 @@ public static class RingConnection
             });
         }
 
+        AppLogger.Write($"Параметры кольца прочитаны: {parameters.Count} ячеек.");
         return new RingLoopParameterReadResult(parameters.Count > 0, cells, parameters);
     }
 
@@ -124,6 +146,7 @@ public static class RingConnection
     {
         if (!port.IsOpen)
         {
+            AppLogger.Write("ОШИБКА: невозможно установить точку кольца — порт не открыт.");
             return RingWorkResult.NotConnected;
         }
 
@@ -131,6 +154,8 @@ public static class RingConnection
         var capacitanceCommand = string.Format(CultureInfo.InvariantCulture, RingProtocolConstants.SetCapacitanceCommandFormat, capacitanceIndex);
         var resistanceReply = string.Format(CultureInfo.InvariantCulture, RingProtocolConstants.SetResistanceReplyFormat, resistanceIndex);
         var capacitanceReply = string.Format(CultureInfo.InvariantCulture, RingProtocolConstants.SetCapacitanceReplyFormat, capacitanceIndex);
+
+        AppLogger.Write($"LOOP_WORK: request R={resistanceIndex}, C={capacitanceIndex}");
 
         for (var attempt = 0; attempt < 2; attempt++)
         {
@@ -145,20 +170,23 @@ public static class RingConnection
 
                 var first = port.ReadLine();
                 var second = port.ReadLine();
+                AppLogger.Write($"LOOP_WORK: attempt={attempt + 1}, response1='{first.Trim()}', response2='{second.Trim()}'");
                 if (first.StartsWith(resistanceReply, StringComparison.Ordinal) &&
                     second.StartsWith(capacitanceReply, StringComparison.Ordinal))
                 {
+                    AppLogger.Write("LOOP_WORK: точка установлена успешно.");
                     return RingWorkResult.Ok;
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                // The old Loop_work retries once after write/read failures.
+                AppLogger.Write(ex, $"LOOP_WORK: attempt={attempt + 1}, ошибка установки точки");
             }
 
             Thread.Sleep(150);
         }
 
+        AppLogger.Write("LOOP_WORK: не удалось установить точку после 2 попыток.");
         return RingWorkResult.Failed;
     }
 

@@ -1,5 +1,7 @@
+using System.Collections.Generic;
 using System.IO.Ports;
 using System.Runtime.InteropServices;
+using LoopNext.Core.Logging;
 using LoopNext.Core.Models;
 using LoopNext.Core.Protocol;
 using LoopNext.Metrology;
@@ -52,6 +54,7 @@ public static class ToolPort
             {
                 // GP_TOOL_DATA расположен со смещения 2 в принятой нагрузке.
                 var toolData = MemoryMarshal.Read<GpToolData>(dataIn.AsSpan(2));
+                LogRawToolData(in toolData);
                 phases = ToolPhaseProcessor.FillPhaseFromToolData(in toolData, rxPosition).Phases;
                 return new PhaseFrameResult(phases, ToolResponseCode.Ok);
             }
@@ -68,6 +71,32 @@ public static class ToolPort
     }
 
     // Чтение сигнатуры прибора. Возвращает код результата и саму сигнатуру.
+    private static void LogRawToolData(in GpToolData data)
+    {
+        var identity = ToolIdentity.Decode(data.Signature);
+        var txCount = (int)identity.TransmitterCount;
+        var freqCount = GpToolData.FrequencyCount;
+        var rhoValues = new List<string>(freqCount * txCount);
+        var phaseValues = new List<string>(freqCount * txCount);
+        var deltaValues = new List<string>(freqCount * txCount);
+        for (var freq = 0; freq < freqCount; freq++)
+        {
+            for (var tx = 0; tx < txCount; tx++)
+            {
+                var rho = data.GetRhoSmt(freq, tx);
+                var phase = data.GetPhaseSmt(freq, tx) * PhysicalConstants.Milligrad;
+                var delta = data.GetDeltaPhase(freq, tx) * PhysicalConstants.Milligrad;
+                rhoValues.Add($"F{freq}T{tx}={rho:F2}");
+                phaseValues.Add($"F{freq}T{tx}={phase:F1}");
+                deltaValues.Add($"F{freq}T{tx}={delta:F1}");
+            }
+        }
+
+        AppLogger.Write(
+            $"RAW_TOOL_DATA: signature=0x{data.Signature:X8}, Tx={txCount}, condition={data.Condition}, frame={data.Frame}, temp={data.Temperature:F2}, " +
+            $"rho=[{string.Join(", ", rhoValues)}], phase_mG=[{string.Join(", ", phaseValues)}], delta_mG=[{string.Join(", ", deltaValues)}]");
+    }
+
     public static SignatureResult ReadSignature(SerialPort com)
     {
         if (ToolSerialTransport.Send(com, ToolProtocolConstants.CmdGetSignature, RequestData, RequestData.Length) != 0)

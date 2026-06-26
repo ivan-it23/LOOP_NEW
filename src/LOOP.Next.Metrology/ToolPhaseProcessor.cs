@@ -1,3 +1,4 @@
+using LoopNext.Core.Logging;
 using LoopNext.Core.Models;
 
 namespace LoopNext.Metrology;
@@ -45,6 +46,17 @@ public static class ToolPhaseProcessor
                 debug.RawNormalized[freq, tx] = PhaseMath.NormalizePhase(rawDelta);
                 debug.OrientationSign[freq, tx] = sign;
                 debug.FinalPhase[freq, tx] = finalPhase;
+            }
+        }
+
+        var phaseValues = string.Join(", ", Enumerable.Range(0, (int)(FrequencyCount * identity.TransmitterCount))
+            .Select(i => $"[{i}]={(phases.GetValue(i) * PhysicalConstants.Milligrad):F1}"));
+        AppLogger.Write($"PHASE_ORIENTATION: сигнатура=0x{data.Signature:X8}, Tx={identity.TransmitterCount}, Rx={normalizedRx}, фазы (мГ)=[{phaseValues}]");
+        for (uint freq = 0; freq < FrequencyCount; freq++)
+        {
+            for (uint tx = 0; tx < identity.TransmitterCount; tx++)
+            {
+                AppLogger.Write($"  F{freq} Tx{tx}: raw={(debug.RawDelta[freq, tx] * PhysicalConstants.Milligrad):F1}, sign={debug.OrientationSign[freq, tx]}, final={(debug.FinalPhase[freq, tx] * PhysicalConstants.Milligrad):F1}");
             }
         }
 

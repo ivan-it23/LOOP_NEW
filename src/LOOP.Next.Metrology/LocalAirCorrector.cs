@@ -1,3 +1,4 @@
+using LoopNext.Core.Logging;
 using LoopNext.Core.Models;
 
 namespace LoopNext.Metrology;
@@ -58,6 +59,7 @@ public sealed class LocalAirCorrector
     public void Begin(int sampleCount)
     {
         _sampleCount = ClampSampleCount(sampleCount);
+        AppLogger.Write($"LOCAL_AIR: начало сбора, samples={_sampleCount}, settle={SettleFrames}");
         _air.Clear();
         ResetAccumulator();
         _collecting = true;
@@ -67,6 +69,7 @@ public sealed class LocalAirCorrector
     // Запрос сброса существующей поправки (ветка local_air_is_set == true).
     public void RequestReset()
     {
+        AppLogger.Write("LOCAL_AIR: запрошен сброс текущей поправки.");
         _resetRequested = true;
     }
 
@@ -89,6 +92,7 @@ public sealed class LocalAirCorrector
         if (_settleCounter < SettleFrames)
         {
             _settleCounter++;
+            AppLogger.Write($"LOCAL_AIR: settling frame {_settleCounter}/{SettleFrames}");
         }
         else if (_sampleCounter < _sampleCount)
         {
@@ -99,11 +103,13 @@ public sealed class LocalAirCorrector
             }
 
             _sampleCounter++;
+            AppLogger.Write($"LOCAL_AIR: collecting sample {_sampleCounter}/{_sampleCount}");
         }
 
         if (_sampleCounter == _sampleCount)
         {
             var count = Math.Min(channelCount, V10.ChannelCount);
+            var airValues = string.Join(", ", Enumerable.Range(0, count).Select(i => $"[{i}]={(_sum[i] / _sampleCount * PhysicalConstants.Milligrad):F1}"));
             for (var i = 0; i < count; i++)
             {
                 _air.SetValue(i, _sum[i] / _sampleCount);
@@ -113,6 +119,7 @@ public sealed class LocalAirCorrector
             _isSet = true;
             _sampleCounter = 0;
             _settleCounter = 0;
+            AppLogger.Write($"LOCAL_AIR: поправка установлена (мГ): {airValues}");
         }
     }
 
@@ -133,6 +140,7 @@ public sealed class LocalAirCorrector
         _isSet = false;
         _collecting = false;
         ResetAccumulator();
+        AppLogger.Write("LOCAL_AIR: поправка сброшена.");
     }
 
     private V10 ApplyCorrection(in V10 phaseData, int channelCount)

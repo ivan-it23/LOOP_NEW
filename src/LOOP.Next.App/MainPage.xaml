@@ -5,6 +5,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:vm="using:LOOP_Next_App.ViewModels"
+    xmlns:controls="using:LOOP_Next_App.Controls"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
@@ -130,13 +131,14 @@
 
                 <StackPanel Grid.Column="2" Spacing="4">
                     <Button
-                        Width="112"
+                        Width="150"
                         Content="{x:Bind ViewModel.ToolToggleText, Mode=OneWay}"
+                        Background="{x:Bind ViewModel.ToolButtonBackground, Mode=OneWay}"
                         IsEnabled="{x:Bind ViewModel.CanToggleTool, Mode=OneWay}"
                         Command="{x:Bind ViewModel.ToggleToolCommand}" />
                     <StackPanel Orientation="Horizontal" Spacing="4">
                         <ComboBox
-                            Width="112"
+                            Width="150"
                             ItemsSource="{x:Bind ViewModel.ToolPorts}"
                             SelectedItem="{x:Bind ViewModel.SelectedToolPort, Mode=TwoWay}"
                             PlaceholderText="COM прибора" />
@@ -153,13 +155,14 @@
 
                 <StackPanel Grid.Column="3" Spacing="4">
                     <Button
-                        Width="112"
+                        Width="150"
                         Content="{x:Bind ViewModel.RingToggleText, Mode=OneWay}"
+                        Background="{x:Bind ViewModel.RingButtonBackground, Mode=OneWay}"
                         IsEnabled="{x:Bind ViewModel.CanToggleRing, Mode=OneWay}"
                         Command="{x:Bind ViewModel.ToggleRingCommand}" />
                     <StackPanel Orientation="Horizontal" Spacing="4">
                         <ComboBox
-                            Width="112"
+                            Width="150"
                             ItemsSource="{x:Bind ViewModel.RingPorts}"
                             SelectedItem="{x:Bind ViewModel.SelectedRingPort, Mode=TwoWay}"
                             PlaceholderText="COM кольца" />
@@ -307,20 +310,10 @@
                                     <TextBlock Text="{x:Bind AirText, Mode=OneWay}" Style="{StaticResource OldTableCellTextStyle}" />
                                 </Border>
                                 <Border Grid.Column="2" Style="{StaticResource OldTableCellBorderStyle}" Padding="4">
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="2*" />
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="*" />
-                                        </Grid.ColumnDefinitions>
-                                        <Border Grid.Column="0" Background="Red" />
-                                        <Border Grid.Column="1" Background="Yellow" />
-                                        <Border Grid.Column="2" Background="LimeGreen" />
-                                        <Border Grid.Column="3" Background="Yellow" />
-                                        <Border Grid.Column="4" Background="Red" />
-                                    </Grid>
+                                    <controls:MeasurementIndicator
+                                        Value="{x:Bind IndicatorValue, Mode=OneWay}"
+                                        AverageValue="{x:Bind IndicatorAverageValue, Mode=OneWay}"
+                                        Threshold="{x:Bind IndicatorThreshold, Mode=OneWay}" />
                                 </Border>
                                 <TextBox Grid.Column="3" Text="{x:Bind UesText, Mode=TwoWay}" Style="{StaticResource OldTableTextBoxStyle}" />
                                 <TextBox Grid.Column="4" Text="{x:Bind R1Text, Mode=TwoWay}" Foreground="{x:Bind R1Foreground, Mode=OneWay}" Style="{StaticResource OldTableTextBoxStyle}" />

@@ -1,3 +1,4 @@
+using LoopNext.Core.Logging;
 using LoopNext.Core.Models;
 
 namespace LoopNext.Metrology;
@@ -120,7 +121,7 @@ public static class LoopResistivity
 
     // Кажущееся УЭС по всем каналам прибора. Перенос ro_dfi(vector, V10) (function.cpp:153).
     // Заполняются только каналы, для которых определён параметр зонда; остальные остаются нулевыми.
-    public static V10 RoDfi(IReadOnlyList<SondeParameter> sondeParams, in V10 phaseFromLoop)
+    public static V10 RoDfi(IReadOnlyList<SondeParameter> sondeParams, V10 phaseFromLoop)
     {
         var roData = default(V10);
         roData.Clear();
@@ -131,6 +132,10 @@ public static class LoopResistivity
             var param = sondeParams[i];
             roData.SetValue(i, RoDfi(param, phaseFromLoop.GetValue(i)));
         }
+
+        var phaseValues = string.Join(", ", Enumerable.Range(0, count).Select(i => $"[{i}]={(phaseFromLoop.GetValue(i) * PhysicalConstants.Milligrad):F1}"));
+        var roValues = string.Join(", ", Enumerable.Range(0, count).Select(i => $"[{i}]={roData.GetValue(i):F2}"));
+        AppLogger.Write($"RO_DFI: фазы (мГ)=[{phaseValues}], УЭС (Ohm*m)=[{roValues}]");
 
         return roData;
     }
@@ -146,6 +151,13 @@ public static class LoopResistivity
         var air = default(V10);
         air.Clear();
         computed.Add(air);
+
+        AppLogger.Write($"CALC_PH_FROM_LOOP: зондов={sondeParams.Count}, ячеек кольца={loopParams.Count}");
+        for (var i = 0; i < loopParams.Count && i < V10.ChannelCount; i++)
+        {
+            var loop = loopParams[i];
+            AppLogger.Write($"  Z{i}: R={loop.Resistance:F2}, Re={loop.Reactance:F4}, r={loop.Radius:F3}");
+        }
 
         for (var resistanceIndex = 0; resistanceIndex < MeasurementTable.ResistanceCount; resistanceIndex++)
         {
@@ -171,6 +183,9 @@ public static class LoopResistivity
                 values.SetValue(i, DfiFromLoop(sondeParams[i], loop));
             }
 
+            var phaseValues = string.Join(", ", Enumerable.Range(0, count).Select(i => $"[{i}]={(values.GetValue(i) * PhysicalConstants.Milligrad):F1}"));
+            AppLogger.Write($"  PH R{resistanceIndex + 1}: фазы (мГ)=[{phaseValues}]");
+
             computed.Add(values);
         }
 
@@ -183,9 +198,17 @@ public static class LoopResistivity
         IReadOnlyList<V10> phaseComputed)
     {
         var computed = new List<V10>(phaseComputed.Count);
+        AppLogger.Write("CALC_RO_FROM_LOOP: начало расчёта эталонных УЭС");
         foreach (var phase in phaseComputed)
         {
             computed.Add(RoDfi(sondeParams, phase));
+        }
+
+        for (var i = 0; i < computed.Count && i <= MeasurementTable.ResistanceCount; i++)
+        {
+            var roValues = string.Join(", ", Enumerable.Range(0, Math.Min(sondeParams.Count, V10.ChannelCount))
+                .Select(c => $"[{c}]={computed[i].GetValue(c):F2}"));
+            AppLogger.Write($"  RO R{i}: УЭС (Ohm*m)=[{roValues}]");
         }
 
         return computed;

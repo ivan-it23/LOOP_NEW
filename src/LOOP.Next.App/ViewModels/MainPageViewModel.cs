@@ -3,11 +3,14 @@ using System.IO.Ports;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using LoopNext.Core.Logging;
 using LoopNext.Core.Models;
 using LoopNext.Core.Protocol;
 using LoopNext.Hardware;
 using LoopNext.Metrology;
 using LOOP.Next.Reporting;
+using Microsoft.UI;
+using Microsoft.UI.Xaml.Media;
 
 namespace LOOP_Next_App.ViewModels;
 
@@ -16,6 +19,9 @@ namespace LOOP_Next_App.ViewModels;
 // Связывает перенесённые слои Hardware и Metrology для сквозного теста логики.
 public partial class MainPageViewModel : ObservableObject
 {
+    private static readonly SolidColorBrush DisconnectedBrush = new(Colors.Green);
+    private static readonly SolidColorBrush ConnectedBrush = new(Colors.Red);
+
     private const int MeasurementSkipFrames = 5;
 
     private readonly SerialPort _toolPort = new();
@@ -35,6 +41,8 @@ public partial class MainPageViewModel : ObservableObject
     private int _activeCapacitanceIndex;
     private int _activeMeasurementFrameCount;
     private int _channelCount;
+    private readonly object _autoLock = new();
+    private TaskCompletionSource<bool>? _autoMeasurementCompleteTcs;
     private uint _rxPosition;
     private int _frameCounter;
 
@@ -90,6 +98,14 @@ public partial class MainPageViewModel : ObservableObject
     [ObservableProperty]
     public partial int ThresholdPercent { get; set; } = 6;
 
+    partial void OnThresholdPercentChanged(int value)
+    {
+        foreach (var row in ResistanceRows)
+        {
+            row.IndicatorThreshold = value;
+        }
+    }
+
     // Режим АВТО и экспресс-режим: индикаторы интерфейса до переноса оркестрации измерений.
     [ObservableProperty]
     public partial bool IsAutoMode { get; set; }
@@ -132,8 +148,22 @@ public partial class MainPageViewModel : ObservableObject
     [ObservableProperty]
     public partial string ConnectionStateText { get; set; } = "Выключено";
 
-    partial void OnIsConnectedChanged(bool value) =>
+    partial void OnIsConnectedChanged(bool value)
+    {
         ConnectionStateText = value ? "Включено" : "Выключено";
+        ToolButtonBackground = value ? ConnectedBrush : DisconnectedBrush;
+    }
+
+    partial void OnIsRingConnectedChanged(bool value)
+    {
+        RingButtonBackground = value ? ConnectedBrush : DisconnectedBrush;
+    }
+
+    [ObservableProperty]
+    public partial Brush ToolButtonBackground { get; set; } = DisconnectedBrush;
+
+    [ObservableProperty]
+    public partial Brush RingButtonBackground { get; set; } = DisconnectedBrush;
 
     public bool CanConnect => !IsConnected && !string.IsNullOrWhiteSpace(SelectedToolPort);
 
@@ -143,9 +173,9 @@ public partial class MainPageViewModel : ObservableObject
 
     public bool CanToggleRing => IsRingConnected || !string.IsNullOrWhiteSpace(SelectedRingPort);
 
-    public string ToolToggleText => IsConnected ? "Отключить" : "Прибор";
+    public string ToolToggleText => IsConnected ? "Выключить прибор" : "Включить прибор";
 
-    public string RingToggleText => IsRingConnected ? "Отключить" : "Кольцо";
+    public string RingToggleText => IsRingConnected ? "Выключить кольцо" : "Включить кольцо";
 
     public string PollingGlyph => IsPolling ? "\uE769" : "\uE768";
 
@@ -262,7 +292,7 @@ public partial class MainPageViewModel : ObservableObject
 
         if (!result.Success)
         {
-            StatusText = "Не удалось открыть порт прибора";
+            StatusText = result.ErrorMessage ?? "Не удалось открыть порт прибора";
             IsConnected = false;
             return;
         }
@@ -335,7 +365,13 @@ public partial class MainPageViewModel : ObservableObject
         else
         {
             IsRingConnected = false;
-            StatusText = $"Кольцо: {status}";
+            StatusText = status switch
+            {
+                RingConnection.RingConnectStatus.PortOpenFailed => "Не удается открыть порт кольца!",
+                RingConnection.RingConnectStatus.NoResponse => "Нет ответа от кольца !",
+                RingConnection.RingConnectStatus.Rejected => "Не удается установить соединение !",
+                _ => $"Кольцо: {status}"
+            };
         }
     }
 
@@ -435,9 +471,21 @@ public partial class MainPageViewModel : ObservableObject
         ClearResistanceBuffers();
         ClearResistanceCells();
         SetActiveMeasurementPoint(0, 0);
-        StatusText = result.Success && hasRequiredParameters
-            ? $"Параметры кольца прочитаны: {_loopParameters.Count}"
-            : "Параметры кольца не получены";
+        if (result.Success && hasRequiredParameters)
+        {
+            AppLogger.Write($"Параметры кольца прочитаны в ViewModel: {_loopParameters.Count} ячеек.");
+            for (var i = 0; i < result.Cells.Count; i++)
+            {
+                var cell = result.Cells[i];
+                AppLogger.Write($"Z{i}: R={cell.Resistance:F2}, Re={cell.Reactance:F4}, valid={cell.HasValue}");
+            }
+            StatusText = $"Параметры кольца прочитаны: {_loopParameters.Count}";
+        }
+        else
+        {
+            AppLogger.Write("Параметры кольца не получены.");
+            StatusText = "Параметры кольца не получены";
+        }
     }
 
     [RelayCommand]
@@ -524,7 +572,10 @@ public partial class MainPageViewModel : ObservableObject
             ResistanceRows.Add(new ResistanceTableRowViewModel(
                 header.ChannelIndex,
                 header.Label,
-                GetAirZzText(in metrology, header.ChannelIndex, transmitterCount)));
+                GetAirZzText(in metrology, header.ChannelIndex, transmitterCount))
+            {
+                IndicatorThreshold = ThresholdPercent
+            });
         }
 
         if (ResistanceRows.Count == 0)
@@ -626,7 +677,10 @@ public partial class MainPageViewModel : ObservableObject
 
         for (var i = 0; i < labels.Length; i++)
         {
-            ResistanceRows.Add(new ResistanceTableRowViewModel(i, labels[i], string.Empty));
+            ResistanceRows.Add(new ResistanceTableRowViewModel(i, labels[i], string.Empty)
+            {
+                IndicatorThreshold = ThresholdPercent
+            });
         }
 
         ClearResistanceCells();
@@ -691,12 +745,22 @@ public partial class MainPageViewModel : ObservableObject
 
         _phaseReferences = LoopResistivity.CalcPhaseFromLoop(_sondeParameters, _loopParameters);
         _resistivityReferences = LoopResistivity.CalcRoFromLoop(_sondeParameters, _phaseReferences);
+
+        AppLogger.Write($"Эталонные фазы кольца: {_phaseReferences.Count} точек, эталонные УЭС: {_resistivityReferences.Count} точек.");
+        for (var i = 0; i < _resistivityReferences.Count && i <= MeasurementTable.ResistanceCount; i++)
+        {
+            var reference = _resistivityReferences[i];
+            var values = string.Join(", ", Enumerable.Range(0, Math.Min(_channelCount, V10.ChannelCount)).Select(c => $"[{c}]={reference.GetValue(c):F2}"));
+            AppLogger.Write($"R{i}: эталонные УЭС={values}");
+        }
     }
 
     private async Task RunAutoModeAsync()
     {
+        AppLogger.Write("=== ЗАПУСК РЕЖИМА АВТО ===");
         if (!IsConnected || !IsRingConnected || !_ringPort.IsOpen)
         {
+            AppLogger.Write("Режим АВТО: прибор или кольцо не подключены.");
             StatusText = "Режим АВТО: подключите прибор и кольцо";
             IsAutoMode = false;
             return;
@@ -704,11 +768,13 @@ public partial class MainPageViewModel : ObservableObject
 
         if (_loopParameters.Count == 0)
         {
+            AppLogger.Write("Режим АВТО: параметры кольца не загружены, читаем...");
             await LoadRingParametersAsync();
         }
 
         if (_channelCount <= 0 || _resistivityReferences.Count <= MeasurementTable.ResistanceCount)
         {
+            AppLogger.Write("Режим АВТО: нет расчётных эталонов кольца.");
             StatusText = "Режим АВТО: нет расчётных эталонов кольца";
             IsAutoMode = false;
             return;
@@ -722,40 +788,64 @@ public partial class MainPageViewModel : ObservableObject
         ClearResistanceBuffers();
         SetActiveMeasurementPoint(0, 0);
         StatusText = "Режим АВТО: запуск";
+        AppLogger.Write("Режим АВТО: начало цикла R1..R8 (эталонный алгоритм).");
 
         try
         {
-            var capacitanceCount = Math.Clamp(_channelCount, 0, V10.ChannelCount);
             for (var resistanceIndex = 1; resistanceIndex <= MeasurementTable.ResistanceCount; resistanceIndex++)
             {
-                for (var capacitanceIndex = 1; capacitanceIndex <= capacitanceCount; capacitanceIndex++)
-                {
-                    token.ThrowIfCancellationRequested();
-                    var result = await Task.Run(
-                        () => RingConnection.SetMeasurementPoint(_ringPort, resistanceIndex, capacitanceIndex),
-                        token);
-                    if (result != RingWorkResult.Ok)
-                    {
-                        StatusText = $"Режим АВТО: ошибка установки R{resistanceIndex}/C{capacitanceIndex} ({result})";
-                        return;
-                    }
+                token.ThrowIfCancellationRequested();
 
-                    SetActiveMeasurementPoint(resistanceIndex, capacitanceIndex);
-                    StatusText = $"Режим АВТО: R{resistanceIndex}, C{capacitanceIndex}";
-                    var delay = Math.Max(PollIntervalMs * (SelectedAveraging + MeasurementSkipFrames + 1), 1000);
-                    await Task.Delay(delay, token);
+                AppLogger.Write($"АВТО: старт измерения R{resistanceIndex}.");
+                var tcs = new TaskCompletionSource<bool>();
+                lock (_autoLock)
+                {
+                    _autoMeasurementCompleteTcs = tcs;
+                    SetActiveMeasurementPoint(resistanceIndex, 1);
                 }
+
+                StatusText = $"Режим АВТО: R{resistanceIndex}, C1";
+                LogCapMap(resistanceIndex, 1);
+                AppLogger.Write($"АВТО: задержка 200 мс перед установкой R{resistanceIndex}/C1 (как в R_Click).");
+                await Task.Delay(200, token);
+                AppLogger.Write($"АВТО: установка R{resistanceIndex}/C1...");
+                var result = await Task.Run(
+                    () => RingConnection.SetMeasurementPoint(_ringPort, resistanceIndex, 1),
+                    token);
+                if (result != RingWorkResult.Ok)
+                {
+                    AppLogger.Write($"АВТО: ошибка установки R{resistanceIndex}/C1 ({result}).");
+                    StatusText = $"Режим АВТО: ошибка установки R{resistanceIndex}/C1 ({result})";
+                    return;
+                }
+
+                AppLogger.Write($"АВТО: R{resistanceIndex}/C1 установлена, ожидание усреднения кадров...");
+                using (token.Register(() => tcs.TrySetCanceled()))
+                {
+                    await tcs.Task;
+                }
+
+                AppLogger.Write($"АВТО: R{resistanceIndex} измерено.");
             }
+
+            AppLogger.Write("=== РЕЖИМ АВТО ЗАВЕРШЁН УСПЕШНО ===");
         }
         catch (OperationCanceledException)
         {
+            AppLogger.Write("Режим АВТО: отменён пользователем.");
             StatusText = "Режим АВТО остановлен";
         }
         finally
         {
+            lock (_autoLock)
+            {
+                _autoMeasurementCompleteTcs = null;
+            }
+
             SetActiveMeasurementPoint(0, 0);
             if (_ringPort.IsOpen)
             {
+                AppLogger.Write("Режим АВТО: сброс кольца в 0/0.");
                 await Task.Run(() => RingConnection.SetMeasurementPoint(_ringPort, 0, 0), CancellationToken.None);
             }
 
@@ -763,6 +853,67 @@ public partial class MainPageViewModel : ObservableObject
             {
                 IsAutoMode = false;
             }
+        }
+    }
+
+    // Автоматический переход между C и завершение измерения текущего R.
+    // Вызывается после обработки каждого кадра, когда активна точка R/C.
+    private void AdvanceAutoMeasurement()
+    {
+        TaskCompletionSource<bool>? tcsToComplete = null;
+        int nextR = 0;
+        int nextC = 0;
+
+        lock (_autoLock)
+        {
+            if (!IsAutoMode || _autoMeasurementCompleteTcs is null)
+            {
+                return;
+            }
+
+            lock (_measurementLock)
+            {
+                if (_activeResistanceIndex <= 0 || _activeCapacitanceIndex <= 0)
+                {
+                    return;
+                }
+
+                var requiredFrames = MeasurementSkipFrames + SelectedAveraging;
+                AppLogger.Write($"АВТО: R={_activeResistanceIndex}, C={_activeCapacitanceIndex}, кадр={_activeMeasurementFrameCount}/{requiredFrames}");
+
+                if (_activeMeasurementFrameCount < requiredFrames)
+                {
+                    return;
+                }
+
+                nextC = _activeCapacitanceIndex + 1;
+                if (nextC > _channelCount)
+                {
+                    AppLogger.Write($"АВТО: измерение R={_activeResistanceIndex} завершено (пройдены C=1..{_channelCount}).");
+                    tcsToComplete = _autoMeasurementCompleteTcs;
+                    _autoMeasurementCompleteTcs = null;
+                    SetActiveMeasurementPoint(0, 0);
+                }
+                else
+                {
+                    nextR = _activeResistanceIndex;
+                    AppLogger.Write($"АВТО: переход к C={nextC} внутри R={nextR}.");
+                    StatusText = $"Режим АВТО: R{nextR}, C{nextC}";
+                    SetActiveMeasurementPoint(nextR, nextC);
+                }
+            }
+        }
+
+        if (tcsToComplete is not null)
+        {
+            tcsToComplete.TrySetResult(true);
+            return;
+        }
+
+        if (nextR > 0 && nextC > 0)
+        {
+            LogCapMap(nextR, nextC);
+            _ = Task.Run(() => RingConnection.SetMeasurementPoint(_ringPort, nextR, nextC));
         }
     }
 
@@ -790,11 +941,13 @@ public partial class MainPageViewModel : ObservableObject
     // обновление привязанных свойств маршалируется в UI-поток через DispatcherQueue.
     private async Task PollLoopAsync(CancellationToken token)
     {
+        AppLogger.Write("--- Запуск фонового опроса прибора ---");
         while (!token.IsCancellationRequested)
         {
             if (_toolPort.IsOpen)
             {
                 var frame = ToolPort.GetPhaseFromTool(_toolPort, ToolProtocolConstants.CmdGetData, _rxPosition);
+                AppLogger.Write($"Получен кадр от прибора: Code={frame.Code}, RxPosition={_rxPosition}");
 
                 if (frame.Code == ToolResponseCode.Ok)
                 {
@@ -806,13 +959,19 @@ public partial class MainPageViewModel : ObservableObject
                         air = _localAir.Air;
                     }
 
+                    LogFramePhases("Сырые фазы", frame.Phases, _channelCount);
+                    LogFramePhases("Локальный воздух", air, _channelCount);
+                    LogFramePhases("Скорректированные фазы", corrected, _channelCount);
+
                     var resistivity = LoopResistivity.RoDfi(_sondeParameters, corrected);
+                    AppLogger.Write("Вычислены УЭС по скорректированным фазам.");
 
                     _frameCounter++;
                     DispatchFrame(frame.Phases, air, corrected, resistivity, _frameCounter);
                 }
                 else
                 {
+                    AppLogger.Write($"ОШИБКА опроса прибора: {frame.Code}");
                     DispatchStatus($"Ошибка опроса: {frame.Code}");
                 }
             }
@@ -823,9 +982,17 @@ public partial class MainPageViewModel : ObservableObject
             }
             catch (TaskCanceledException)
             {
+                AppLogger.Write("--- Фоновый опрос прибора остановлен ---");
                 break;
             }
         }
+    }
+
+    private void LogFramePhases(string header, V10 phases, int channelCount)
+    {
+        var count = Math.Min(channelCount, V10.ChannelCount);
+        var values = string.Join(", ", Enumerable.Range(0, count).Select(i => $"[{i}]={(phases.GetValue(i) * PhysicalConstants.Milligrad):F1}"));
+        AppLogger.Write($"{header} (мГ): {values}");
     }
 
     private void DispatchFrame(V10 raw, V10 air, V10 corrected, V10 resistivity, int frameNumber)
@@ -838,31 +1005,70 @@ public partial class MainPageViewModel : ObservableObject
         App.DispatcherQueue.TryEnqueue(() =>
         {
             FrameCount = frameNumber;
-            var count = Math.Min(Channels.Count, V10.ChannelCount);
+            var count = Math.Min(Channels.Count, Math.Min(ResistanceRows.Count, V10.ChannelCount));
             for (var i = 0; i < count; i++)
             {
                 Channels[i].RawText = (rawCopy.GetValue(i) * PhysicalConstants.Milligrad).ToString("F1");
                 Channels[i].AirText = (airCopy.GetValue(i) * PhysicalConstants.Milligrad).ToString("F1");
                 Channels[i].CorrectedText = (correctedCopy.GetValue(i) * PhysicalConstants.Milligrad).ToString("F1");
+                ResistanceRows[i].AirText = (correctedCopy.GetValue(i) * PhysicalConstants.Milligrad).ToString("F0");
             }
 
-            UpdateResistanceRows(resistivityCopy);
+            UpdateResistanceRows(resistivityCopy, correctedCopy);
+            AdvanceAutoMeasurement();
             LocalAirState = _localAir.IsSet ? "Задан" : _localAir.Collecting ? "Сбор..." : "Не задан";
         });
     }
 
-    private void UpdateResistanceRows(V10 resistivity)
+    private void UpdateResistanceRows(V10 resistivity, V10 corrected)
     {
         var count = Math.Min(ResistanceRows.Count, Math.Min(_channelCount, V10.ChannelCount));
+        var uesValues = string.Join(", ", Enumerable.Range(0, count).Select(i => $"[{i}]={FormatResistivity(resistivity.GetValue(i))}"));
+        AppLogger.Write($"УЭС по каналам: {uesValues}");
+
         for (var i = 0; i < count; i++)
         {
             ResistanceRows[i].UesText = FormatResistivity(resistivity.GetValue(i));
         }
 
-        UpdateReferenceResistanceCells(resistivity, count);
+        UpdateReferenceResistanceCells(resistivity, corrected, count);
+        UpdateChannelIndicators(resistivity, count);
     }
 
-    private void UpdateReferenceResistanceCells(in V10 resistivity, int channelCount)
+    private void UpdateChannelIndicators(V10 resistivity, int channelCount)
+    {
+        if (_resistivityReferences.Count <= MeasurementTable.ResistanceCount || _activeResistanceIndex <= 0)
+        {
+            for (var i = 0; i < channelCount; i++)
+            {
+                ResistanceRows[i].IndicatorValue = 0.0;
+                ResistanceRows[i].IndicatorAverageValue = 0.0;
+            }
+
+            return;
+        }
+
+        var reference = _resistivityReferences[_activeResistanceIndex];
+        for (var i = 0; i < channelCount; i++)
+        {
+            var referenceValue = reference.GetValue(i);
+            var measuredValue = resistivity.GetValue(i);
+            if (!float.IsFinite(referenceValue) || !float.IsFinite(measuredValue) || referenceValue <= 0f || measuredValue <= 0f)
+            {
+                ResistanceRows[i].IndicatorValue = 0.0;
+                ResistanceRows[i].IndicatorAverageValue = 0.0;
+                continue;
+            }
+
+            var currentPercent = 100f * (measuredValue - referenceValue) / (referenceValue + 0.000000001f);
+            ResistanceRows[i].IndicatorValue = currentPercent;
+
+            var buffer = _resistancePercentBuffers[_activeResistanceIndex - 1, i];
+            ResistanceRows[i].IndicatorAverageValue = buffer?.Average() ?? 0.0;
+        }
+    }
+
+    private void UpdateReferenceResistanceCells(in V10 resistivity, in V10 corrected, int channelCount)
     {
         if (_resistivityReferences.Count <= MeasurementTable.ResistanceCount)
         {
@@ -890,14 +1096,26 @@ public partial class MainPageViewModel : ObservableObject
         var reference = _resistivityReferences[resistanceIndex];
         var referenceValue = reference.GetValue(channelIndex);
         var measuredValue = resistivity.GetValue(channelIndex);
+
+        var phaseReference = _phaseReferences[resistanceIndex];
+        var referencePhase = phaseReference.GetValue(channelIndex);
+        var measuredPhase = corrected.GetValue(channelIndex);
+        var (freqLabel, txIndex) = GetChannelFrequencyAndTx(channelIndex);
+
         if (!float.IsFinite(referenceValue) || !float.IsFinite(measuredValue) || referenceValue <= 0f || measuredValue <= 0f)
         {
+            AppLogger.Write(
+                $"R{resistanceIndex} (канал {channelIndex}, {freqLabel} Tx{txIndex}): эталон УЭС={referenceValue:F2}, измерено={measuredValue:F2} — пропуск (некорректные значения).");
             ResistanceRows[channelIndex].SetResistanceCell(resistanceIndex, MeasurementCell.Empty);
             return;
         }
 
         var percent = 100f * (measuredValue - referenceValue) / (referenceValue + 0.000000001f);
         var averaged = PushResistancePercent(resistanceIndex - 1, channelIndex, percent);
+        AppLogger.Write(
+            $"R{resistanceIndex} (канал {channelIndex}, {freqLabel} Tx{txIndex}): " +
+            $"эталон УЭС={referenceValue:F2}, измерено={measuredValue:F2}, отклонение={percent:F2}%, усреднённое={averaged:F2}%; " +
+            $"эталон фаза={referencePhase * PhysicalConstants.Milligrad:F1}мГ, измерено фаза={measuredPhase * PhysicalConstants.Milligrad:F1}мГ");
         ResistanceRows[channelIndex].SetResistanceCell(
             resistanceIndex,
             MeasurementCell.Create(averaged, ThresholdPercent));
@@ -951,6 +1169,7 @@ public partial class MainPageViewModel : ObservableObject
             _activeResistanceIndex = resistanceIndex;
             _activeCapacitanceIndex = capacitanceIndex;
             _activeMeasurementFrameCount = 0;
+            AppLogger.Write($"ACTIVE_POINT: R={resistanceIndex}, C={capacitanceIndex}, frameCounter сброшен.");
         }
     }
 
@@ -1001,6 +1220,39 @@ public partial class MainPageViewModel : ObservableObject
         return value < 10f
             ? value.ToString("F2")
             : value.ToString("F0");
+    }
+
+    private static (string FrequencyLabel, int TxIndex) GetChannelFrequencyAndTx(int channelIndex)
+    {
+        const int transmitterCount = 5;
+        var halfCount = (V10.ChannelCount + 1) / 2;
+        var freqLabel = channelIndex < halfCount ? "400kHz" : "2000kHz";
+        var txIndex = channelIndex % halfCount;
+        if (txIndex >= transmitterCount)
+        {
+            txIndex = transmitterCount - 1;
+        }
+
+        return (freqLabel, txIndex);
+    }
+
+    private void LogCapMap(int resistanceIndex, int capacitanceIndex)
+    {
+        var channelIndex = capacitanceIndex - 1;
+        var (freqLabel, txIndex) = GetChannelFrequencyAndTx(channelIndex);
+        var referencePhase = _phaseReferences.Count > resistanceIndex
+            ? _phaseReferences[resistanceIndex].GetValue(channelIndex)
+            : 0f;
+        var referenceResistivity = _resistivityReferences.Count > resistanceIndex
+            ? _resistivityReferences[resistanceIndex].GetValue(channelIndex)
+            : 0f;
+        var reactance = channelIndex >= 0 && channelIndex < _loopParameters.Count
+            ? _loopParameters[channelIndex].Reactance
+            : 0f;
+
+        AppLogger.Write(
+            $"CAP_MAP: R={resistanceIndex}, C={capacitanceIndex}, channel={channelIndex}, {freqLabel} Tx{txIndex}, " +
+            $"Re={reactance:F4}, reference_phase={referencePhase * PhysicalConstants.Milligrad:F1}мГ, reference_UES={referenceResistivity:F2}Ohm*m");
     }
 
     private void DispatchStatus(string message)

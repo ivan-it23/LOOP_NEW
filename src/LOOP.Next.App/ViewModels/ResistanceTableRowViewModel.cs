@@ -28,6 +28,15 @@ public partial class ResistanceTableRowViewModel : ObservableObject
     public partial string AirText { get; set; }
 
     [ObservableProperty]
+    public partial double IndicatorValue { get; set; }
+
+    [ObservableProperty]
+    public partial double IndicatorAverageValue { get; set; }
+
+    [ObservableProperty]
+    public partial double IndicatorThreshold { get; set; } = 6.0;
+
+    [ObservableProperty]
     public partial string UesText { get; set; } = string.Empty;
 
     [ObservableProperty]
