@@ -134,4 +134,60 @@ public static class LoopResistivity
 
         return roData;
     }
+
+    // Расчет фаз по сопротивлениям кольца. Перенос calc_PH_from_loop (function.cpp:163).
+    // Индекс 0 сохраняется как пустой "воздух", R1..R8 лежат в индексах 1..8, как в старом PH_computed.
+    public static IReadOnlyList<V10> CalcPhaseFromLoop(
+        IReadOnlyList<SondeParameter> sondeParams,
+        IReadOnlyList<LoopParameter> loopParams)
+    {
+        var computed = new List<V10>(MeasurementTable.ResistanceCount + 1);
+
+        var air = default(V10);
+        air.Clear();
+        computed.Add(air);
+
+        for (var resistanceIndex = 0; resistanceIndex < MeasurementTable.ResistanceCount; resistanceIndex++)
+        {
+            var values = default(V10);
+            values.Clear();
+
+            if (resistanceIndex >= loopParams.Count)
+            {
+                computed.Add(values);
+                continue;
+            }
+
+            var count = Math.Min(sondeParams.Count, V10.ChannelCount);
+            for (var i = 0; i < count; i++)
+            {
+                if (i >= loopParams.Count)
+                {
+                    continue;
+                }
+
+                var loop = loopParams[resistanceIndex];
+                loop.Reactance = loopParams[i].Reactance;
+                values.SetValue(i, DfiFromLoop(sondeParams[i], loop));
+            }
+
+            computed.Add(values);
+        }
+
+        return computed;
+    }
+
+    // Расчет УЭС по фазам кольца. Перенос calc_Ro_from_loop (function.cpp:182).
+    public static IReadOnlyList<V10> CalcRoFromLoop(
+        IReadOnlyList<SondeParameter> sondeParams,
+        IReadOnlyList<V10> phaseComputed)
+    {
+        var computed = new List<V10>(phaseComputed.Count);
+        foreach (var phase in phaseComputed)
+        {
+            computed.Add(RoDfi(sondeParams, phase));
+        }
+
+        return computed;
+    }
 }

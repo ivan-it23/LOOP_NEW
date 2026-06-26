@@ -16,4 +16,8 @@ public static class RingProtocolConstants
     public const string SetCapacitanceCommandFormat = "CAP {0}\r\n";
     public const string SetResistanceReplyFormat = "RES={0} OK";
     public const string SetCapacitanceReplyFormat = "CAP={0} OK";
+
+    public const int LoopParameterCellCount = 10;
+    public const string ReadLoopParameterCommandFormat = "ZREAD {0}\r\n";
+    public const string ReadLoopParameterReplyPrefixFormat = "Z{0} ";
 }
