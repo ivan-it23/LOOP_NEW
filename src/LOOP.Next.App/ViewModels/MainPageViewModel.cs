@@ -44,6 +44,7 @@ public partial class MainPageViewModel : ObservableObject
     private readonly object _autoLock = new();
     private TaskCompletionSource<bool>? _autoMeasurementCompleteTcs;
     private uint _rxPosition;
+    private GpToolMetrology _metrology;
     private int _frameCounter;
 
     public MainPageViewModel()
@@ -300,9 +301,10 @@ public partial class MainPageViewModel : ObservableObject
         _sondeParameters = result.SondeParameters;
         _channelCount = _sondeParameters.Count;
         _rxPosition = result.Metrology.RxPosition;
+        _metrology = result.Metrology;
 
-        ApplyIdentification(result.Metrology);
-        BuildChannels(_sondeParameters, result.Metrology);
+        ApplyIdentification(in _metrology);
+        BuildChannels(_sondeParameters, in _metrology);
         BuildRingCalibrationRows(_sondeParameters);
         CalculateRingCalibration();
         if (IsRingConnected)
@@ -946,7 +948,7 @@ public partial class MainPageViewModel : ObservableObject
         {
             if (_toolPort.IsOpen)
             {
-                var frame = ToolPort.GetPhaseFromTool(_toolPort, ToolProtocolConstants.CmdGetData, _rxPosition);
+                var frame = ToolPort.GetPhaseFromTool(_toolPort, ToolProtocolConstants.CmdGetData, in _metrology);
                 AppLogger.Write($"Получен кадр от прибора: Code={frame.Code}, RxPosition={_rxPosition}");
 
                 if (frame.Code == ToolResponseCode.Ok)
@@ -955,11 +957,12 @@ public partial class MainPageViewModel : ObservableObject
                     V10 corrected;
                     lock (_airLock)
                     {
-                        corrected = _localAir.ProcessFrame(frame.Phases, _channelCount);
+                        corrected = _localAir.ProcessFrame(frame.Phases, frame.RawPhases, _channelCount, in _metrology);
                         air = _localAir.Air;
                     }
 
-                    LogFramePhases("Сырые фазы", frame.Phases, _channelCount);
+                    LogFramePhases("Симметризованные фазы", frame.Phases, _channelCount);
+                    LogFramePhases("Сырые фазы", frame.RawPhases, _channelCount);
                     LogFramePhases("Локальный воздух", air, _channelCount);
                     LogFramePhases("Скорректированные фазы", corrected, _channelCount);
 
@@ -967,7 +970,7 @@ public partial class MainPageViewModel : ObservableObject
                     AppLogger.Write("Вычислены УЭС по скорректированным фазам.");
 
                     _frameCounter++;
-                    DispatchFrame(frame.Phases, air, corrected, resistivity, _frameCounter);
+                    DispatchFrame(frame.RawPhases, air, corrected, resistivity, _frameCounter);
                 }
                 else
                 {

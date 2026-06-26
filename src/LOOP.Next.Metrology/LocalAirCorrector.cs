@@ -8,6 +8,11 @@ namespace LoopNext.Metrology;
 // sonde_read_timer (WorkForm.h:6033-6065, 6166-6242), включая ResetLocalAirAccumulator
 // и GetLocalAirSampleCountFromUi (WorkForm.h:5431-5455).
 //
+// В эталонном проекте локальный воздух накапливается из сырых ориентированных фаз
+// (fill_phase_from_tool_data), а затем симметризуется через get_air_smt (function.cpp:722).
+// Измеренная фаза уже симметризована (get_phase_smt), поэтому вычитание AIR соответствует
+// get_phase_smt(raw) - get_air_smt(air_raw).
+//
 // Класс хранит только расчётное состояние поправки; запуск кольца (Loop_work) и опрос
 // прибора остаются ответственностью вышележащих слоёв.
 public sealed class LocalAirCorrector
@@ -21,7 +26,7 @@ public sealed class LocalAirCorrector
     public const int MaxSampleCount = 200;
 
     private V10 _air;
-    private readonly float[] _sum = new float[V10.ChannelCount];
+    private readonly float[] _rawSum = new float[V10.ChannelCount];
 
     private bool _collecting;
     private bool _isSet;
@@ -73,16 +78,16 @@ public sealed class LocalAirCorrector
         _resetRequested = true;
     }
 
-    // Обработка одного кадра: сбор baseline, обработка сброса и применение поправки.
+    // Обработка одного кадра: сбор raw baseline, обработка сброса и применение поправки.
     // Порядок блоков сохранён из sonde_read_timer: сбор -> сброс -> вычитание AIR.
-    public V10 ProcessFrame(in V10 phaseData, int channelCount)
+    public V10 ProcessFrame(in V10 symmetrizedPhase, in V10 rawPhase, int channelCount, in GpToolMetrology metrology)
     {
-        CollectBaseline(in phaseData, channelCount);
+        CollectBaseline(in rawPhase, channelCount, in metrology);
         ApplyResetIfRequested(channelCount);
-        return ApplyCorrection(in phaseData, channelCount);
+        return ApplyCorrection(in symmetrizedPhase, channelCount);
     }
 
-    private void CollectBaseline(in V10 phaseData, int channelCount)
+    private void CollectBaseline(in V10 rawPhase, int channelCount, in GpToolMetrology metrology)
     {
         if (!_collecting)
         {
@@ -99,7 +104,7 @@ public sealed class LocalAirCorrector
             var count = Math.Min(channelCount, V10.ChannelCount);
             for (var i = 0; i < count; i++)
             {
-                _sum[i] += phaseData.GetValue(i);
+                _rawSum[i] += rawPhase.GetValue(i);
             }
 
             _sampleCounter++;
@@ -109,12 +114,16 @@ public sealed class LocalAirCorrector
         if (_sampleCounter == _sampleCount)
         {
             var count = Math.Min(channelCount, V10.ChannelCount);
-            var airValues = string.Join(", ", Enumerable.Range(0, count).Select(i => $"[{i}]={(_sum[i] / _sampleCount * PhysicalConstants.Milligrad):F1}"));
+            var rawAir = default(V10);
+            rawAir.Clear();
             for (var i = 0; i < count; i++)
             {
-                _air.SetValue(i, _sum[i] / _sampleCount);
+                rawAir.SetValue(i, _rawSum[i] / _sampleCount);
             }
 
+            _air = PhaseSymmetrizer.GetAirSmt(in rawAir, in metrology);
+
+            var airValues = string.Join(", ", Enumerable.Range(0, count).Select(i => $"[{i}]={(_air.GetValue(i) * PhysicalConstants.Milligrad):F1}"));
             _collecting = false;
             _isSet = true;
             _sampleCounter = 0;
@@ -143,9 +152,9 @@ public sealed class LocalAirCorrector
         AppLogger.Write("LOCAL_AIR: поправка сброшена.");
     }
 
-    private V10 ApplyCorrection(in V10 phaseData, int channelCount)
+    private V10 ApplyCorrection(in V10 symmetrizedPhase, int channelCount)
     {
-        var corrected = phaseData;
+        var corrected = symmetrizedPhase;
         var count = Math.Min(channelCount, V10.ChannelCount);
         for (var i = 0; i < count; i++)
         {
@@ -160,9 +169,9 @@ public sealed class LocalAirCorrector
     {
         _sampleCounter = 0;
         _settleCounter = 0;
-        for (var i = 0; i < _sum.Length; i++)
+        for (var i = 0; i < _rawSum.Length; i++)
         {
-            _sum[i] = 0f;
+            _rawSum[i] = 0f;
         }
     }
 }

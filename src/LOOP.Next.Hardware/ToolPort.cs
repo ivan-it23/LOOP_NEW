@@ -19,20 +19,22 @@ public static class ToolPort
     // Постоянная нагрузка запроса данных, как в эталоне: { 0x05, 0x00 }.
     private static readonly byte[] RequestData = { 0x05, 0x00 };
 
-    public readonly record struct PhaseFrameResult(V10 Phases, ToolResponseCode Code);
+    public readonly record struct PhaseFrameResult(V10 Phases, V10 RawPhases, ToolResponseCode Code);
 
     public readonly record struct SignatureResult(ToolResponseCode Code, uint Signature);
 
     // Опрос кадра измерений с одной повторной попыткой при таймауте.
-    // rxPosition берётся из метрологии прибора (ранее глобальный metrology_struct.Rx_Position).
-    public static PhaseFrameResult GetPhaseFromTool(SerialPort com, byte cmd, uint rxPosition)
+    // Метрология передаётся явно, чтобы фазы симметризовались с учётом Air_zz и Rx_Position.
+    public static PhaseFrameResult GetPhaseFromTool(SerialPort com, byte cmd, in GpToolMetrology metrology)
     {
         var phases = default(V10);
         phases.Clear();
+        var rawPhases = default(V10);
+        rawPhases.Clear();
 
         if (!com.IsOpen)
         {
-            return new PhaseFrameResult(phases, ToolResponseCode.PortClosed);
+            return new PhaseFrameResult(phases, rawPhases, ToolResponseCode.PortClosed);
         }
 
         var dataIn = new byte[FramePayloadLength];
@@ -44,7 +46,7 @@ public static class ToolPort
 
             if (ToolSerialTransport.Send(com, cmd, RequestData, RequestData.Length) != 0)
             {
-                return new PhaseFrameResult(phases, ToolResponseCode.Timeout);
+                return new PhaseFrameResult(phases, rawPhases, ToolResponseCode.Timeout);
             }
 
             var result = (ToolResponseCode)ToolSerialTransport.Receive(com, out _, dataIn, FramePayloadLength);
@@ -55,8 +57,10 @@ public static class ToolPort
                 // GP_TOOL_DATA расположен со смещения 2 в принятой нагрузке.
                 var toolData = MemoryMarshal.Read<GpToolData>(dataIn.AsSpan(2));
                 LogRawToolData(in toolData);
-                phases = ToolPhaseProcessor.FillPhaseFromToolData(in toolData, rxPosition).Phases;
-                return new PhaseFrameResult(phases, ToolResponseCode.Ok);
+                var phaseResult = ToolPhaseProcessor.FillPhaseFromToolData(in toolData, in metrology);
+                phases = phaseResult.Phases;
+                rawPhases = phaseResult.RawPhases;
+                return new PhaseFrameResult(phases, rawPhases, ToolResponseCode.Ok);
             }
 
             if (result == ToolResponseCode.Timeout && retry < MaxRetries)
@@ -67,7 +71,7 @@ public static class ToolPort
             break;
         }
 
-        return new PhaseFrameResult(phases, lastCode);
+        return new PhaseFrameResult(phases, rawPhases, lastCode);
     }
 
     // Чтение сигнатуры прибора. Возвращает код результата и саму сигнатуру.
