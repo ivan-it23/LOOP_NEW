@@ -20,4 +20,6 @@ public static class RingProtocolConstants
     public const int LoopParameterCellCount = 10;
     public const string ReadLoopParameterCommandFormat = "ZREAD {0}\r\n";
     public const string ReadLoopParameterReplyPrefixFormat = "Z{0} ";
+    public const string WriteLoopParameterCommandFormat = "ZWRITE {0} {1} {2}\r\n";
+    public const string WriteLoopParameterReplyPrefixFormat = "WRITE Z{0} OK!";
 }

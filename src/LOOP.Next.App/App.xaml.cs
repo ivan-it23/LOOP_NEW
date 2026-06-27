@@ -5,49 +5,37 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
 
-// To learn more about WinUI, the WinUI project structure,
-// and more about our project templates, see: http://aka.ms/winui-project-info.
-
 namespace LOOP_Next_App;
 
 /// <summary>
-/// Provides application-specific behavior to supplement the default Application class.
+/// Задаёт запуск WinUI-приложения и общие ссылки на главное окно.
 /// </summary>
 public partial class App : Application
 {
     /// <summary>
-    /// The main application window. Use <c>App.Window</c> from any class that needs
-    /// the window reference (for dialogs, pickers, interop, etc.).
+    /// Хранит главное окно для диалогов, выбора файлов и WinRT-взаимодействия.
     /// </summary>
     public static Window Window { get; private set; } = null!;
 
     /// <summary>
-    /// The UI thread dispatcher. Use <c>App.DispatcherQueue</c> to marshal calls
-    /// to the UI thread. Fully qualified to avoid CS0104 ambiguity with
-    /// <see cref="Windows.System.DispatcherQueue"/>.
+    /// Маршалирует обновления из фоновых потоков в UI-поток.
     /// </summary>
     public static Microsoft.UI.Dispatching.DispatcherQueue DispatcherQueue { get; private set; } = null!;
 
     /// <summary>
-    /// The native window handle (HWND). Use for file pickers,
-    /// <c>DataTransferManager</c>, and any WinRT interop that requires
-    /// <c>InitializeWithWindow</c>.
+    /// Возвращает HWND главного окна для API, требующих InitializeWithWindow.
     /// </summary>
     public static nint WindowHandle =>
         WinRT.Interop.WindowNative.GetWindowHandle(Window);
 
-    /// <summary>
-    /// Initializes the singleton application object.
-    /// </summary>
     public App()
     {
         InitializeComponent();
     }
 
     /// <summary>
-    /// Invoked when the application is launched.
+    /// Создаёт и активирует главное окно при запуске приложения.
     /// </summary>
-    /// <param name="args">Details about the launch request and process.</param>
     protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
     {
         Window = new MainWindow();

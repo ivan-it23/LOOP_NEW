@@ -1,14 +1,12 @@
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml;
 using LOOP_Next_App.ViewModels;
-
-// To learn more about WinUI, the WinUI project structure,
-// and more about our project templates, see: http://aka.ms/winui-project-info.
+using Windows.Storage.Pickers;
 
 namespace LOOP_Next_App;
 
 /// <summary>
-/// The main content page displayed inside the application window.
+/// Основная страница переключает рабочие области вкладок и привязывает MainPageViewModel.
 /// </summary>
 public sealed partial class MainPage : Page
 {
@@ -49,5 +47,40 @@ public sealed partial class MainPage : Page
         MainConnectionPanel.Visibility = visibility;
         MainResistanceTable.Visibility = visibility;
         MainIdentificationPanel.Visibility = visibility;
+    }
+
+    private async void ReadMetrologyFromFile_Click(object sender, RoutedEventArgs e)
+    {
+        var picker = new FileOpenPicker();
+        WinRT.Interop.InitializeWithWindow.Initialize(picker, App.WindowHandle);
+        picker.FileTypeFilter.Add(".bin");
+
+        var file = await picker.PickSingleFileAsync();
+        if (file is null)
+        {
+            ViewModel.StatusText = "Чтение файла метрологии отменено";
+            return;
+        }
+
+        await ViewModel.ReadMetrologyFromFileAsync(file.Path);
+    }
+
+    private async void WriteMetrologyToFile_Click(object sender, RoutedEventArgs e)
+    {
+        var picker = new FileSavePicker
+        {
+            SuggestedFileName = "Metrology"
+        };
+        WinRT.Interop.InitializeWithWindow.Initialize(picker, App.WindowHandle);
+        picker.FileTypeChoices.Add("Файл метрологии", new List<string> { ".bin" });
+
+        var file = await picker.PickSaveFileAsync();
+        if (file is null)
+        {
+            ViewModel.StatusText = "Запись файла метрологии отменена";
+            return;
+        }
+
+        await ViewModel.WriteMetrologyToFileAsync(file.Path);
     }
 }

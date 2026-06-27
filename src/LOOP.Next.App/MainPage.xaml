@@ -454,11 +454,13 @@
                                                 <TextBox
                                                     Grid.Column="1"
                                                     Style="{StaticResource RingValueTextBoxStyle}"
+                                                    IsReadOnly="{x:Bind IsGeometryReadOnly, Mode=OneWay}"
                                                     Text="{x:Bind L1Text, Mode=TwoWay}"
                                                     TextAlignment="Center" />
                                                 <TextBox
                                                     Grid.Column="2"
                                                     Style="{StaticResource RingValueTextBoxStyle}"
+                                                    IsReadOnly="{x:Bind IsGeometryReadOnly, Mode=OneWay}"
                                                     Text="{x:Bind L2Text, Mode=TwoWay}"
                                                     TextAlignment="Center" />
                                             </Grid>
@@ -481,6 +483,7 @@
                                             <TextBox
                                                 Grid.Column="1"
                                                 Style="{StaticResource RingValueTextBoxStyle}"
+                                                IsReadOnly="{x:Bind IsGeometryReadOnly, Mode=OneWay}"
                                                 Text="{x:Bind FrequencyText, Mode=TwoWay}"
                                                 TextAlignment="Center" />
                                         </Grid>
@@ -573,9 +576,8 @@
                                         <DataTemplate x:DataType="vm:RingCalibrationRowViewModel">
                                             <TextBox
                                                 Style="{StaticResource RingValueTextBoxStyle}"
-                                                IsReadOnly="True"
-                                                IsTabStop="False"
-                                                Text="{x:Bind ResistanceText, Mode=OneWay}" />
+                                                IsReadOnly="{x:Bind IsResistanceReadOnly, Mode=OneWay}"
+                                                Text="{x:Bind ResistanceText, Mode=TwoWay}" />
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
@@ -597,9 +599,8 @@
                                         <DataTemplate x:DataType="vm:RingCalibrationRowViewModel">
                                             <TextBox
                                                 Style="{StaticResource RingValueTextBoxStyle}"
-                                                IsReadOnly="True"
-                                                IsTabStop="False"
-                                                Text="{x:Bind ReactanceMeasuredText, Mode=OneWay}" />
+                                                IsReadOnly="{x:Bind IsResistanceReadOnly, Mode=OneWay}"
+                                                Text="{x:Bind ReactanceMeasuredText, Mode=TwoWay}" />
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
@@ -609,11 +610,14 @@
                                 <Button Content="Рассчитать" Command="{x:Bind ViewModel.CalculateRingCalibrationCommand}" />
                                 <Button Content="Прочитать" Command="{x:Bind ViewModel.ReadRingParametersCommand}" />
                                 <Button Content="Записать" Command="{x:Bind ViewModel.WriteRingParametersCommand}" />
+                                <Button Content="Записать RE_calc" Command="{x:Bind ViewModel.WriteCalculatedRingParametersCommand}" />
                             </StackPanel>
 
                             <StackPanel Grid.Row="6" Orientation="Horizontal" Spacing="6" Margin="0,2,0,0">
-                                <TextBlock Text="Редактировать" FontSize="12" VerticalAlignment="Center" />
-                                <CheckBox IsChecked="True" />
+                                <TextBlock Text="Редактировать R/Re" FontSize="12" VerticalAlignment="Center" />
+                                <CheckBox IsChecked="{x:Bind ViewModel.IsRingResistanceEditMode, Mode=TwoWay}" />
+                                <TextBlock Text="Геометрию" FontSize="12" VerticalAlignment="Center" />
+                                <CheckBox IsChecked="{x:Bind ViewModel.IsRingGeometryEditMode, Mode=TwoWay}" />
                             </StackPanel>
                         </Grid>
                     </Border>
@@ -642,8 +646,10 @@
                     </Border>
 
                     <StackPanel Grid.Row="2" Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="8">
-                        <Button Content="Метрология -> Зонд" />
-                        <Button Content="Метрология -> Файл" />
+                        <Button Content="Зонд -> Метрология" Command="{x:Bind ViewModel.ReadMetrologyFromToolCommand}" />
+                        <Button Content="Метрология -> Зонд" Command="{x:Bind ViewModel.WriteMetrologyToToolCommand}" />
+                        <Button Content="Файл -> Метрология" Click="ReadMetrologyFromFile_Click" />
+                        <Button Content="Метрология -> Файл" Click="WriteMetrologyToFile_Click" />
                     </StackPanel>
                 </Grid>
             </ScrollViewer>

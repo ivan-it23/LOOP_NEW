@@ -53,7 +53,7 @@ public static class AppLogger
             }
             catch
             {
-                // Логирование не должно ломать рабочий процесс.
+                // Ошибки записи лога подавляются, чтобы диагностика не прерывала рабочий сценарий.
             }
 
             System.Diagnostics.Debug.WriteLine(line);

@@ -24,7 +24,7 @@ public static class ToolPort
     public readonly record struct SignatureResult(ToolResponseCode Code, uint Signature);
 
     // Опрос кадра измерений с одной повторной попыткой при таймауте.
-    // Метрология передаётся явно, чтобы фазы симметризовались с учётом Air_zz и Rx_Position.
+    // Метрология передаётся явно, чтобы применялась ориентация фаз по Rx_Position.
     public static PhaseFrameResult GetPhaseFromTool(SerialPort com, byte cmd, in GpToolMetrology metrology)
     {
         var phases = default(V10);

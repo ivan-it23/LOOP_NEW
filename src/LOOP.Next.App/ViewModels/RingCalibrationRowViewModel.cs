@@ -34,4 +34,10 @@ public partial class RingCalibrationRowViewModel : ObservableObject
 
     [ObservableProperty]
     public partial string ReactanceMeasuredText { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial bool IsGeometryReadOnly { get; set; } = true;
+
+    [ObservableProperty]
+    public partial bool IsResistanceReadOnly { get; set; }
 }

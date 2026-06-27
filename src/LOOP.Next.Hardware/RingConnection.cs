@@ -142,6 +142,60 @@ public static class RingConnection
         return new RingLoopParameterReadResult(parameters.Count > 0, cells, parameters);
     }
 
+    public static RingLoopParameterWriteResult WriteLoopParameters(SerialPort port, IReadOnlyList<RingLoopParameterCell> cells)
+    {
+        AppLogger.Write("=== ЗАПИСЬ ПАРАМЕТРОВ КОЛЬЦА ===");
+        if (!port.IsOpen)
+        {
+            AppLogger.Write("ОШИБКА: порт кольца не открыт.");
+            return new RingLoopParameterWriteResult(false, Array.Empty<RingLoopParameterWriteCell>());
+        }
+
+        var results = new List<RingLoopParameterWriteCell>(RingProtocolConstants.LoopParameterCellCount);
+        for (var index = 0; index < RingProtocolConstants.LoopParameterCellCount; index++)
+        {
+            var cell = index < cells.Count
+                ? cells[index]
+                : new RingLoopParameterCell(index, 1.0f, 0.0f, true);
+            var resistanceText = cell.Resistance.ToString("G9", CultureInfo.InvariantCulture);
+            var reactanceText = cell.Reactance.ToString("G9", CultureInfo.InvariantCulture);
+            var command = string.Format(
+                CultureInfo.InvariantCulture,
+                RingProtocolConstants.WriteLoopParameterCommandFormat,
+                index,
+                resistanceText,
+                reactanceText);
+            var expectedPrefix = string.Format(
+                CultureInfo.InvariantCulture,
+                RingProtocolConstants.WriteLoopParameterReplyPrefixFormat,
+                index);
+
+            try
+            {
+                port.DiscardInBuffer();
+                port.Write(command);
+                AppLogger.Write($"ZWRITE n={index}: отправлено '{command.Trim()}'");
+                Thread.Sleep(50);
+
+                var response = port.ReadLine();
+                var success = response.StartsWith(expectedPrefix, StringComparison.Ordinal);
+                AppLogger.Write($"ZWRITE n={index}: ответ '{response.Trim()}', ожидается '{expectedPrefix}', success={success}");
+                results.Add(new RingLoopParameterWriteCell(index, success, response.Trim(), null));
+            }
+            catch (Exception ex)
+            {
+                AppLogger.Write(ex, $"ZWRITE n={index}: ошибка записи");
+                results.Add(new RingLoopParameterWriteCell(index, false, string.Empty, ex.Message));
+            }
+        }
+
+        var allSucceeded = results.All(cell => cell.Success);
+        AppLogger.Write(allSucceeded
+            ? "ZWRITE: запись всех ячеек завершена успешно."
+            : "ZWRITE: запись завершена с ошибками.");
+        return new RingLoopParameterWriteResult(allSucceeded, results);
+    }
+
     public static RingWorkResult SetMeasurementPoint(SerialPort port, int resistanceIndex, int capacitanceIndex)
     {
         if (!port.IsOpen)
@@ -217,9 +271,14 @@ public static class RingConnection
             CultureInfo.InvariantCulture,
             out var reactance);
 
-        if (!hasResistance || !hasReactance || !float.IsFinite(resistance) || !float.IsFinite(reactance))
+        if (!hasResistance || !float.IsFinite(resistance))
         {
-            return new RingLoopParameterCell(index, 0f, 0f, false);
+            resistance = 0f;
+        }
+
+        if (!hasReactance || !float.IsFinite(reactance))
+        {
+            reactance = 0f;
         }
 
         return new RingLoopParameterCell(index, resistance, reactance, true);
@@ -235,7 +294,13 @@ public enum RingWorkResult
 
 public readonly record struct RingLoopParameterCell(int Index, float Resistance, float Reactance, bool HasValue);
 
+public readonly record struct RingLoopParameterWriteCell(int Index, bool Success, string Response, string? ErrorMessage);
+
 public sealed record RingLoopParameterReadResult(
     bool Success,
     IReadOnlyList<RingLoopParameterCell> Cells,
     IReadOnlyList<LoopParameter> Parameters);
+
+public sealed record RingLoopParameterWriteResult(
+    bool Success,
+    IReadOnlyList<RingLoopParameterWriteCell> Cells);

@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.IO.Ports;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -14,21 +15,21 @@ using Microsoft.UI.Xaml.Media;
 
 namespace LOOP_Next_App.ViewModels;
 
-// ViewModel главного окна: подключение прибора по COM-порту, фоновый опрос кадров,
-// применение локальной воздушной поправки и отображение идентификации/фаз.
-// Связывает перенесённые слои Hardware и Metrology для сквозного теста логики.
+// ViewModel координирует UI главной страницы, аппаратный слой и расчётный конвейер измерений.
 public partial class MainPageViewModel : ObservableObject
 {
     private static readonly SolidColorBrush DisconnectedBrush = new(Colors.Green);
     private static readonly SolidColorBrush ConnectedBrush = new(Colors.Red);
 
     private const int MeasurementSkipFrames = 5;
+    private const int ExpressFullScanResistanceLimit = 2;
 
     private readonly SerialPort _toolPort = new();
     private readonly SerialPort _ringPort = new();
     private readonly LocalAirCorrector _localAir = new();
     private readonly object _airLock = new();
     private readonly object _measurementLock = new();
+    private readonly SemaphoreSlim _toolIoLock = new(1, 1);
 
     private CancellationTokenSource? _pollCts;
     private IReadOnlyList<SondeParameter> _sondeParameters = Array.Empty<SondeParameter>();
@@ -91,8 +92,7 @@ public partial class MainPageViewModel : ObservableObject
     [ObservableProperty]
     public partial int SelectedFrameCount { get; set; } = LocalAirCorrector.DefaultSampleCount;
 
-    // Усреднение и порог отклонения используются логикой таблицы (этап 6);
-    // здесь хранятся для отображения и последующей привязки.
+    // Усреднение и порог применяются при расчёте отклонений в таблице R1..R8.
     [ObservableProperty]
     public partial int SelectedAveraging { get; set; } = 5;
 
@@ -107,7 +107,7 @@ public partial class MainPageViewModel : ObservableObject
         }
     }
 
-    // Режим АВТО и экспресс-режим: индикаторы интерфейса до переноса оркестрации измерений.
+    // Режимы измерений управляют автоциклом кольца и настройкой экспресс-проверки.
     [ObservableProperty]
     public partial bool IsAutoMode { get; set; }
 
@@ -128,6 +128,16 @@ public partial class MainPageViewModel : ObservableObject
 
     [ObservableProperty]
     public partial int PollIntervalMs { get; set; } = 1000;
+
+    [ObservableProperty]
+    public partial bool IsRingGeometryEditMode { get; set; }
+
+    partial void OnIsRingGeometryEditModeChanged(bool value) => ApplyRingEditModes();
+
+    [ObservableProperty]
+    public partial bool IsRingResistanceEditMode { get; set; } = true;
+
+    partial void OnIsRingResistanceEditModeChanged(bool value) => ApplyRingEditModes();
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanConnect))]
@@ -412,18 +422,109 @@ public partial class MainPageViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private async Task ReadMetrologyFromToolAsync()
+    {
+        StatusText = "Чтение метрологии из зонда...";
+        var result = await ExecuteToolPortOperationAsync(MetrologyPort.ReadFromTool);
+        if (!result.Success)
+        {
+            StatusText = result.ErrorMessage ?? "ФАЙЛ МЕТРОЛОГИИ НЕ БЫЛ СЧИТАН!";
+            return;
+        }
+
+        if (result.Value.Code != ToolResponseCode.Ok)
+        {
+            StatusText = result.Value.Code switch
+            {
+                ToolResponseCode.Timeout => "ФАЙЛ МЕТРОЛОГИИ НЕ БЫЛ СЧИТАН! (таймаут)",
+                ToolResponseCode.CrcError => "ФАЙЛ МЕТРОЛОГИИ НЕ БЫЛ СЧИТАН! (ошибка CRC)",
+                _ => $"ФАЙЛ МЕТРОЛОГИИ НЕ БЫЛ СЧИТАН! ({result.Value.Code})"
+            };
+            return;
+        }
+
+        ApplyMetrology(result.Value.Metrology);
+        StatusText = "ФАЙЛ МЕТРОЛОГИИ СЧИТАН ИЗ ПРИБОРА!";
+    }
+
+    [RelayCommand]
+    private async Task WriteMetrologyToToolAsync()
+    {
+        GpToolMetrology metrology;
+        try
+        {
+            metrology = BuildMetrologyFromCurrentFields();
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Write(ex, "Ошибка подготовки метрологии к записи в зонд");
+            StatusText = $"ФАЙЛ МЕТРОЛОГИИ НЕ БЫЛ ЗАПИСАН В ПРИБОР! {ex.Message}";
+            return;
+        }
+
+        StatusText = "Запись метрологии в зонд...";
+        var result = await ExecuteToolPortOperationAsync(port => MetrologyPort.WriteToTool(port, in metrology));
+        if (!result.Success || !result.Value)
+        {
+            StatusText = result.ErrorMessage is null
+                ? "ФАЙЛ МЕТРОЛОГИИ НЕ БЫЛ ЗАПИСАН В ПРИБОР!"
+                : $"ФАЙЛ МЕТРОЛОГИИ НЕ БЫЛ ЗАПИСАН В ПРИБОР! {result.ErrorMessage}";
+            return;
+        }
+
+        ApplyMetrology(metrology);
+        StatusText = "ФАЙЛ МЕТРОЛОГИИ ЗАПИСАН В ПРИБОР!";
+    }
+
+    public async Task ReadMetrologyFromFileAsync(string path)
+    {
+        try
+        {
+            var metrology = await Task.Run(() => MetrologyFile.Read(path));
+            ApplyMetrology(metrology);
+            StatusText = $"Файл метрологии считан: {path}";
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Write(ex, "Ошибка чтения файла метрологии");
+            StatusText = $"Не удалось открыть файл метрологии: {ex.Message}";
+        }
+    }
+
+    public async Task WriteMetrologyToFileAsync(string path)
+    {
+        try
+        {
+            var metrology = BuildMetrologyFromCurrentFields();
+            await Task.Run(() => MetrologyFile.Write(path, in metrology));
+            ApplyMetrology(metrology);
+            StatusText = $"Файл метрологии записан: {path}";
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Write(ex, "Ошибка записи файла метрологии");
+            StatusText = $"Не удалось записать файл метрологии: {ex.Message}";
+        }
+    }
+
+    [RelayCommand]
     private void CalculateRingCalibration()
     {
-        if (_sondeParameters.Count == 0)
+        var parameters = GetRingCalculationParameters();
+        if (parameters.Count == 0)
         {
             StatusText = "Нет метрологии зонда для расчёта кольца";
             return;
         }
 
-        var count = Math.Min(RingCalibrationRows.Count, _sondeParameters.Count);
+        var count = Math.Min(RingCalibrationRows.Count, parameters.Count);
         for (var i = 0; i < count; i++)
         {
-            var value = RingCalibrationCalculator.Calculate(_sondeParameters[i]);
+            var parameter = parameters[i];
+            var value = RingCalibrationCalculator.Calculate(parameter);
+            RingCalibrationRows[i].L1Text = parameter.L1.ToString("F3");
+            RingCalibrationRows[i].L2Text = parameter.L2.ToString("F3");
+            RingCalibrationRows[i].FrequencyText = (parameter.Frequency / 1000f).ToString("F0");
             RingCalibrationRows[i].CapacitanceText = (value.CapacitanceFarads * 1_000_000_000_000f).ToString("F0");
             RingCalibrationRows[i].ReactanceCalculatedText = value.Reactance.ToString("F3");
         }
@@ -491,9 +592,72 @@ public partial class MainPageViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void WriteRingParameters()
+    private async Task WriteRingParametersAsync()
     {
-        StatusText = "Запись параметров кольца будет перенесена следующим шагом";
+        if (!IsRingConnected || !_ringPort.IsOpen)
+        {
+            StatusText = "Включите кольцо";
+            return;
+        }
+
+        IReadOnlyList<RingLoopParameterCell> cells;
+        try
+        {
+            cells = BuildRingWriteCells();
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Write(ex, "Ошибка подготовки параметров кольца к записи");
+            StatusText = $"Ошибка параметров кольца: {ex.Message}";
+            return;
+        }
+
+        StatusText = "Запись параметров кольца...";
+        var result = await Task.Run(() => RingConnection.WriteLoopParameters(_ringPort, cells));
+        if (result.Success)
+        {
+            ApplyRingCells(cells);
+            RebuildLoopParametersFromRingRows();
+            RecalculateLoopReferences();
+            ClearResistanceBuffers();
+            ClearResistanceCells();
+            StatusText = "Запись кольца прошла успешно";
+        }
+        else
+        {
+            var failed = string.Join(", ", result.Cells.Where(cell => !cell.Success).Select(cell => $"Z{cell.Index}"));
+            StatusText = $"Ошибка записи кольца: {failed}";
+        }
+    }
+
+    [RelayCommand]
+    private async Task WriteCalculatedRingParametersAsync()
+    {
+        var copied = false;
+        foreach (var row in RingCalibrationRows)
+        {
+            if (string.IsNullOrWhiteSpace(row.ReactanceCalculatedText))
+            {
+                continue;
+            }
+
+            if (!TryParseDouble(row.ReactanceCalculatedText, out var reactance))
+            {
+                StatusText = $"Некорректное расчётное Re в {row.Label}";
+                return;
+            }
+
+            row.ReactanceMeasuredText = reactance.ToString("F4");
+            copied = true;
+        }
+
+        if (!copied)
+        {
+            StatusText = "Требуется рассчитать реактивные сопротивления";
+            return;
+        }
+
+        await WriteRingParametersAsync();
     }
 
     [RelayCommand]
@@ -546,6 +710,48 @@ public partial class MainPageViewModel : ObservableObject
         }
     }
 
+    private async Task<ToolPortOperationResult<T>> ExecuteToolPortOperationAsync<T>(Func<SerialPort, T> operation)
+    {
+        var selectedPort = SelectedToolPort;
+        await _toolIoLock.WaitAsync();
+        try
+        {
+            return await Task.Run(() =>
+            {
+                if (_toolPort.IsOpen)
+                {
+                    return ToolPortOperationResult<T>.Ok(operation(_toolPort));
+                }
+
+                if (string.IsNullOrWhiteSpace(selectedPort))
+                {
+                    return ToolPortOperationResult<T>.Fail("Выберите COM-порт прибора");
+                }
+
+                using var port = CreateStandaloneToolPort(selectedPort);
+                port.Open();
+                return ToolPortOperationResult<T>.Ok(operation(port));
+            });
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Write(ex, "Ошибка операции с COM-портом прибора");
+            return ToolPortOperationResult<T>.Fail(ex.Message);
+        }
+        finally
+        {
+            _toolIoLock.Release();
+        }
+    }
+
+    private static SerialPort CreateStandaloneToolPort(string portName) =>
+        new(portName)
+        {
+            BaudRate = ToolProtocolConstants.ToolBaudRate,
+            ReadTimeout = ToolProtocolConstants.ReadTimeoutMs,
+            WriteTimeout = ToolProtocolConstants.WriteTimeoutMs
+        };
+
     private void ApplyIdentification(in GpToolMetrology metrology)
     {
         var identity = SondeIdentification.FromMetrology(in metrology);
@@ -558,6 +764,21 @@ public partial class MainPageViewModel : ObservableObject
         NumberText = identity.Number.ToString();
         PaletteText = identity.PaletteSignature.ToString();
         SignatureBitsText = identity.SignatureBits;
+    }
+
+    private void ApplyMetrology(in GpToolMetrology metrology)
+    {
+        _metrology = metrology;
+        _rxPosition = metrology.RxPosition;
+        _sondeParameters = MetrologyConverter.Convert(in _metrology);
+        _channelCount = _sondeParameters.Count;
+
+        ApplyIdentification(in _metrology);
+        BuildChannels(_sondeParameters, in _metrology);
+        BuildRingCalibrationRows(_sondeParameters);
+        CalculateRingCalibration();
+        ClearResistanceBuffers();
+        ClearResistanceCells();
     }
 
     private void BuildChannels(IReadOnlyList<SondeParameter> sondeParameters, in GpToolMetrology metrology)
@@ -656,6 +877,7 @@ public partial class MainPageViewModel : ObservableObject
         }
 
         RefreshRingResistanceRows();
+        ApplyRingEditModes();
         ClearResistanceBuffers();
     }
 
@@ -724,6 +946,7 @@ public partial class MainPageViewModel : ObservableObject
         }
 
         RefreshRingResistanceRows();
+        ApplyRingEditModes();
     }
 
     private void RefreshRingResistanceRows()
@@ -736,17 +959,176 @@ public partial class MainPageViewModel : ObservableObject
         }
     }
 
+    private void ApplyRingEditModes()
+    {
+        foreach (var row in RingCalibrationRows.Concat(RingGeometryRows).Concat(RingFrequencyRows))
+        {
+            row.IsGeometryReadOnly = !IsRingGeometryEditMode;
+            row.IsResistanceReadOnly = !IsRingResistanceEditMode;
+        }
+    }
+
+    private IReadOnlyList<SondeParameter> GetRingCalculationParameters()
+    {
+        if (!IsRingGeometryEditMode)
+        {
+            return _sondeParameters;
+        }
+
+        return BuildSondeParametersFromRingFields();
+    }
+
+    private IReadOnlyList<SondeParameter> BuildSondeParametersFromRingFields()
+    {
+        var result = new List<SondeParameter>();
+        var transmitterCount = Math.Min(RingGeometryRows.Count, GpToolMetrology.MaxTransmitterCount);
+        var frequencyCount = Math.Min(RingFrequencyRows.Count, GpToolMetrology.FrequencyCount);
+
+        for (var frequency = 0; frequency < frequencyCount; frequency++)
+        {
+            var frequencyRow = RingFrequencyRows[frequency];
+            if (!TryParseDouble(frequencyRow.FrequencyText, out var frequencyKHz) || frequencyKHz <= 0)
+            {
+                continue;
+            }
+
+            for (var tx = 0; tx < transmitterCount; tx++)
+            {
+                var row = RingGeometryRows[tx];
+                if (!TryParseDouble(row.L1Text, out var l1) ||
+                    !TryParseDouble(row.L2Text, out var l2) ||
+                    l1 <= 0 ||
+                    l2 <= 0)
+                {
+                    continue;
+                }
+
+                result.Add(new SondeParameter
+                {
+                    L1 = (float)l1,
+                    L2 = (float)l2,
+                    Frequency = (float)(frequencyKHz * 1000.0)
+                });
+            }
+        }
+
+        return result;
+    }
+
+    private GpToolMetrology BuildMetrologyFromCurrentFields()
+    {
+        var metrology = _metrology;
+        var geometryCount = Math.Min(RingGeometryRows.Count, GpToolMetrology.MaxTransmitterCount);
+        for (var tx = 0; tx < geometryCount; tx++)
+        {
+            var row = RingGeometryRows[tx];
+            if (TryParseDouble(row.L1Text, out var l1))
+            {
+                metrology.SetL1(tx, ToUInt16Scaled(l1, 1000.0, $"{row.Label} L1"));
+            }
+
+            if (TryParseDouble(row.L2Text, out var l2))
+            {
+                metrology.SetL2(tx, ToUInt16Scaled(l2, 1000.0, $"{row.Label} L2"));
+            }
+        }
+
+        var frequencyCount = Math.Min(RingFrequencyRows.Count, GpToolMetrology.FrequencyCount);
+        for (var frequency = 0; frequency < frequencyCount; frequency++)
+        {
+            var row = RingFrequencyRows[frequency];
+            if (TryParseDouble(row.FrequencyText, out var frequencyKHz))
+            {
+                metrology.SetFrequency(frequency, ToUInt16Scaled(frequencyKHz, 1.0, row.Label));
+            }
+        }
+
+        return metrology;
+    }
+
+    private IReadOnlyList<RingLoopParameterCell> BuildRingWriteCells()
+    {
+        var cells = new List<RingLoopParameterCell>(RingProtocolConstants.LoopParameterCellCount);
+        for (var index = 0; index < RingProtocolConstants.LoopParameterCellCount; index++)
+        {
+            var row = index < RingCalibrationRows.Count ? RingCalibrationRows[index] : null;
+            var defaultResistance = index == 0 ? 1f : 0f;
+            var resistance = defaultResistance;
+            var reactance = 0f;
+
+            if (row is not null && !string.IsNullOrWhiteSpace(row.ResistanceText))
+            {
+                if (!TryParseDouble(row.ResistanceText, out var parsedResistance))
+                {
+                    throw new FormatException($"Некорректное R в Z{index}");
+                }
+
+                resistance = (float)parsedResistance;
+            }
+
+            if (row is not null && !string.IsNullOrWhiteSpace(row.ReactanceMeasuredText))
+            {
+                if (!TryParseDouble(row.ReactanceMeasuredText, out var parsedReactance))
+                {
+                    throw new FormatException($"Некорректное Re в Z{index}");
+                }
+
+                reactance = (float)parsedReactance;
+            }
+
+            cells.Add(new RingLoopParameterCell(index, resistance, reactance, true));
+        }
+
+        return cells;
+    }
+
+    private void ApplyRingCells(IReadOnlyList<RingLoopParameterCell> cells)
+    {
+        var count = Math.Min(RingCalibrationRows.Count, cells.Count);
+        for (var i = 0; i < count; i++)
+        {
+            var cell = cells[i];
+            RingCalibrationRows[i].ResistanceText = cell.Resistance.ToString("F0");
+            RingCalibrationRows[i].ReactanceMeasuredText = cell.Reactance.ToString("F4");
+        }
+    }
+
+    private void RebuildLoopParametersFromRingRows()
+    {
+        var parameters = new List<LoopParameter>();
+        foreach (var row in RingCalibrationRows)
+        {
+            if (!TryParseDouble(row.ResistanceText, out var resistance) ||
+                !TryParseDouble(row.ReactanceMeasuredText, out var reactance) ||
+                reactance <= 0.000001)
+            {
+                continue;
+            }
+
+            parameters.Add(new LoopParameter
+            {
+                Resistance = (float)resistance,
+                Reactance = (float)reactance,
+                Radius = 0.5f,
+                AdditionalWireResistance = 0.5f
+            });
+        }
+
+        _loopParameters = parameters;
+    }
+
     private void RecalculateLoopReferences()
     {
-        if (_sondeParameters.Count == 0 || _loopParameters.Count == 0)
+        var sondeParameters = GetRingCalculationParameters();
+        if (sondeParameters.Count == 0 || _loopParameters.Count == 0)
         {
             _phaseReferences = Array.Empty<V10>();
             _resistivityReferences = Array.Empty<V10>();
             return;
         }
 
-        _phaseReferences = LoopResistivity.CalcPhaseFromLoop(_sondeParameters, _loopParameters);
-        _resistivityReferences = LoopResistivity.CalcRoFromLoop(_sondeParameters, _phaseReferences);
+        _phaseReferences = LoopResistivity.CalcPhaseFromLoop(sondeParameters, _loopParameters);
+        _resistivityReferences = LoopResistivity.CalcRoFromLoop(sondeParameters, _phaseReferences);
 
         AppLogger.Write($"Эталонные фазы кольца: {_phaseReferences.Count} точек, эталонные УЭС: {_resistivityReferences.Count} точек.");
         for (var i = 0; i < _resistivityReferences.Count && i <= MeasurementTable.ResistanceCount; i++)
@@ -858,8 +1240,7 @@ public partial class MainPageViewModel : ObservableObject
         }
     }
 
-    // Автоматический переход между C и завершение измерения текущего R.
-    // Вызывается после обработки каждого кадра, когда активна точка R/C.
+    // Метод переводит автоцикл к следующей ёмкости или завершает измерение текущего R.
     private void AdvanceAutoMeasurement()
     {
         TaskCompletionSource<bool>? tcsToComplete = null;
@@ -888,7 +1269,7 @@ public partial class MainPageViewModel : ObservableObject
                     return;
                 }
 
-                nextC = _activeCapacitanceIndex + 1;
+                nextC = GetNextCapacitanceIndex(_activeResistanceIndex, _activeCapacitanceIndex);
                 if (nextC > _channelCount)
                 {
                     AppLogger.Write($"АВТО: измерение R={_activeResistanceIndex} завершено (пройдены C=1..{_channelCount}).");
@@ -939,8 +1320,7 @@ public partial class MainPageViewModel : ObservableObject
         IsPolling = false;
     }
 
-    // Фоновый цикл опроса: блокирующее чтение COM выполняется вне UI-потока,
-    // обновление привязанных свойств маршалируется в UI-поток через DispatcherQueue.
+    // Фоновый цикл выполняет блокирующее чтение COM вне UI-потока и публикует результат через DispatcherQueue.
     private async Task PollLoopAsync(CancellationToken token)
     {
         AppLogger.Write("--- Запуск фонового опроса прибора ---");
@@ -948,7 +1328,22 @@ public partial class MainPageViewModel : ObservableObject
         {
             if (_toolPort.IsOpen)
             {
-                var frame = ToolPort.GetPhaseFromTool(_toolPort, ToolProtocolConstants.CmdGetData, in _metrology);
+                await _toolIoLock.WaitAsync(token);
+                ToolPort.PhaseFrameResult frame;
+                try
+                {
+                    if (!_toolPort.IsOpen)
+                    {
+                        continue;
+                    }
+
+                    frame = ToolPort.GetPhaseFromTool(_toolPort, ToolProtocolConstants.CmdGetData, in _metrology);
+                }
+                finally
+                {
+                    _toolIoLock.Release();
+                }
+
                 AppLogger.Write($"Получен кадр от прибора: Code={frame.Code}, RxPosition={_rxPosition}");
 
                 if (frame.Code == ToolResponseCode.Ok)
@@ -957,11 +1352,11 @@ public partial class MainPageViewModel : ObservableObject
                     V10 corrected;
                     lock (_airLock)
                     {
-                        corrected = _localAir.ProcessFrame(frame.Phases, frame.RawPhases, _channelCount, in _metrology);
+                        corrected = _localAir.ProcessFrame(frame.Phases, _channelCount);
                         air = _localAir.Air;
                     }
 
-                    LogFramePhases("Симметризованные фазы", frame.Phases, _channelCount);
+                    LogFramePhases("Фазы DELTA_PH", frame.Phases, _channelCount);
                     LogFramePhases("Сырые фазы", frame.RawPhases, _channelCount);
                     LogFramePhases("Локальный воздух", air, _channelCount);
                     LogFramePhases("Скорректированные фазы", corrected, _channelCount);
@@ -1035,12 +1430,12 @@ public partial class MainPageViewModel : ObservableObject
         }
 
         UpdateReferenceResistanceCells(resistivity, corrected, count);
-        UpdateChannelIndicators(resistivity, count);
+        UpdateChannelIndicators(corrected, count);
     }
 
-    private void UpdateChannelIndicators(V10 resistivity, int channelCount)
+    private void UpdateChannelIndicators(V10 corrected, int channelCount)
     {
-        if (_resistivityReferences.Count <= MeasurementTable.ResistanceCount || _activeResistanceIndex <= 0)
+        if (_phaseReferences.Count <= MeasurementTable.ResistanceCount || _activeResistanceIndex <= 0)
         {
             for (var i = 0; i < channelCount; i++)
             {
@@ -1051,19 +1446,19 @@ public partial class MainPageViewModel : ObservableObject
             return;
         }
 
-        var reference = _resistivityReferences[_activeResistanceIndex];
+        var reference = _phaseReferences[_activeResistanceIndex];
         for (var i = 0; i < channelCount; i++)
         {
             var referenceValue = reference.GetValue(i);
-            var measuredValue = resistivity.GetValue(i);
-            if (!float.IsFinite(referenceValue) || !float.IsFinite(measuredValue) || referenceValue <= 0f || measuredValue <= 0f)
+            var measuredValue = corrected.GetValue(i);
+            if (!float.IsFinite(referenceValue) || !float.IsFinite(measuredValue))
             {
                 ResistanceRows[i].IndicatorValue = 0.0;
                 ResistanceRows[i].IndicatorAverageValue = 0.0;
                 continue;
             }
 
-            var currentPercent = 100f * (measuredValue - referenceValue) / (referenceValue + 0.000000001f);
+            var currentPercent = CalculatePhasePercentSample(measuredValue, referenceValue);
             ResistanceRows[i].IndicatorValue = currentPercent;
 
             var buffer = _resistancePercentBuffers[_activeResistanceIndex - 1, i];
@@ -1073,7 +1468,7 @@ public partial class MainPageViewModel : ObservableObject
 
     private void UpdateReferenceResistanceCells(in V10 resistivity, in V10 corrected, int channelCount)
     {
-        if (_resistivityReferences.Count <= MeasurementTable.ResistanceCount)
+        if (_phaseReferences.Count <= MeasurementTable.ResistanceCount)
         {
             return;
         }
@@ -1088,6 +1483,17 @@ public partial class MainPageViewModel : ObservableObject
 
         var resistanceIndex = active.ResistanceIndex;
         var channelIndex = active.CapacitanceIndex - 1;
+        var activeChannels = GetActiveMeasurementChannels(resistanceIndex, active.CapacitanceIndex, channelCount).ToArray();
+        if (activeChannels.Length > 0)
+        {
+            foreach (var activeChannel in activeChannels)
+            {
+                UpdateReferenceResistanceCellForChannel(in resistivity, in corrected, resistanceIndex, activeChannel);
+            }
+
+            return;
+        }
+
         if (resistanceIndex > MeasurementTable.ResistanceCount ||
             channelIndex < 0 ||
             channelIndex >= channelCount ||
@@ -1105,7 +1511,7 @@ public partial class MainPageViewModel : ObservableObject
         var measuredPhase = corrected.GetValue(channelIndex);
         var (freqLabel, txIndex) = GetChannelFrequencyAndTx(channelIndex);
 
-        if (!float.IsFinite(referenceValue) || !float.IsFinite(measuredValue) || referenceValue <= 0f || measuredValue <= 0f)
+        if (!float.IsFinite(referencePhase) || !float.IsFinite(measuredPhase))
         {
             AppLogger.Write(
                 $"R{resistanceIndex} (канал {channelIndex}, {freqLabel} Tx{txIndex}): эталон УЭС={referenceValue:F2}, измерено={measuredValue:F2} — пропуск (некорректные значения).");
@@ -1113,7 +1519,7 @@ public partial class MainPageViewModel : ObservableObject
             return;
         }
 
-        var percent = 100f * (measuredValue - referenceValue) / (referenceValue + 0.000000001f);
+        var percent = CalculatePhasePercentSample(measuredPhase, referencePhase);
         var averaged = PushResistancePercent(resistanceIndex - 1, channelIndex, percent);
         AppLogger.Write(
             $"R{resistanceIndex} (канал {channelIndex}, {freqLabel} Tx{txIndex}): " +
@@ -1122,6 +1528,84 @@ public partial class MainPageViewModel : ObservableObject
         ResistanceRows[channelIndex].SetResistanceCell(
             resistanceIndex,
             MeasurementCell.Create(averaged, ThresholdPercent));
+    }
+
+    private int GetNextCapacitanceIndex(int resistanceIndex, int capacitanceIndex)
+    {
+        if (ExpressMode && resistanceIndex > ExpressFullScanResistanceLimit)
+        {
+            return capacitanceIndex + Math.Max(1, _channelCount / 2);
+        }
+
+        return capacitanceIndex + 1;
+    }
+
+    private IEnumerable<int> GetActiveMeasurementChannels(int resistanceIndex, int capacitanceIndex, int channelCount)
+    {
+        var start = capacitanceIndex - 1;
+        if (start < 0 || start >= channelCount)
+        {
+            yield break;
+        }
+
+        if (ExpressMode && resistanceIndex > ExpressFullScanResistanceLimit)
+        {
+            var groupSize = Math.Max(1, channelCount / 2);
+            var end = Math.Min(channelCount, start + groupSize);
+            for (var channel = start; channel < end; channel++)
+            {
+                yield return channel;
+            }
+
+            yield break;
+        }
+
+        yield return start;
+    }
+
+    private void UpdateReferenceResistanceCellForChannel(in V10 resistivity, in V10 corrected, int resistanceIndex, int channelIndex)
+    {
+        if (resistanceIndex > MeasurementTable.ResistanceCount ||
+            channelIndex < 0 ||
+            channelIndex >= ResistanceRows.Count)
+        {
+            return;
+        }
+
+        var referencePhase = _phaseReferences[resistanceIndex].GetValue(channelIndex);
+        var measuredPhase = corrected.GetValue(channelIndex);
+        if (!float.IsFinite(referencePhase) || !float.IsFinite(measuredPhase))
+        {
+            ResistanceRows[channelIndex].SetResistanceCell(resistanceIndex, MeasurementCell.Empty);
+            return;
+        }
+
+        var referenceValue = _resistivityReferences.Count > resistanceIndex
+            ? _resistivityReferences[resistanceIndex].GetValue(channelIndex)
+            : 0f;
+        var measuredValue = resistivity.GetValue(channelIndex);
+        var percent = CalculatePhasePercentSample(measuredPhase, referencePhase);
+        var averaged = PushResistancePercent(resistanceIndex - 1, channelIndex, percent);
+
+        AppLogger.Write(
+            $"R{resistanceIndex} channel={channelIndex}: phase_ref_mG={referencePhase * PhysicalConstants.Milligrad:F1}, " +
+            $"phase_measured_mG={measuredPhase * PhysicalConstants.Milligrad:F1}, phase_percent={percent:F1}, average={averaged:F1}, " +
+            $"ref_ues={referenceValue:F2}, measured_ues={measuredValue:F2}");
+        ResistanceRows[channelIndex].SetResistanceCell(
+            resistanceIndex,
+            MeasurementCell.Create(averaged, ThresholdPercent));
+    }
+
+    // Возвращает дискретный образец PH_percent_from_sonde, как в старом WorkForm.h.
+    private static float CalculatePhasePercentSample(float measuredPhase, float referencePhase)
+    {
+        var referenceMg = referencePhase * (float)PhysicalConstants.Milligrad;
+        if (MathF.Abs(referenceMg) < 0.001f)
+        {
+            return (int)(MathF.Abs(measuredPhase * (float)PhysicalConstants.Milligrad) / 6.0f);
+        }
+
+        return (int)(100f * (measuredPhase - referencePhase) / referencePhase);
     }
 
     private float PushResistancePercent(int resistanceIndex, int channelIndex, float value)
@@ -1225,6 +1709,29 @@ public partial class MainPageViewModel : ObservableObject
             : value.ToString("F0");
     }
 
+    private static bool TryParseDouble(string? text, out double value)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            value = 0.0;
+            return false;
+        }
+
+        return double.TryParse(text.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out value) ||
+            double.TryParse(text.Trim(), NumberStyles.Float, CultureInfo.CurrentCulture, out value);
+    }
+
+    private static ushort ToUInt16Scaled(double value, double scale, string fieldName)
+    {
+        var scaled = Math.Round(value * scale, MidpointRounding.AwayFromZero);
+        if (scaled < ushort.MinValue || scaled > ushort.MaxValue)
+        {
+            throw new FormatException($"{fieldName}: значение выходит за диапазон UInt16");
+        }
+
+        return (ushort)scaled;
+    }
+
     private static (string FrequencyLabel, int TxIndex) GetChannelFrequencyAndTx(int channelIndex)
     {
         const int transmitterCount = 5;
@@ -1261,5 +1768,12 @@ public partial class MainPageViewModel : ObservableObject
     private void DispatchStatus(string message)
     {
         App.DispatcherQueue.TryEnqueue(() => StatusText = message);
+    }
+
+    private readonly record struct ToolPortOperationResult<T>(bool Success, T Value, string? ErrorMessage)
+    {
+        public static ToolPortOperationResult<T> Ok(T value) => new(true, value, null);
+
+        public static ToolPortOperationResult<T> Fail(string errorMessage) => new(false, default!, errorMessage);
     }
 }

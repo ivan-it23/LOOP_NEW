@@ -3,25 +3,20 @@ using LoopNext.Core.Models;
 
 namespace LoopNext.Metrology;
 
-// Преобразование кадра прибора в симметризованные фазы.
-// Перенос get_phase_smt (function.cpp:684). Фазы нормализуются к Air_zz,
-// ориентируются по Tx/Rx_Position и умножаются на матрицу симметризации.
+// Преобразует кадр прибора в рабочие фазы активного измерительного потока.
+// Поведение соответствует fill_phase_from_tool_data: DELTA_PH, ориентация Tx/Rx_Position, без Air_zz и симметризации.
 public static class ToolPhaseProcessor
 {
     public const int FrequencyCount = 2;
 
-    // Результат заполнения фаз: симметризованные фазы, сырые ориентированные фазы
-    // и диагностика ориентации. Сырые фазы нужны для локальной воздушной поправки,
-    // которая в эталонном проекте накапливается до симметризации (get_air_smt).
+    // RawPhases оставлен для совместимости вызывающего кода; в активном пути он совпадает с Phases.
     public readonly record struct PhaseResult(V10 Phases, V10 RawPhases, PhaseOrientationDebug Debug);
 
-    // Заполняет V10 фазами из GP_TOOL_DATA.
-    // Симметризованные фазы — перенос get_phase_smt (function.cpp:684).
-    // Сырые ориентированные фазы — перенос fill_phase_from_tool_data (function.cpp:53).
+    // Заполняет V10 фазами из GP_TOOL_DATA по живой логике LOOP_NEW.
     public static PhaseResult FillPhaseFromToolData(in GpToolData data, in GpToolMetrology metrology)
     {
-        var phases = PhaseSymmetrizer.GetPhaseSmt(in data, in metrology);
-        var rawPhases = FillRawPhaseFromToolData(in data, metrology.RxPosition);
+        var phases = FillRawPhaseFromToolData(in data, metrology.RxPosition);
+        var rawPhases = phases;
 
         var identity = ToolIdentity.Decode(data.Signature);
         var normalizedRx = PhaseMath.NormalizedRxPosition(metrology.RxPosition);
@@ -52,22 +47,19 @@ public static class ToolPhaseProcessor
 
         var phaseValues = string.Join(", ", Enumerable.Range(0, (int)(FrequencyCount * identity.TransmitterCount))
             .Select(i => $"[{i}]={(phases.GetValue(i) * PhysicalConstants.Milligrad):F1}"));
-        var rawValues = string.Join(", ", Enumerable.Range(0, (int)(FrequencyCount * identity.TransmitterCount))
-            .Select(i => $"[{i}]={(rawPhases.GetValue(i) * PhysicalConstants.Milligrad):F1}"));
-        AppLogger.Write($"PHASE_ORIENTATION: сигнатура=0x{data.Signature:X8}, Tx={identity.TransmitterCount}, Rx={normalizedRx}, sym (мГ)=[{phaseValues}], raw (мГ)=[{rawValues}]");
+        AppLogger.Write($"PHASE_ORIENTATION: signature=0x{data.Signature:X8}, Tx={identity.TransmitterCount}, Rx={normalizedRx}, final_mG=[{phaseValues}]");
         for (uint freq = 0; freq < FrequencyCount; freq++)
         {
             for (uint tx = 0; tx < identity.TransmitterCount; tx++)
             {
-                AppLogger.Write($"  F{freq} Tx{tx}: raw={(debug.RawDelta[freq, tx] * PhysicalConstants.Milligrad):F1}, sign={debug.OrientationSign[freq, tx]}, smt={(debug.FinalPhase[freq, tx] * PhysicalConstants.Milligrad):F1}");
+                AppLogger.Write($"  F{freq} Tx{tx}: raw={(debug.RawDelta[freq, tx] * PhysicalConstants.Milligrad):F1}, sign={debug.OrientationSign[freq, tx]}, final={(debug.FinalPhase[freq, tx] * PhysicalConstants.Milligrad):F1}");
             }
         }
 
         return new PhaseResult(phases, rawPhases, debug);
     }
 
-    // Сырые ориентированные фазы без симметризации.
-    // Перенос fill_phase_from_tool_data (function.cpp:53).
+    // Формирует ориентированные фазы без симметризации и без Air_zz.
     private static V10 FillRawPhaseFromToolData(in GpToolData data, uint rxPosition)
     {
         var phases = default(V10);

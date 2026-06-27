@@ -12,7 +12,7 @@ public static class PhaseSymmetrizer
     public const int FrequencyCount = 2;
 
     // Извлекает 8-битную маску работающих передатчиков для частоты из condition.
-    // Layout (LSB-first): byte0 = 2000 кГц (freq 1), byte1 = 400 кГц (freq 0).
+    // Разметка LSB-first: байт 0 = 2000 кГц (freq 1), байт 1 = 400 кГц (freq 0).
     // Внутри байта: bit0 = T1, bit1 = T2, ..., bit4 = T5.
     public static byte ExtractConditionByte(uint rawCondition, int frequencyIndex)
     {
