@@ -881,12 +881,15 @@
                 </Grid.ColumnDefinitions>
 
                 <TextBlock Grid.Row="0" Grid.Column="0" Text="Интервал опроса, мс" VerticalAlignment="Center" />
-                <ComboBox
+                <NumberBox
                     Grid.Row="0"
                     Grid.Column="1"
                     Width="160"
-                    ItemsSource="{x:Bind ViewModel.PollIntervalOptions}"
-                    SelectedItem="{x:Bind ViewModel.PollIntervalMs, Mode=TwoWay}" />
+                    Minimum="700"
+                    SmallChange="100"
+                    LargeChange="500"
+                    SpinButtonPlacementMode="Inline"
+                    Value="{x:Bind ViewModel.PollIntervalMs, Mode=TwoWay}" />
 
                 <TextBlock Grid.Row="1" Grid.Column="0" Text="Экспресс" VerticalAlignment="Center" />
                 <ToggleSwitch

@@ -73,8 +73,6 @@ public partial class MainPageViewModel : ObservableObject
 
     public ObservableCollection<int> FrameCountOptions { get; } = new() { 20, 30, 40, 50, 60 };
 
-    public ObservableCollection<int> PollIntervalOptions { get; } = new() { 500, 1000, 1500, 2000 };
-
     public ObservableCollection<int> AveragingOptions { get; } = new() { 5, 10, 15, 20 };
 
     public ObservableCollection<int> ThresholdOptions { get; } = new() { 5, 6, 7, 8, 9, 10 };
@@ -127,7 +125,15 @@ public partial class MainPageViewModel : ObservableObject
     public partial bool ExpressMode { get; set; } = true;
 
     [ObservableProperty]
-    public partial int PollIntervalMs { get; set; } = 1000;
+    public partial double PollIntervalMs { get; set; } = 1000;
+
+    partial void OnPollIntervalMsChanged(double value)
+    {
+        if (!double.IsFinite(value) || value < 700)
+        {
+            PollIntervalMs = 700;
+        }
+    }
 
     [ObservableProperty]
     public partial bool IsRingEditMode { get; set; }
@@ -1303,7 +1309,7 @@ public partial class MainPageViewModel : ObservableObject
 
             try
             {
-                await Task.Delay(PollIntervalMs, token);
+                await Task.Delay(TimeSpan.FromMilliseconds(Math.Max(700, PollIntervalMs)), token);
             }
             catch (TaskCanceledException)
             {
