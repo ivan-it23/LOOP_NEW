@@ -10,6 +10,7 @@ using LoopNext.Core.Protocol;
 using LoopNext.Hardware;
 using LoopNext.Metrology;
 using LOOP.Next.Reporting;
+using LOOP_Next_App.Services;
 using Microsoft.UI;
 using Microsoft.UI.Xaml.Media;
 
@@ -30,6 +31,8 @@ public partial class MainPageViewModel : ObservableObject
     private readonly object _airLock = new();
     private readonly object _measurementLock = new();
     private readonly SemaphoreSlim _toolIoLock = new(1, 1);
+    private readonly UserSettings _userSettings;
+    private bool _isRestoringPorts;
 
     private CancellationTokenSource? _pollCts;
     private IReadOnlyList<SondeParameter> _sondeParameters = Array.Empty<SondeParameter>();
@@ -50,6 +53,7 @@ public partial class MainPageViewModel : ObservableObject
 
     public MainPageViewModel()
     {
+        _userSettings = UserSettingsStore.Load();
         BuildDefaultResistanceTable();
         BuildDefaultRingCalibrationRows();
         RefreshPorts();
@@ -82,10 +86,30 @@ public partial class MainPageViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(CanToggleTool))]
     public partial string? SelectedToolPort { get; set; }
 
+    partial void OnSelectedToolPortChanged(string? value)
+    {
+        if (_isRestoringPorts)
+        {
+            return;
+        }
+
+        SaveSelectedToolPort(value);
+    }
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanConnectRing))]
     [NotifyPropertyChangedFor(nameof(CanToggleRing))]
     public partial string? SelectedRingPort { get; set; }
+
+    partial void OnSelectedRingPortChanged(string? value)
+    {
+        if (_isRestoringPorts)
+        {
+            return;
+        }
+
+        SaveSelectedRingPort(value);
+    }
 
     [ObservableProperty]
     public partial int SelectedFrameCount { get; set; } = LocalAirCorrector.DefaultSampleCount;
@@ -259,6 +283,8 @@ public partial class MainPageViewModel : ObservableObject
     private void RefreshPorts()
     {
         var ports = SerialPortEnumerator.GetAvailablePortNames();
+        var toolPort = SelectAvailablePort(ports, SelectedToolPort, _userSettings.ToolPort);
+        var ringPort = SelectAvailablePort(ports, SelectedRingPort, _userSettings.RingPort);
 
         ToolPorts.Clear();
         RingPorts.Clear();
@@ -268,15 +294,53 @@ public partial class MainPageViewModel : ObservableObject
             RingPorts.Add(port);
         }
 
-        if (SelectedToolPort is null && ToolPorts.Count > 0)
+        _isRestoringPorts = true;
+        try
         {
-            SelectedToolPort = ToolPorts[0];
+            SelectedToolPort = toolPort;
+            SelectedRingPort = ringPort;
+        }
+        finally
+        {
+            _isRestoringPorts = false;
+        }
+    }
+
+    private static string? SelectAvailablePort(IReadOnlyList<string> ports, string? currentPort, string? savedPort)
+    {
+        if (!string.IsNullOrWhiteSpace(currentPort) && ports.Contains(currentPort))
+        {
+            return currentPort;
         }
 
-        if (SelectedRingPort is null && RingPorts.Count > 0)
+        if (!string.IsNullOrWhiteSpace(savedPort) && ports.Contains(savedPort))
         {
-            SelectedRingPort = RingPorts[0];
+            return savedPort;
         }
+
+        return ports.Count > 0 ? ports[0] : null;
+    }
+
+    private void SaveSelectedToolPort(string? portName)
+    {
+        if (string.IsNullOrWhiteSpace(portName) || string.Equals(_userSettings.ToolPort, portName, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _userSettings.ToolPort = portName;
+        UserSettingsStore.Save(_userSettings);
+    }
+
+    private void SaveSelectedRingPort(string? portName)
+    {
+        if (string.IsNullOrWhiteSpace(portName) || string.Equals(_userSettings.RingPort, portName, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _userSettings.RingPort = portName;
+        UserSettingsStore.Save(_userSettings);
     }
 
     [RelayCommand]
@@ -295,6 +359,7 @@ public partial class MainPageViewModel : ObservableObject
 
         StatusText = "Подключение...";
         var portName = SelectedToolPort;
+        SaveSelectedToolPort(portName);
 
         var result = await Task.Run(() =>
         {
@@ -358,6 +423,7 @@ public partial class MainPageViewModel : ObservableObject
         }
 
         var portName = SelectedRingPort;
+        SaveSelectedRingPort(portName);
         StatusText = "Подключение кольца...";
 
         var status = await Task.Run(() =>
