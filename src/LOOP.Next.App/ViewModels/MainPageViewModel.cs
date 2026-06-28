@@ -130,14 +130,9 @@ public partial class MainPageViewModel : ObservableObject
     public partial int PollIntervalMs { get; set; } = 1000;
 
     [ObservableProperty]
-    public partial bool IsRingGeometryEditMode { get; set; }
+    public partial bool IsRingEditMode { get; set; }
 
-    partial void OnIsRingGeometryEditModeChanged(bool value) => ApplyRingEditModes();
-
-    [ObservableProperty]
-    public partial bool IsRingResistanceEditMode { get; set; } = true;
-
-    partial void OnIsRingResistanceEditModeChanged(bool value) => ApplyRingEditModes();
+    partial void OnIsRingEditModeChanged(bool value) => ApplyRingEditModes();
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanConnect))]
@@ -631,36 +626,6 @@ public partial class MainPageViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task WriteCalculatedRingParametersAsync()
-    {
-        var copied = false;
-        foreach (var row in RingCalibrationRows)
-        {
-            if (string.IsNullOrWhiteSpace(row.ReactanceCalculatedText))
-            {
-                continue;
-            }
-
-            if (!TryParseDouble(row.ReactanceCalculatedText, out var reactance))
-            {
-                StatusText = $"Некорректное расчётное Re в {row.Label}";
-                return;
-            }
-
-            row.ReactanceMeasuredText = reactance.ToString("F4");
-            copied = true;
-        }
-
-        if (!copied)
-        {
-            StatusText = "Требуется рассчитать реактивные сопротивления";
-            return;
-        }
-
-        await WriteRingParametersAsync();
-    }
-
-    [RelayCommand]
     private void TogglePolling()
     {
         if (!IsConnected)
@@ -961,58 +926,15 @@ public partial class MainPageViewModel : ObservableObject
 
     private void ApplyRingEditModes()
     {
-        foreach (var row in RingCalibrationRows.Concat(RingGeometryRows).Concat(RingFrequencyRows))
+        foreach (var row in RingCalibrationRows)
         {
-            row.IsGeometryReadOnly = !IsRingGeometryEditMode;
-            row.IsResistanceReadOnly = !IsRingResistanceEditMode;
+            row.IsRingValueReadOnly = !IsRingEditMode;
         }
     }
 
     private IReadOnlyList<SondeParameter> GetRingCalculationParameters()
     {
-        if (!IsRingGeometryEditMode)
-        {
-            return _sondeParameters;
-        }
-
-        return BuildSondeParametersFromRingFields();
-    }
-
-    private IReadOnlyList<SondeParameter> BuildSondeParametersFromRingFields()
-    {
-        var result = new List<SondeParameter>();
-        var transmitterCount = Math.Min(RingGeometryRows.Count, GpToolMetrology.MaxTransmitterCount);
-        var frequencyCount = Math.Min(RingFrequencyRows.Count, GpToolMetrology.FrequencyCount);
-
-        for (var frequency = 0; frequency < frequencyCount; frequency++)
-        {
-            var frequencyRow = RingFrequencyRows[frequency];
-            if (!TryParseDouble(frequencyRow.FrequencyText, out var frequencyKHz) || frequencyKHz <= 0)
-            {
-                continue;
-            }
-
-            for (var tx = 0; tx < transmitterCount; tx++)
-            {
-                var row = RingGeometryRows[tx];
-                if (!TryParseDouble(row.L1Text, out var l1) ||
-                    !TryParseDouble(row.L2Text, out var l2) ||
-                    l1 <= 0 ||
-                    l2 <= 0)
-                {
-                    continue;
-                }
-
-                result.Add(new SondeParameter
-                {
-                    L1 = (float)l1,
-                    L2 = (float)l2,
-                    Frequency = (float)(frequencyKHz * 1000.0)
-                });
-            }
-        }
-
-        return result;
+        return _sondeParameters;
     }
 
     private GpToolMetrology BuildMetrologyFromCurrentFields()
@@ -1066,9 +988,14 @@ public partial class MainPageViewModel : ObservableObject
                 resistance = (float)parsedResistance;
             }
 
-            if (row is not null && !string.IsNullOrWhiteSpace(row.ReactanceMeasuredText))
+            var reactanceText = row is null
+                ? string.Empty
+                : string.IsNullOrWhiteSpace(row.ReactanceMeasuredText)
+                    ? row.ReactanceCalculatedText
+                    : row.ReactanceMeasuredText;
+            if (!string.IsNullOrWhiteSpace(reactanceText))
             {
-                if (!TryParseDouble(row.ReactanceMeasuredText, out var parsedReactance))
+                if (!TryParseDouble(reactanceText, out var parsedReactance))
                 {
                     throw new FormatException($"Некорректное Re в Z{index}");
                 }
