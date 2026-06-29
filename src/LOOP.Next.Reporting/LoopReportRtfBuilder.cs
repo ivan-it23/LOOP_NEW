@@ -12,6 +12,7 @@ public sealed record LoopReport(
     string Serial,
     DateTime CreatedAt,
     IReadOnlyList<float> LoopResistances,
+    IReadOnlyList<int> SelectedResistanceIndexes,
     IReadOnlyList<LoopReportChannel> Channels);
 
 public static class LoopReportRtfBuilder
@@ -35,8 +36,14 @@ public static class LoopReportRtfBuilder
         builder.Append(Escape("ЗОНД        Погрешность %"));
         builder.AppendLine(@"\par");
 
-        for (var resistanceIndex = 1; resistanceIndex <= MeasurementTable.ResistanceCount; resistanceIndex++)
+        for (var selectedIndex = 0; selectedIndex < report.SelectedResistanceIndexes.Count; selectedIndex++)
         {
+            var resistanceIndex = report.SelectedResistanceIndexes[selectedIndex];
+            if (resistanceIndex < 1 || resistanceIndex > MeasurementTable.ResistanceCount)
+            {
+                continue;
+            }
+
             var resistance = resistanceIndex - 1 < report.LoopResistances.Count
                 ? report.LoopResistances[resistanceIndex - 1].ToString("F0", CultureInfo.InvariantCulture)
                 : string.Empty;
@@ -48,8 +55,8 @@ public static class LoopReportRtfBuilder
             var hasAnyValue = false;
             foreach (var channel in report.Channels)
             {
-                var cell = channel.Cells.Count >= resistanceIndex
-                    ? channel.Cells[resistanceIndex - 1]
+                var cell = channel.Cells.Count > selectedIndex
+                    ? channel.Cells[selectedIndex]
                     : new LoopReportCell(string.Empty, MeasurementQuality.InTolerance);
                 if (string.IsNullOrWhiteSpace(cell.Text))
                 {

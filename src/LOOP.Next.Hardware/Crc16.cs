@@ -1,6 +1,6 @@
 namespace LoopNext.Hardware;
 
-// Табличный CRC16 (CRC-16/MODBUS, начальное значение 0xFFFF).
+// Табличный CRC16 (CRC-16/MODBUS, начальное значение 0xFFFF).git 
 // Точный перенос CRC16 из function.cpp:835 эталонного проекта LOOP_NEW.
 public static class Crc16
 {

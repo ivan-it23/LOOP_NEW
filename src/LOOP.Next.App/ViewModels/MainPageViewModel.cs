@@ -40,6 +40,7 @@ public partial class MainPageViewModel : ObservableObject
     private IReadOnlyList<V10> _resistivityReferences = Array.Empty<V10>();
     private readonly Queue<float>[,] _resistancePercentBuffers = new Queue<float>[MeasurementTable.ResistanceCount, V10.ChannelCount];
     private CancellationTokenSource? _autoCts;
+    private CancellationTokenSource? _singleResistanceCts;
     private int _activeResistanceIndex;
     private int _activeCapacitanceIndex;
     private int _activeMeasurementFrameCount;
@@ -79,6 +80,14 @@ public partial class MainPageViewModel : ObservableObject
     public ObservableCollection<int> AveragingOptions { get; } = new() { 5, 10, 15, 20 };
 
     public ObservableCollection<int> ThresholdOptions { get; } = new() { 5, 6, 7, 8, 9, 10 };
+
+    public bool CanStartSingleResistance =>
+        IsConnected &&
+        IsRingConnected &&
+        !IsAutoMode &&
+        !IsResistanceMeasurementRunning;
+
+    public bool CanToggleAutoMode => !IsResistanceMeasurementRunning || IsAutoMode;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanConnect))]
@@ -156,12 +165,22 @@ public partial class MainPageViewModel : ObservableObject
 
     // Режимы измерений управляют автоциклом кольца и настройкой экспресс-проверки.
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanStartSingleResistance))]
+    [NotifyPropertyChangedFor(nameof(CanToggleAutoMode))]
+    [NotifyCanExecuteChangedFor(nameof(RunResistanceCommand))]
     public partial bool IsAutoMode { get; set; }
 
     partial void OnIsAutoModeChanged(bool value)
     {
         if (value)
         {
+            if (IsResistanceMeasurementRunning)
+            {
+                StatusText = "Режим АВТО: дождитесь завершения текущего R";
+                IsAutoMode = false;
+                return;
+            }
+
             _ = RunAutoModeAsync();
         }
         else
@@ -175,6 +194,36 @@ public partial class MainPageViewModel : ObservableObject
 
     [ObservableProperty]
     public partial double PollIntervalMs { get; set; } = 1000;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanStartSingleResistance))]
+    [NotifyPropertyChangedFor(nameof(CanToggleAutoMode))]
+    [NotifyCanExecuteChangedFor(nameof(RunResistanceCommand))]
+    public partial bool IsResistanceMeasurementRunning { get; set; }
+
+    [ObservableProperty]
+    public partial bool ReportR1Selected { get; set; }
+
+    [ObservableProperty]
+    public partial bool ReportR2Selected { get; set; }
+
+    [ObservableProperty]
+    public partial bool ReportR3Selected { get; set; }
+
+    [ObservableProperty]
+    public partial bool ReportR4Selected { get; set; }
+
+    [ObservableProperty]
+    public partial bool ReportR5Selected { get; set; }
+
+    [ObservableProperty]
+    public partial bool ReportR6Selected { get; set; }
+
+    [ObservableProperty]
+    public partial bool ReportR7Selected { get; set; }
+
+    [ObservableProperty]
+    public partial bool ReportR8Selected { get; set; }
 
     partial void OnPollIntervalMsChanged(double value)
     {
@@ -193,12 +242,16 @@ public partial class MainPageViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(CanConnect))]
     [NotifyPropertyChangedFor(nameof(CanToggleTool))]
     [NotifyPropertyChangedFor(nameof(ToolToggleText))]
+    [NotifyPropertyChangedFor(nameof(CanStartSingleResistance))]
+    [NotifyCanExecuteChangedFor(nameof(RunResistanceCommand))]
     public partial bool IsConnected { get; set; }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanConnectRing))]
     [NotifyPropertyChangedFor(nameof(CanToggleRing))]
     [NotifyPropertyChangedFor(nameof(RingToggleText))]
+    [NotifyPropertyChangedFor(nameof(CanStartSingleResistance))]
+    [NotifyCanExecuteChangedFor(nameof(RunResistanceCommand))]
     public partial bool IsRingConnected { get; set; }
 
     [ObservableProperty]
@@ -497,11 +550,19 @@ public partial class MainPageViewModel : ObservableObject
             return;
         }
 
+        var selectedResistances = GetSelectedReportResistances();
+        if (selectedResistances.Count == 0)
+        {
+            StatusText = "Рапорт: выберите R1-R8";
+            return;
+        }
+
         var report = new LoopReport(
             SerialText,
             DateTime.Now,
             _loopParameters.Take(MeasurementTable.ResistanceCount).Select(parameter => parameter.Resistance).ToArray(),
-            BuildReportChannels());
+            selectedResistances,
+            BuildReportChannels(selectedResistances));
         var rtf = LoopReportRtfBuilder.Build(report);
         var directory = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
@@ -511,6 +572,59 @@ public partial class MainPageViewModel : ObservableObject
         var path = Path.Combine(directory, $"LOOP_report_{DateTime.Now:yyyyMMdd_HHmmss}.rtf");
         File.WriteAllText(path, rtf);
         StatusText = $"Рапорт сохранён: {path}";
+    }
+
+    private bool CanRunResistance(object? parameter) =>
+        CanStartSingleResistance && TryGetResistanceIndex(parameter, out _);
+
+    [RelayCommand(CanExecute = nameof(CanRunResistance))]
+    private async Task RunResistanceAsync(object? parameter)
+    {
+        if (!TryGetResistanceIndex(parameter, out var resistanceIndex))
+        {
+            StatusText = "R: неверный номер";
+            return;
+        }
+
+        if (!await PrepareResistanceMeasurementAsync($"R{resistanceIndex}"))
+        {
+            return;
+        }
+
+        _singleResistanceCts?.Cancel();
+        _singleResistanceCts = new CancellationTokenSource();
+        var token = _singleResistanceCts.Token;
+        IsResistanceMeasurementRunning = true;
+
+        try
+        {
+            AppLogger.Write($"=== РУЧНОЙ ЗАПУСК R{resistanceIndex} ===");
+            await RunResistanceMeasurementAsync(resistanceIndex, $"R{resistanceIndex}", token);
+            AppLogger.Write($"=== РУЧНОЙ ПРОХОД R{resistanceIndex} ЗАВЕРШЁН ===");
+        }
+        catch (OperationCanceledException)
+        {
+            AppLogger.Write($"РУЧНОЙ ПРОХОД R{resistanceIndex}: отменён.");
+            StatusText = $"R{resistanceIndex}: остановлено";
+        }
+        finally
+        {
+            lock (_autoLock)
+            {
+                _autoMeasurementCompleteTcs = null;
+            }
+
+            SetActiveMeasurementPoint(0, 0);
+            if (_ringPort.IsOpen)
+            {
+                AppLogger.Write($"РУЧНОЙ ПРОХОД R{resistanceIndex}: сброс кольца в 0/0.");
+                await Task.Run(() => RingConnection.SetMeasurementPoint(_ringPort, 0, 0), CancellationToken.None);
+            }
+
+            IsResistanceMeasurementRunning = false;
+            _singleResistanceCts.Dispose();
+            _singleResistanceCts = null;
+        }
     }
 
     [RelayCommand]
@@ -1163,27 +1277,99 @@ public partial class MainPageViewModel : ObservableObject
         }
     }
 
-    private async Task RunAutoModeAsync()
+    private static bool TryGetResistanceIndex(object? parameter, out int resistanceIndex)
     {
-        AppLogger.Write("=== ЗАПУСК РЕЖИМА АВТО ===");
+        switch (parameter)
+        {
+            case int value:
+                resistanceIndex = value;
+                break;
+            case string text when int.TryParse(text, CultureInfo.InvariantCulture, out var value):
+                resistanceIndex = value;
+                break;
+            default:
+                resistanceIndex = 0;
+                return false;
+        }
+
+        return resistanceIndex is >= 1 and <= MeasurementTable.ResistanceCount;
+    }
+
+    private async Task<bool> PrepareResistanceMeasurementAsync(string modeName)
+    {
         if (!IsConnected || !IsRingConnected || !_ringPort.IsOpen)
         {
-            AppLogger.Write("Режим АВТО: прибор или кольцо не подключены.");
-            StatusText = "Режим АВТО: подключите прибор и кольцо";
-            IsAutoMode = false;
-            return;
+            AppLogger.Write($"{modeName}: прибор или кольцо не подключены.");
+            StatusText = $"{modeName}: подключите прибор и кольцо";
+            return false;
         }
 
         if (_loopParameters.Count == 0)
         {
-            AppLogger.Write("Режим АВТО: параметры кольца не загружены, читаем...");
+            AppLogger.Write($"{modeName}: параметры кольца не загружены, читаем...");
             await LoadRingParametersAsync();
         }
 
         if (_channelCount <= 0 || _resistivityReferences.Count <= MeasurementTable.ResistanceCount)
         {
-            AppLogger.Write("Режим АВТО: нет расчётных эталонов кольца.");
-            StatusText = "Режим АВТО: нет расчётных эталонов кольца";
+            AppLogger.Write($"{modeName}: нет расчётных эталонов кольца.");
+            StatusText = $"{modeName}: нет расчётных эталонов кольца";
+            return false;
+        }
+
+        return true;
+    }
+
+    private async Task<bool> RunResistanceMeasurementAsync(int resistanceIndex, string modeName, CancellationToken token)
+    {
+        var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        ClearResistanceCells(resistanceIndex);
+        ClearResistanceBuffer(resistanceIndex);
+
+        lock (_autoLock)
+        {
+            _autoMeasurementCompleteTcs = tcs;
+            SetActiveMeasurementPoint(resistanceIndex, 1);
+        }
+
+        StatusText = $"{modeName}: R{resistanceIndex}, C1";
+        LogCapMap(resistanceIndex, 1);
+        AppLogger.Write($"{modeName}: задержка 200 мс перед установкой R{resistanceIndex}/C1 (как в R_Click).");
+        await Task.Delay(200, token);
+
+        AppLogger.Write($"{modeName}: установка R{resistanceIndex}/C1...");
+        var result = await Task.Run(
+            () => RingConnection.SetMeasurementPoint(_ringPort, resistanceIndex, 1),
+            token);
+        if (result != RingWorkResult.Ok)
+        {
+            AppLogger.Write($"{modeName}: ошибка установки R{resistanceIndex}/C1 ({result}).");
+            StatusText = $"{modeName}: ошибка установки R{resistanceIndex}/C1 ({result})";
+            lock (_autoLock)
+            {
+                _autoMeasurementCompleteTcs = null;
+                SetActiveMeasurementPoint(0, 0);
+            }
+
+            return false;
+        }
+
+        AppLogger.Write($"{modeName}: R{resistanceIndex}/C1 установлен, ожидание усреднения кадров...");
+        using (token.Register(() => tcs.TrySetCanceled(token)))
+        {
+            await tcs.Task;
+        }
+
+        RefreshReportSelectionForResistance(resistanceIndex);
+        AppLogger.Write($"{modeName}: R{resistanceIndex} измерено.");
+        return true;
+    }
+
+    private async Task RunAutoModeAsync()
+    {
+        AppLogger.Write("=== ЗАПУСК РЕЖИМА АВТО ===");
+        if (!await PrepareResistanceMeasurementAsync("Режим АВТО"))
+        {
             IsAutoMode = false;
             return;
         }
@@ -1191,6 +1377,7 @@ public partial class MainPageViewModel : ObservableObject
         _autoCts?.Cancel();
         _autoCts = new CancellationTokenSource();
         var token = _autoCts.Token;
+        IsResistanceMeasurementRunning = true;
 
         ClearResistanceCells();
         ClearResistanceBuffers();
@@ -1209,35 +1396,11 @@ public partial class MainPageViewModel : ObservableObject
                 token.ThrowIfCancellationRequested();
 
                 AppLogger.Write($"АВТО: старт измерения R{resistanceIndex}.");
-                var tcs = new TaskCompletionSource<bool>();
-                lock (_autoLock)
+                var measured = await RunResistanceMeasurementAsync(resistanceIndex, "Режим АВТО", token);
+                if (!measured)
                 {
-                    _autoMeasurementCompleteTcs = tcs;
-                    SetActiveMeasurementPoint(resistanceIndex, 1);
-                }
-
-                StatusText = $"Режим АВТО: R{resistanceIndex}, C1";
-                LogCapMap(resistanceIndex, 1);
-                AppLogger.Write($"АВТО: задержка 200 мс перед установкой R{resistanceIndex}/C1 (как в R_Click).");
-                await Task.Delay(200, token);
-                AppLogger.Write($"АВТО: установка R{resistanceIndex}/C1...");
-                var result = await Task.Run(
-                    () => RingConnection.SetMeasurementPoint(_ringPort, resistanceIndex, 1),
-                    token);
-                if (result != RingWorkResult.Ok)
-                {
-                    AppLogger.Write($"АВТО: ошибка установки R{resistanceIndex}/C1 ({result}).");
-                    StatusText = $"Режим АВТО: ошибка установки R{resistanceIndex}/C1 ({result})";
                     return;
                 }
-
-                AppLogger.Write($"АВТО: R{resistanceIndex}/C1 установлена, ожидание усреднения кадров...");
-                using (token.Register(() => tcs.TrySetCanceled()))
-                {
-                    await tcs.Task;
-                }
-
-                AppLogger.Write($"АВТО: R{resistanceIndex} измерено.");
             }
 
             AppLogger.Write("=== РЕЖИМ АВТО ЗАВЕРШЁН УСПЕШНО ===");
@@ -1265,6 +1428,8 @@ public partial class MainPageViewModel : ObservableObject
             {
                 IsAutoMode = false;
             }
+
+            IsResistanceMeasurementRunning = false;
         }
     }
 
@@ -1277,7 +1442,7 @@ public partial class MainPageViewModel : ObservableObject
 
         lock (_autoLock)
         {
-            if (!IsAutoMode || _autoMeasurementCompleteTcs is null)
+            if (!IsResistanceMeasurementRunning || _autoMeasurementCompleteTcs is null)
             {
                 return;
             }
@@ -1495,7 +1660,7 @@ public partial class MainPageViewModel : ObservableObject
             ResistanceRows[i].IndicatorValue = currentPercent;
 
             var buffer = _resistancePercentBuffers[_activeResistanceIndex - 1, i];
-            ResistanceRows[i].IndicatorAverageValue = buffer?.Average() ?? 0.0;
+            ResistanceRows[i].IndicatorAverageValue = buffer is { Count: > 0 } ? buffer.Average() : 0.0;
         }
     }
 
@@ -1782,6 +1947,19 @@ public partial class MainPageViewModel : ObservableObject
         }
     }
 
+    private void ClearResistanceBuffer(int resistanceIndex)
+    {
+        if (resistanceIndex < 1 || resistanceIndex > MeasurementTable.ResistanceCount)
+        {
+            return;
+        }
+
+        for (var c = 0; c < V10.ChannelCount; c++)
+        {
+            _resistancePercentBuffers[resistanceIndex - 1, c]?.Clear();
+        }
+    }
+
     private void ClearResistanceCells()
     {
         foreach (var row in ResistanceRows)
@@ -1791,6 +1969,23 @@ public partial class MainPageViewModel : ObservableObject
                 row.SetResistanceCell(resistanceIndex, MeasurementCell.Empty);
             }
         }
+
+        ClearReportResistanceSelections();
+    }
+
+    private void ClearResistanceCells(int resistanceIndex)
+    {
+        if (resistanceIndex < 1 || resistanceIndex > MeasurementTable.ResistanceCount)
+        {
+            return;
+        }
+
+        foreach (var row in ResistanceRows)
+        {
+            row.SetResistanceCell(resistanceIndex, MeasurementCell.Empty);
+        }
+
+        SetReportResistanceSelected(resistanceIndex, false);
     }
 
     private void SetActiveMeasurementPoint(int resistanceIndex, int capacitanceIndex)
@@ -1818,14 +2013,112 @@ public partial class MainPageViewModel : ObservableObject
         }
     }
 
-    private IReadOnlyList<LoopReportChannel> BuildReportChannels()
+    private IReadOnlyList<int> GetSelectedReportResistances()
+    {
+        var selected = new List<int>(MeasurementTable.ResistanceCount);
+        for (var resistanceIndex = 1; resistanceIndex <= MeasurementTable.ResistanceCount; resistanceIndex++)
+        {
+            if (IsReportResistanceSelected(resistanceIndex))
+            {
+                selected.Add(resistanceIndex);
+            }
+        }
+
+        return selected;
+    }
+
+    private bool IsReportResistanceSelected(int resistanceIndex) =>
+        resistanceIndex switch
+        {
+            1 => ReportR1Selected,
+            2 => ReportR2Selected,
+            3 => ReportR3Selected,
+            4 => ReportR4Selected,
+            5 => ReportR5Selected,
+            6 => ReportR6Selected,
+            7 => ReportR7Selected,
+            8 => ReportR8Selected,
+            _ => false
+        };
+
+    private void SetReportResistanceSelected(int resistanceIndex, bool value)
+    {
+        switch (resistanceIndex)
+        {
+            case 1:
+                ReportR1Selected = value;
+                break;
+            case 2:
+                ReportR2Selected = value;
+                break;
+            case 3:
+                ReportR3Selected = value;
+                break;
+            case 4:
+                ReportR4Selected = value;
+                break;
+            case 5:
+                ReportR5Selected = value;
+                break;
+            case 6:
+                ReportR6Selected = value;
+                break;
+            case 7:
+                ReportR7Selected = value;
+                break;
+            case 8:
+                ReportR8Selected = value;
+                break;
+        }
+    }
+
+    private void ClearReportResistanceSelections()
+    {
+        for (var resistanceIndex = 1; resistanceIndex <= MeasurementTable.ResistanceCount; resistanceIndex++)
+        {
+            SetReportResistanceSelected(resistanceIndex, false);
+        }
+    }
+
+    private void RefreshReportSelectionForResistance(int resistanceIndex)
+    {
+        var count = Math.Min(ResistanceRows.Count, _channelCount);
+        if (count <= 0)
+        {
+            SetReportResistanceSelected(resistanceIndex, false);
+            return;
+        }
+
+        var isGood = true;
+        for (var channelIndex = 0; channelIndex < count; channelIndex++)
+        {
+            var row = ResistanceRows[channelIndex];
+            if (string.IsNullOrWhiteSpace(row.GetResistanceText(resistanceIndex)))
+            {
+                isGood = false;
+                break;
+            }
+
+            var quality = row.GetResistanceQuality(resistanceIndex);
+            if (quality is not (MeasurementQuality.InTolerance or MeasurementQuality.Warning))
+            {
+                isGood = false;
+                break;
+            }
+        }
+
+        SetReportResistanceSelected(resistanceIndex, isGood);
+        AppLogger.Write($"REPORT_SELECT: R={resistanceIndex}, selected={isGood}");
+    }
+
+    private IReadOnlyList<LoopReportChannel> BuildReportChannels(IReadOnlyList<int> selectedResistances)
     {
         var channels = new List<LoopReportChannel>(ResistanceRows.Count);
         for (var channelIndex = 0; channelIndex < ResistanceRows.Count; channelIndex++)
         {
             var row = ResistanceRows[channelIndex];
-            var cells = new List<LoopReportCell>(MeasurementTable.ResistanceCount);
-            for (var resistanceIndex = 1; resistanceIndex <= MeasurementTable.ResistanceCount; resistanceIndex++)
+            var cells = new List<LoopReportCell>(selectedResistances.Count);
+            foreach (var resistanceIndex in selectedResistances)
             {
                 cells.Add(new LoopReportCell(
                     row.GetResistanceText(resistanceIndex),

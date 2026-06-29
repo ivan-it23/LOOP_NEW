@@ -1,3 +1,4 @@
+using LoopNext.Core.Logging;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Data;
@@ -31,6 +32,23 @@ public partial class App : Application
     public App()
     {
         InitializeComponent();
+
+        // Перехват необработанных исключений UI-потока: фиксирует причину сбоя в журнал
+        // и не даёт процессу молча завершиться, оставляя окно приложения открытым.
+        UnhandledException += OnUnhandledException;
+        TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
+    }
+
+    private static void OnUnhandledException(object sender, Microsoft.UI.Xaml.UnhandledExceptionEventArgs e)
+    {
+        AppLogger.Write(e.Exception, "НЕОБРАБОТАННОЕ ИСКЛЮЧЕНИЕ UI-потока");
+        e.Handled = true;
+    }
+
+    private static void OnUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
+    {
+        AppLogger.Write(e.Exception, "НЕОБРАБОТАННОЕ ИСКЛЮЧЕНИЕ фоновой задачи");
+        e.SetObserved();
     }
 
     /// <summary>

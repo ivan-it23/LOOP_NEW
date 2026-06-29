@@ -205,6 +205,7 @@
                     Width="148"
                     Height="32"
                     VerticalAlignment="Center"
+                    IsEnabled="{x:Bind ViewModel.CanToggleAutoMode, Mode=OneWay}"
                     IsChecked="{x:Bind ViewModel.IsAutoMode, Mode=TwoWay}">
                     <TextBlock Text="Режим АВТО" TextAlignment="Center" />
                 </ToggleButton>
@@ -221,7 +222,7 @@
                 Background="{StaticResource OldTableBackgroundBrush}"
                 Padding="6">
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="36" />
+                    <RowDefinition Height="44" />
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
@@ -267,28 +268,220 @@
                     <TextBlock Text="УЭС Ом" Style="{StaticResource OldTableHeaderTextStyle}" />
                 </Border>
                 <Border Grid.Row="0" Grid.Column="4" Style="{StaticResource OldTableCellBorderStyle}">
-                    <TextBlock Text="R1" Style="{StaticResource OldTableHeaderTextStyle}" />
+                    <Grid ColumnSpacing="2" Margin="2,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="24" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <CheckBox
+                            IsChecked="{x:Bind ViewModel.ReportR1Selected, Mode=TwoWay}"
+                            VerticalAlignment="Center"
+                            ToolTipService.ToolTip="R1 в рапорт" />
+                        <Button
+                            Grid.Column="1"
+                            Content="R1"
+                            Command="{x:Bind ViewModel.RunResistanceCommand}"
+                            CommandParameter="1"
+                            IsEnabled="{x:Bind ViewModel.CanStartSingleResistance, Mode=OneWay}"
+                            Padding="0"
+                            MinWidth="0"
+                            MinHeight="0"
+                            Height="28"
+                            HorizontalAlignment="Stretch"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            FontSize="18"
+                            FontWeight="Bold" />
+                    </Grid>
                 </Border>
                 <Border Grid.Row="0" Grid.Column="5" Style="{StaticResource OldTableCellBorderStyle}">
-                    <TextBlock Text="R2" Style="{StaticResource OldTableHeaderTextStyle}" />
+                    <Grid ColumnSpacing="2" Margin="2,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="24" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <CheckBox
+                            IsChecked="{x:Bind ViewModel.ReportR2Selected, Mode=TwoWay}"
+                            VerticalAlignment="Center"
+                            ToolTipService.ToolTip="R2 в рапорт" />
+                        <Button
+                            Grid.Column="1"
+                            Content="R2"
+                            Command="{x:Bind ViewModel.RunResistanceCommand}"
+                            CommandParameter="2"
+                            IsEnabled="{x:Bind ViewModel.CanStartSingleResistance, Mode=OneWay}"
+                            Padding="0"
+                            MinWidth="0"
+                            MinHeight="0"
+                            Height="28"
+                            HorizontalAlignment="Stretch"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            FontSize="18"
+                            FontWeight="Bold" />
+                    </Grid>
                 </Border>
                 <Border Grid.Row="0" Grid.Column="6" Style="{StaticResource OldTableCellBorderStyle}">
-                    <TextBlock Text="R3" Style="{StaticResource OldTableHeaderTextStyle}" />
+                    <Grid ColumnSpacing="2" Margin="2,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="24" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <CheckBox
+                            IsChecked="{x:Bind ViewModel.ReportR3Selected, Mode=TwoWay}"
+                            VerticalAlignment="Center"
+                            ToolTipService.ToolTip="R3 в рапорт" />
+                        <Button
+                            Grid.Column="1"
+                            Content="R3"
+                            Command="{x:Bind ViewModel.RunResistanceCommand}"
+                            CommandParameter="3"
+                            IsEnabled="{x:Bind ViewModel.CanStartSingleResistance, Mode=OneWay}"
+                            Padding="0"
+                            MinWidth="0"
+                            MinHeight="0"
+                            Height="28"
+                            HorizontalAlignment="Stretch"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            FontSize="18"
+                            FontWeight="Bold" />
+                    </Grid>
                 </Border>
                 <Border Grid.Row="0" Grid.Column="7" Style="{StaticResource OldTableCellBorderStyle}">
-                    <TextBlock Text="R4" Style="{StaticResource OldTableHeaderTextStyle}" />
+                    <Grid ColumnSpacing="2" Margin="2,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="24" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <CheckBox
+                            IsChecked="{x:Bind ViewModel.ReportR4Selected, Mode=TwoWay}"
+                            VerticalAlignment="Center"
+                            ToolTipService.ToolTip="R4 в рапорт" />
+                        <Button
+                            Grid.Column="1"
+                            Content="R4"
+                            Command="{x:Bind ViewModel.RunResistanceCommand}"
+                            CommandParameter="4"
+                            IsEnabled="{x:Bind ViewModel.CanStartSingleResistance, Mode=OneWay}"
+                            Padding="0"
+                            MinWidth="0"
+                            MinHeight="0"
+                            Height="28"
+                            HorizontalAlignment="Stretch"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            FontSize="18"
+                            FontWeight="Bold" />
+                    </Grid>
                 </Border>
                 <Border Grid.Row="0" Grid.Column="8" Style="{StaticResource OldTableCellBorderStyle}">
-                    <TextBlock Text="R5" Style="{StaticResource OldTableHeaderTextStyle}" />
+                    <Grid ColumnSpacing="2" Margin="2,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="24" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <CheckBox
+                            IsChecked="{x:Bind ViewModel.ReportR5Selected, Mode=TwoWay}"
+                            VerticalAlignment="Center"
+                            ToolTipService.ToolTip="R5 в рапорт" />
+                        <Button
+                            Grid.Column="1"
+                            Content="R5"
+                            Command="{x:Bind ViewModel.RunResistanceCommand}"
+                            CommandParameter="5"
+                            IsEnabled="{x:Bind ViewModel.CanStartSingleResistance, Mode=OneWay}"
+                            Padding="0"
+                            MinWidth="0"
+                            MinHeight="0"
+                            Height="28"
+                            HorizontalAlignment="Stretch"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            FontSize="18"
+                            FontWeight="Bold" />
+                    </Grid>
                 </Border>
                 <Border Grid.Row="0" Grid.Column="9" Style="{StaticResource OldTableCellBorderStyle}">
-                    <TextBlock Text="R6" Style="{StaticResource OldTableHeaderTextStyle}" />
+                    <Grid ColumnSpacing="2" Margin="2,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="24" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <CheckBox
+                            IsChecked="{x:Bind ViewModel.ReportR6Selected, Mode=TwoWay}"
+                            VerticalAlignment="Center"
+                            ToolTipService.ToolTip="R6 в рапорт" />
+                        <Button
+                            Grid.Column="1"
+                            Content="R6"
+                            Command="{x:Bind ViewModel.RunResistanceCommand}"
+                            CommandParameter="6"
+                            IsEnabled="{x:Bind ViewModel.CanStartSingleResistance, Mode=OneWay}"
+                            Padding="0"
+                            MinWidth="0"
+                            MinHeight="0"
+                            Height="28"
+                            HorizontalAlignment="Stretch"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            FontSize="18"
+                            FontWeight="Bold" />
+                    </Grid>
                 </Border>
                 <Border Grid.Row="0" Grid.Column="10" Style="{StaticResource OldTableCellBorderStyle}">
-                    <TextBlock Text="R7" Style="{StaticResource OldTableHeaderTextStyle}" />
+                    <Grid ColumnSpacing="2" Margin="2,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="24" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <CheckBox
+                            IsChecked="{x:Bind ViewModel.ReportR7Selected, Mode=TwoWay}"
+                            VerticalAlignment="Center"
+                            ToolTipService.ToolTip="R7 в рапорт" />
+                        <Button
+                            Grid.Column="1"
+                            Content="R7"
+                            Command="{x:Bind ViewModel.RunResistanceCommand}"
+                            CommandParameter="7"
+                            IsEnabled="{x:Bind ViewModel.CanStartSingleResistance, Mode=OneWay}"
+                            Padding="0"
+                            MinWidth="0"
+                            MinHeight="0"
+                            Height="28"
+                            HorizontalAlignment="Stretch"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            FontSize="18"
+                            FontWeight="Bold" />
+                    </Grid>
                 </Border>
                 <Border Grid.Row="0" Grid.Column="11" Style="{StaticResource OldTableCellBorderStyle}">
-                    <TextBlock Text="R8" Style="{StaticResource OldTableHeaderTextStyle}" />
+                    <Grid ColumnSpacing="2" Margin="2,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="24" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <CheckBox
+                            IsChecked="{x:Bind ViewModel.ReportR8Selected, Mode=TwoWay}"
+                            VerticalAlignment="Center"
+                            ToolTipService.ToolTip="R8 в рапорт" />
+                        <Button
+                            Grid.Column="1"
+                            Content="R8"
+                            Command="{x:Bind ViewModel.RunResistanceCommand}"
+                            CommandParameter="8"
+                            IsEnabled="{x:Bind ViewModel.CanStartSingleResistance, Mode=OneWay}"
+                            Padding="0"
+                            MinWidth="0"
+                            MinHeight="0"
+                            Height="28"
+                            HorizontalAlignment="Stretch"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            FontSize="18"
+                            FontWeight="Bold" />
+                    </Grid>
                 </Border>
 
                 <ItemsControl
