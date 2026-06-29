@@ -118,7 +118,25 @@ public partial class MainPageViewModel : ObservableObject
     public partial int SelectedAveraging { get; set; } = 5;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ScaleMinus3PercentLabel))]
+    [NotifyPropertyChangedFor(nameof(ScaleMinus2PercentLabel))]
+    [NotifyPropertyChangedFor(nameof(ScaleMinus1PercentLabel))]
+    [NotifyPropertyChangedFor(nameof(ScalePlus1PercentLabel))]
+    [NotifyPropertyChangedFor(nameof(ScalePlus2PercentLabel))]
+    [NotifyPropertyChangedFor(nameof(ScalePlus3PercentLabel))]
     public partial int ThresholdPercent { get; set; } = 6;
+
+    public string ScaleMinus3PercentLabel => FormatScalePercent(-3);
+
+    public string ScaleMinus2PercentLabel => FormatScalePercent(-2);
+
+    public string ScaleMinus1PercentLabel => FormatScalePercent(-1);
+
+    public string ScalePlus1PercentLabel => FormatScalePercent(1);
+
+    public string ScalePlus2PercentLabel => FormatScalePercent(2);
+
+    public string ScalePlus3PercentLabel => FormatScalePercent(3);
 
     partial void OnThresholdPercentChanged(int value)
     {
@@ -126,6 +144,14 @@ public partial class MainPageViewModel : ObservableObject
         {
             row.IndicatorThreshold = value;
         }
+    }
+
+    private string FormatScalePercent(int multiplier)
+    {
+        var value = multiplier * ThresholdPercent;
+        return value > 0
+            ? FormattableString.Invariant($"+{value}%")
+            : FormattableString.Invariant($"{value}%");
     }
 
     // Режимы измерений управляют автоциклом кольца и настройкой экспресс-проверки.

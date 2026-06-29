@@ -255,12 +255,12 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Text="-90mG" Style="{StaticResource OldTableHeaderTextStyle}" FontSize="14" />
-                        <TextBlock Grid.Column="1" Text="-60mG" Style="{StaticResource OldTableHeaderTextStyle}" FontSize="14" />
-                        <TextBlock Grid.Column="2" Text="-30mG" Style="{StaticResource OldTableHeaderTextStyle}" FontSize="14" />
-                        <TextBlock Grid.Column="3" Text="30mG" Style="{StaticResource OldTableHeaderTextStyle}" FontSize="14" />
-                        <TextBlock Grid.Column="4" Text="60mG" Style="{StaticResource OldTableHeaderTextStyle}" FontSize="14" />
-                        <TextBlock Grid.Column="5" Text="90mG" Style="{StaticResource OldTableHeaderTextStyle}" FontSize="14" />
+                        <TextBlock Grid.Column="0" Text="{x:Bind ViewModel.ScaleMinus3PercentLabel, Mode=OneWay}" Style="{StaticResource OldTableHeaderTextStyle}" FontSize="14" />
+                        <TextBlock Grid.Column="1" Text="{x:Bind ViewModel.ScaleMinus2PercentLabel, Mode=OneWay}" Style="{StaticResource OldTableHeaderTextStyle}" FontSize="14" />
+                        <TextBlock Grid.Column="2" Text="{x:Bind ViewModel.ScaleMinus1PercentLabel, Mode=OneWay}" Style="{StaticResource OldTableHeaderTextStyle}" FontSize="14" />
+                        <TextBlock Grid.Column="3" Text="{x:Bind ViewModel.ScalePlus1PercentLabel, Mode=OneWay}" Style="{StaticResource OldTableHeaderTextStyle}" FontSize="14" />
+                        <TextBlock Grid.Column="4" Text="{x:Bind ViewModel.ScalePlus2PercentLabel, Mode=OneWay}" Style="{StaticResource OldTableHeaderTextStyle}" FontSize="14" />
+                        <TextBlock Grid.Column="5" Text="{x:Bind ViewModel.ScalePlus3PercentLabel, Mode=OneWay}" Style="{StaticResource OldTableHeaderTextStyle}" FontSize="14" />
                     </Grid>
                 </Border>
                 <Border Grid.Row="0" Grid.Column="3" Style="{StaticResource OldTableCellBorderStyle}">

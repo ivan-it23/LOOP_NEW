@@ -17,7 +17,6 @@
             <Rectangle x:Name="ZoneRed2" Fill="Red" />
 
             <Rectangle x:Name="AverageCursor" Fill="Black" Width="5" />
-            <Rectangle x:Name="ValueCursor" Fill="RoyalBlue" Width="5" />
         </Canvas>
     </Grid>
 </UserControl>

@@ -4,9 +4,8 @@ using Microsoft.UI.Xaml.Controls;
 
 namespace LOOP_Next_App.Controls;
 
-// Индикатор отклонения измерения: цветная шкала (красная/жёлтая/зелёная/жёлтая/красная)
-// и два вертикальных курсора — текущее значение (синий) и усреднённое (чёрный).
-// Перенос логики позиционирования из do_graf (WorkForm.h).
+// Measurement deviation indicator: color scale and one cursor for the averaged value.
+// Positioning logic is inherited from do_graf (WorkForm.h).
 public sealed partial class MeasurementIndicator : UserControl
 {
     public static readonly DependencyProperty ValueProperty =
@@ -98,11 +97,6 @@ public sealed partial class MeasurementIndicator : UserControl
         var zoneWidth = width / 6.0;
         var center = 3 * zoneWidth;
         var safeThreshold = Math.Max(Threshold, 0.001);
-
-        var valueOffset = zoneWidth * (Value / safeThreshold);
-        valueOffset = Math.Clamp(valueOffset, -3 * zoneWidth, 3 * zoneWidth - ValueCursor.Width);
-        Canvas.SetLeft(ValueCursor, center + valueOffset);
-        ValueCursor.Height = height;
 
         var averageOffset = zoneWidth * (AverageValue / safeThreshold);
         averageOffset = Math.Clamp(averageOffset, -3 * zoneWidth, 3 * zoneWidth - AverageCursor.Width);
