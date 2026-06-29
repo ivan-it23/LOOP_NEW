@@ -40,6 +40,14 @@
             <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
 
+        <Style x:Key="OldTableValueTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="16" />
+            <Setter Property="Foreground" Value="Black" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="TextAlignment" Value="Center" />
+        </Style>
+
         <Style x:Key="OldTableTextBoxStyle" TargetType="TextBox">
             <Setter Property="MinHeight" Value="28" />
             <Setter Property="Padding" Value="4,0" />
@@ -317,15 +325,33 @@
                                         AverageValue="{x:Bind IndicatorAverageValue, Mode=OneWay}"
                                         Threshold="{x:Bind IndicatorThreshold, Mode=OneWay}" />
                                 </Border>
-                                <TextBox Grid.Column="3" Text="{x:Bind UesText, Mode=OneWay}" Style="{StaticResource OldTableTextBoxStyle}" />
-                                <TextBox Grid.Column="4" Text="{x:Bind R1Text, Mode=OneWay}" Foreground="{x:Bind R1Foreground, Mode=OneWay}" Style="{StaticResource OldTableTextBoxStyle}" />
-                                <TextBox Grid.Column="5" Text="{x:Bind R2Text, Mode=OneWay}" Foreground="{x:Bind R2Foreground, Mode=OneWay}" Style="{StaticResource OldTableTextBoxStyle}" />
-                                <TextBox Grid.Column="6" Text="{x:Bind R3Text, Mode=OneWay}" Foreground="{x:Bind R3Foreground, Mode=OneWay}" Style="{StaticResource OldTableTextBoxStyle}" />
-                                <TextBox Grid.Column="7" Text="{x:Bind R4Text, Mode=OneWay}" Foreground="{x:Bind R4Foreground, Mode=OneWay}" Style="{StaticResource OldTableTextBoxStyle}" />
-                                <TextBox Grid.Column="8" Text="{x:Bind R5Text, Mode=OneWay}" Foreground="{x:Bind R5Foreground, Mode=OneWay}" Style="{StaticResource OldTableTextBoxStyle}" />
-                                <TextBox Grid.Column="9" Text="{x:Bind R6Text, Mode=OneWay}" Foreground="{x:Bind R6Foreground, Mode=OneWay}" Style="{StaticResource OldTableTextBoxStyle}" />
-                                <TextBox Grid.Column="10" Text="{x:Bind R7Text, Mode=OneWay}" Foreground="{x:Bind R7Foreground, Mode=OneWay}" Style="{StaticResource OldTableTextBoxStyle}" />
-                                <TextBox Grid.Column="11" Text="{x:Bind R8Text, Mode=OneWay}" Foreground="{x:Bind R8Foreground, Mode=OneWay}" Style="{StaticResource OldTableTextBoxStyle}" />
+                                <Border Grid.Column="3" Style="{StaticResource OldTableCellBorderStyle}">
+                                    <TextBlock Text="{x:Bind UesText, Mode=OneWay}" Style="{StaticResource OldTableValueTextStyle}" />
+                                </Border>
+                                <Border Grid.Column="4" Style="{StaticResource OldTableCellBorderStyle}">
+                                    <TextBlock Text="{x:Bind R1Text, Mode=OneWay}" Foreground="{x:Bind R1Foreground, Mode=OneWay}" Style="{StaticResource OldTableValueTextStyle}" />
+                                </Border>
+                                <Border Grid.Column="5" Style="{StaticResource OldTableCellBorderStyle}">
+                                    <TextBlock Text="{x:Bind R2Text, Mode=OneWay}" Foreground="{x:Bind R2Foreground, Mode=OneWay}" Style="{StaticResource OldTableValueTextStyle}" />
+                                </Border>
+                                <Border Grid.Column="6" Style="{StaticResource OldTableCellBorderStyle}">
+                                    <TextBlock Text="{x:Bind R3Text, Mode=OneWay}" Foreground="{x:Bind R3Foreground, Mode=OneWay}" Style="{StaticResource OldTableValueTextStyle}" />
+                                </Border>
+                                <Border Grid.Column="7" Style="{StaticResource OldTableCellBorderStyle}">
+                                    <TextBlock Text="{x:Bind R4Text, Mode=OneWay}" Foreground="{x:Bind R4Foreground, Mode=OneWay}" Style="{StaticResource OldTableValueTextStyle}" />
+                                </Border>
+                                <Border Grid.Column="8" Style="{StaticResource OldTableCellBorderStyle}">
+                                    <TextBlock Text="{x:Bind R5Text, Mode=OneWay}" Foreground="{x:Bind R5Foreground, Mode=OneWay}" Style="{StaticResource OldTableValueTextStyle}" />
+                                </Border>
+                                <Border Grid.Column="9" Style="{StaticResource OldTableCellBorderStyle}">
+                                    <TextBlock Text="{x:Bind R6Text, Mode=OneWay}" Foreground="{x:Bind R6Foreground, Mode=OneWay}" Style="{StaticResource OldTableValueTextStyle}" />
+                                </Border>
+                                <Border Grid.Column="10" Style="{StaticResource OldTableCellBorderStyle}">
+                                    <TextBlock Text="{x:Bind R7Text, Mode=OneWay}" Foreground="{x:Bind R7Foreground, Mode=OneWay}" Style="{StaticResource OldTableValueTextStyle}" />
+                                </Border>
+                                <Border Grid.Column="11" Style="{StaticResource OldTableCellBorderStyle}">
+                                    <TextBlock Text="{x:Bind R8Text, Mode=OneWay}" Foreground="{x:Bind R8Foreground, Mode=OneWay}" Style="{StaticResource OldTableValueTextStyle}" />
+                                </Border>
                             </Grid>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>

@@ -23,7 +23,6 @@ public partial class MainPageViewModel : ObservableObject
     private static readonly SolidColorBrush ConnectedBrush = new(Colors.Red);
 
     private const int MeasurementSkipFrames = 5;
-    private const int ExpressFullScanResistanceLimit = 2;
 
     private readonly SerialPort _toolPort = new();
     private readonly SerialPort _ringPort = new();
@@ -1172,6 +1171,10 @@ public partial class MainPageViewModel : ObservableObject
         SetActiveMeasurementPoint(0, 0);
         StatusText = "Режим АВТО: запуск";
         AppLogger.Write("Режим АВТО: начало цикла R1..R8 (эталонный алгоритм).");
+        AppLogger.Write(
+            $"AUTO_DIAG_CONFIG: channel_count={_channelCount}, skip_frames={MeasurementSkipFrames}, " +
+            $"averaging={SelectedAveraging}, express={ExpressMode}, express_group_size={GetExpressGroupSize(_channelCount)}, " +
+            $"poll_interval_ms={PollIntervalMs}, threshold_percent={ThresholdPercent}");
 
         try
         {
@@ -1295,7 +1298,12 @@ public partial class MainPageViewModel : ObservableObject
         if (nextR > 0 && nextC > 0)
         {
             LogCapMap(nextR, nextC);
-            _ = Task.Run(() => RingConnection.SetMeasurementPoint(_ringPort, nextR, nextC));
+            _ = Task.Run(() =>
+            {
+                AppLogger.Write($"AUTO_SWITCH_SEND: R={nextR}, C={nextC}, command_RES={nextR}, command_CAP={nextC}");
+                var result = RingConnection.SetMeasurementPoint(_ringPort, nextR, nextC);
+                AppLogger.Write($"AUTO_SWITCH_RESULT: R={nextR}, C={nextC}, result={result}");
+            });
         }
     }
 
@@ -1355,16 +1363,16 @@ public partial class MainPageViewModel : ObservableObject
                         air = _localAir.Air;
                     }
 
-                    LogFramePhases("Фазы DELTA_PH", frame.Phases, _channelCount);
-                    LogFramePhases("Сырые фазы", frame.RawPhases, _channelCount);
-                    LogFramePhases("Локальный воздух", air, _channelCount);
-                    LogFramePhases("Скорректированные фазы", corrected, _channelCount);
+                    LogFramePhases("FRAME_PHASES raw_delta_normalized", frame.RawPhases, _channelCount);
+                    LogFramePhases("FRAME_PHASES oriented_before_air", frame.Phases, _channelCount);
+                    LogFramePhases("FRAME_PHASES local_air", air, _channelCount);
+                    LogFramePhases("FRAME_PHASES corrected_after_air", corrected, _channelCount);
 
                     var resistivity = LoopResistivity.RoDfi(_sondeParameters, corrected);
                     AppLogger.Write("Вычислены УЭС по скорректированным фазам.");
 
                     _frameCounter++;
-                    DispatchFrame(frame.RawPhases, air, corrected, resistivity, _frameCounter);
+                    DispatchFrame(frame.Phases, air, corrected, resistivity, _frameCounter);
                 }
                 else
                 {
@@ -1392,9 +1400,9 @@ public partial class MainPageViewModel : ObservableObject
         AppLogger.Write($"{header} (мГ): {values}");
     }
 
-    private void DispatchFrame(V10 raw, V10 air, V10 corrected, V10 resistivity, int frameNumber)
+    private void DispatchFrame(V10 oriented, V10 air, V10 corrected, V10 resistivity, int frameNumber)
     {
-        var rawCopy = raw;
+        var orientedCopy = oriented;
         var airCopy = air;
         var correctedCopy = corrected;
         var resistivityCopy = resistivity;
@@ -1405,7 +1413,7 @@ public partial class MainPageViewModel : ObservableObject
             var count = Math.Min(Channels.Count, Math.Min(ResistanceRows.Count, V10.ChannelCount));
             for (var i = 0; i < count; i++)
             {
-                Channels[i].RawText = (rawCopy.GetValue(i) * PhysicalConstants.Milligrad).ToString("F1");
+                Channels[i].RawText = (orientedCopy.GetValue(i) * PhysicalConstants.Milligrad).ToString("F1");
                 Channels[i].AirText = (airCopy.GetValue(i) * PhysicalConstants.Milligrad).ToString("F1");
                 Channels[i].CorrectedText = (correctedCopy.GetValue(i) * PhysicalConstants.Milligrad).ToString("F1");
                 ResistanceRows[i].AirText = (correctedCopy.GetValue(i) * PhysicalConstants.Milligrad).ToString("F0");
@@ -1474,20 +1482,32 @@ public partial class MainPageViewModel : ObservableObject
 
         var active = AdvanceActiveMeasurementFrame();
         if (active.ResistanceIndex <= 0 ||
-            active.CapacitanceIndex <= 0 ||
-            active.FrameIndex <= MeasurementSkipFrames)
+            active.CapacitanceIndex <= 0)
         {
             return;
         }
 
         var resistanceIndex = active.ResistanceIndex;
         var channelIndex = active.CapacitanceIndex - 1;
+        LogAutoFrameDiagnostics(resistivity, corrected, resistanceIndex, active.CapacitanceIndex, active.FrameIndex, channelCount);
+
+        if (active.FrameIndex <= MeasurementSkipFrames)
+        {
+            return;
+        }
+
         var activeChannels = GetActiveMeasurementChannels(resistanceIndex, active.CapacitanceIndex, channelCount).ToArray();
         if (activeChannels.Length > 0)
         {
             foreach (var activeChannel in activeChannels)
             {
-                UpdateReferenceResistanceCellForChannel(in resistivity, in corrected, resistanceIndex, activeChannel);
+                UpdateReferenceResistanceCellForChannel(
+                    resistivity,
+                    corrected,
+                    resistanceIndex,
+                    activeChannel,
+                    active.CapacitanceIndex,
+                    active.FrameIndex);
             }
 
             return;
@@ -1529,11 +1549,93 @@ public partial class MainPageViewModel : ObservableObject
             MeasurementCell.Create(averaged, ThresholdPercent));
     }
 
+    private void LogAutoFrameDiagnostics(
+        V10 resistivity,
+        V10 corrected,
+        int resistanceIndex,
+        int capacitanceIndex,
+        int frameIndex,
+        int channelCount)
+    {
+        var count = Math.Min(channelCount, V10.ChannelCount);
+        if (count <= 0)
+        {
+            return;
+        }
+
+        var expectedChannel = capacitanceIndex - 1;
+        var activeChannels = GetActiveMeasurementChannels(resistanceIndex, capacitanceIndex, count).ToArray();
+        var topChannels = Enumerable.Range(0, count)
+            .OrderByDescending(channel => MathF.Abs(corrected.GetValue(channel)))
+            .Take(Math.Min(5, count))
+            .Select(channel => FormatChannelRuntimeDiagnostic(resistivity, corrected, resistanceIndex, channel));
+        var halfCount = Math.Max(1, (count + 1) / 2);
+        var lowChannels = Enumerable.Range(0, Math.Min(halfCount, count)).ToArray();
+        var highChannels = Enumerable.Range(halfCount, Math.Max(0, count - halfCount)).ToArray();
+
+        AppLogger.Write(
+            $"AUTO_FRAME_DIAG: global_frame={_frameCounter}, R={resistanceIndex}, C={capacitanceIndex}, auto_frame={frameIndex}, " +
+            $"skip_frames={MeasurementSkipFrames}, averaging={SelectedAveraging}, expected_channel={expectedChannel}, " +
+            $"active_channels=[{string.Join(",", activeChannels)}], expected={FormatChannelRuntimeDiagnostic(resistivity, corrected, resistanceIndex, expectedChannel)}, " +
+            $"top_abs_phase=[{string.Join("; ", topChannels)}], " +
+            $"low_group={FormatPhaseGroupDiagnostic("low", lowChannels, resistivity, corrected)}, " +
+            $"high_group={FormatPhaseGroupDiagnostic("high", highChannels, resistivity, corrected)}");
+    }
+
+    private string FormatPhaseGroupDiagnostic(
+        string name,
+        IReadOnlyList<int> channels,
+        V10 resistivity,
+        V10 corrected)
+    {
+        if (channels.Count == 0)
+        {
+            return $"{name}:empty";
+        }
+
+        var topChannel = channels
+            .OrderByDescending(channel => MathF.Abs(corrected.GetValue(channel)))
+            .First();
+        var averageAbsPhaseMg = channels
+            .Average(channel => MathF.Abs(corrected.GetValue(channel) * (float)PhysicalConstants.Milligrad));
+
+        return
+            $"{name}:top=ch{topChannel},top_phase_mG={corrected.GetValue(topChannel) * PhysicalConstants.Milligrad:F1}," +
+            $"top_ues={FormatDiagnosticResistivity(resistivity.GetValue(topChannel))},avg_abs_phase_mG={averageAbsPhaseMg:F1}";
+    }
+
+    private string FormatChannelRuntimeDiagnostic(
+        V10 resistivity,
+        V10 corrected,
+        int resistanceIndex,
+        int channelIndex)
+    {
+        if (channelIndex < 0 || channelIndex >= Math.Min(_channelCount, V10.ChannelCount))
+        {
+            return "none";
+        }
+
+        var (freqLabel, txIndex) = GetChannelFrequencyAndTx(channelIndex);
+        var measuredPhaseMg = corrected.GetValue(channelIndex) * (float)PhysicalConstants.Milligrad;
+        var measuredResistivity = resistivity.GetValue(channelIndex);
+        var referencePhase = _phaseReferences.Count > resistanceIndex
+            ? _phaseReferences[resistanceIndex].GetValue(channelIndex)
+            : 0f;
+        var referenceResistivity = _resistivityReferences.Count > resistanceIndex
+            ? _resistivityReferences[resistanceIndex].GetValue(channelIndex)
+            : 0f;
+
+        return
+            $"ch{channelIndex}:{freqLabel}Tx{txIndex},phase_mG={measuredPhaseMg:F1}," +
+            $"ues={FormatDiagnosticResistivity(measuredResistivity)},ref_phase_mG={referencePhase * PhysicalConstants.Milligrad:F1}," +
+            $"ref_ues={FormatDiagnosticResistivity(referenceResistivity)}";
+    }
+
     private int GetNextCapacitanceIndex(int resistanceIndex, int capacitanceIndex)
     {
-        if (ExpressMode && resistanceIndex > ExpressFullScanResistanceLimit)
+        if (ExpressMode)
         {
-            return capacitanceIndex + Math.Max(1, _channelCount / 2);
+            return capacitanceIndex + GetExpressGroupSize(_channelCount);
         }
 
         return capacitanceIndex + 1;
@@ -1547,9 +1649,9 @@ public partial class MainPageViewModel : ObservableObject
             yield break;
         }
 
-        if (ExpressMode && resistanceIndex > ExpressFullScanResistanceLimit)
+        if (ExpressMode)
         {
-            var groupSize = Math.Max(1, channelCount / 2);
+            var groupSize = GetExpressGroupSize(channelCount);
             var end = Math.Min(channelCount, start + groupSize);
             for (var channel = start; channel < end; channel++)
             {
@@ -1562,7 +1664,18 @@ public partial class MainPageViewModel : ObservableObject
         yield return start;
     }
 
-    private void UpdateReferenceResistanceCellForChannel(in V10 resistivity, in V10 corrected, int resistanceIndex, int channelIndex)
+    private static int GetExpressGroupSize(int channelCount)
+    {
+        return Math.Max(1, channelCount / 2);
+    }
+
+    private void UpdateReferenceResistanceCellForChannel(
+        V10 resistivity,
+        V10 corrected,
+        int resistanceIndex,
+        int channelIndex,
+        int capacitanceIndex,
+        int frameIndex)
     {
         if (resistanceIndex > MeasurementTable.ResistanceCount ||
             channelIndex < 0 ||
@@ -1585,11 +1698,17 @@ public partial class MainPageViewModel : ObservableObject
         var measuredValue = resistivity.GetValue(channelIndex);
         var percent = CalculatePhasePercentSample(measuredPhase, referencePhase);
         var averaged = PushResistancePercent(resistanceIndex - 1, channelIndex, percent);
+        var bufferCount = _resistancePercentBuffers[resistanceIndex - 1, channelIndex]?.Count ?? 0;
 
         AppLogger.Write(
             $"R{resistanceIndex} channel={channelIndex}: phase_ref_mG={referencePhase * PhysicalConstants.Milligrad:F1}, " +
             $"phase_measured_mG={measuredPhase * PhysicalConstants.Milligrad:F1}, phase_percent={percent:F1}, average={averaged:F1}, " +
             $"ref_ues={referenceValue:F2}, measured_ues={measuredValue:F2}");
+        AppLogger.Write(
+            $"AUTO_CELL_WRITE: R={resistanceIndex}, C={capacitanceIndex}, channel={channelIndex}, auto_frame={frameIndex}, " +
+            $"buffer_count={bufferCount}, averaging_limit={Math.Clamp(SelectedAveraging, 1, 20)}, " +
+            $"value_percent={percent:F1}, averaged_percent={averaged:F1}, " +
+            $"cell={FormatChannelRuntimeDiagnostic(resistivity, corrected, resistanceIndex, channelIndex)}");
         ResistanceRows[channelIndex].SetResistanceCell(
             resistanceIndex,
             MeasurementCell.Create(averaged, ThresholdPercent));
@@ -1708,6 +1827,23 @@ public partial class MainPageViewModel : ObservableObject
             : value.ToString("F0");
     }
 
+    private static string FormatDiagnosticResistivity(float value)
+    {
+        if (!float.IsFinite(value))
+        {
+            return "NaN";
+        }
+
+        if (value <= 0f)
+        {
+            return value.ToString("F2", CultureInfo.InvariantCulture);
+        }
+
+        return value < 10f
+            ? value.ToString("F2", CultureInfo.InvariantCulture)
+            : value.ToString("F0", CultureInfo.InvariantCulture);
+    }
+
     private static bool TryParseDouble(string? text, out double value)
     {
         if (string.IsNullOrWhiteSpace(text))
@@ -1762,6 +1898,46 @@ public partial class MainPageViewModel : ObservableObject
         AppLogger.Write(
             $"CAP_MAP: R={resistanceIndex}, C={capacitanceIndex}, channel={channelIndex}, {freqLabel} Tx{txIndex}, " +
             $"Re={reactance:F4}, reference_phase={referencePhase * PhysicalConstants.Milligrad:F1}мГ, reference_UES={referenceResistivity:F2}Ohm*m");
+        AppLogger.Write(
+            $"CAP_MAP_DIAG: R={resistanceIndex}, C={capacitanceIndex}, command_RES={resistanceIndex}, command_CAP={capacitanceIndex}, " +
+            $"expected_channel={channelIndex}, expected={FormatChannelReferenceDiagnostic(resistanceIndex, channelIndex)}, " +
+            $"all_reference_phase_mG=[{FormatAllReferencePhases(resistanceIndex)}]");
+    }
+
+    private string FormatChannelReferenceDiagnostic(int resistanceIndex, int channelIndex)
+    {
+        if (channelIndex < 0 || channelIndex >= Math.Min(_channelCount, V10.ChannelCount))
+        {
+            return "none";
+        }
+
+        var (freqLabel, txIndex) = GetChannelFrequencyAndTx(channelIndex);
+        var referencePhase = _phaseReferences.Count > resistanceIndex
+            ? _phaseReferences[resistanceIndex].GetValue(channelIndex)
+            : 0f;
+        var referenceResistivity = _resistivityReferences.Count > resistanceIndex
+            ? _resistivityReferences[resistanceIndex].GetValue(channelIndex)
+            : 0f;
+        var reactance = channelIndex >= 0 && channelIndex < _loopParameters.Count
+            ? _loopParameters[channelIndex].Reactance
+            : 0f;
+
+        return
+            $"ch{channelIndex}:{freqLabel}Tx{txIndex},Re={reactance:F4}," +
+            $"ref_phase_mG={referencePhase * PhysicalConstants.Milligrad:F1},ref_ues={FormatDiagnosticResistivity(referenceResistivity)}";
+    }
+
+    private string FormatAllReferencePhases(int resistanceIndex)
+    {
+        var count = Math.Min(_channelCount, V10.ChannelCount);
+        if (count <= 0 || _phaseReferences.Count <= resistanceIndex)
+        {
+            return string.Empty;
+        }
+
+        var reference = _phaseReferences[resistanceIndex];
+        return string.Join(", ", Enumerable.Range(0, count).Select(channel =>
+            $"ch{channel}={reference.GetValue(channel) * PhysicalConstants.Milligrad:F1}"));
     }
 
     private void DispatchStatus(string message)

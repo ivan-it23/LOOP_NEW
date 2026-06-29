@@ -1,5 +1,6 @@
-using System.IO.Ports;
 using System.Globalization;
+using System.IO.Ports;
+using System.Diagnostics;
 using LoopNext.Core.Logging;
 using LoopNext.Core.Models;
 
@@ -210,9 +211,13 @@ public static class RingConnection
         var capacitanceReply = string.Format(CultureInfo.InvariantCulture, RingProtocolConstants.SetCapacitanceReplyFormat, capacitanceIndex);
 
         AppLogger.Write($"LOOP_WORK: request R={resistanceIndex}, C={capacitanceIndex}");
+        AppLogger.Write(
+            $"LOOP_WORK_DIAG: command1='{resistanceCommand.Trim()}', command2='{capacitanceCommand.Trim()}', " +
+            $"expect1='{resistanceReply}', expect2='{capacitanceReply}', port={port.PortName}");
 
         for (var attempt = 0; attempt < 2; attempt++)
         {
+            var stopwatch = Stopwatch.StartNew();
             try
             {
                 Thread.Sleep(50);
@@ -224,7 +229,10 @@ public static class RingConnection
 
                 var first = port.ReadLine();
                 var second = port.ReadLine();
-                AppLogger.Write($"LOOP_WORK: attempt={attempt + 1}, response1='{first.Trim()}', response2='{second.Trim()}'");
+                stopwatch.Stop();
+                AppLogger.Write(
+                    $"LOOP_WORK: attempt={attempt + 1}, elapsed_ms={stopwatch.ElapsedMilliseconds}, " +
+                    $"response1='{first.Trim()}', response2='{second.Trim()}'");
                 if (first.StartsWith(resistanceReply, StringComparison.Ordinal) &&
                     second.StartsWith(capacitanceReply, StringComparison.Ordinal))
                 {
