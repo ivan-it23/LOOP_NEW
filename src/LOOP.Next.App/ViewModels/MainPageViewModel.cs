@@ -19,10 +19,10 @@ namespace LOOP_Next_App.ViewModels;
 // ViewModel координирует UI главной страницы, аппаратный слой и расчётный конвейер измерений.
 public partial class MainPageViewModel : ObservableObject
 {
-    private static readonly SolidColorBrush DisconnectedBrush = new(ColorHelper.FromArgb(255, 31, 94, 69));
-    private static readonly SolidColorBrush ConnectedBrush = new(ColorHelper.FromArgb(255, 139, 58, 58));
     private static readonly SolidColorBrush AirColumnDefaultBrush = new(Colors.White);
-    private static readonly SolidColorBrush LocalAirSetBrush = new(ColorHelper.FromArgb(255, 139, 58, 58));
+    private static readonly SolidColorBrush LocalAirSetBrush = new(Colors.Red);
+    private static readonly SolidColorBrush AirColumnDefaultForegroundBrush = new(Colors.Black);
+    private static readonly SolidColorBrush AirColumnSetForegroundBrush = new(Colors.White);
 
     private const int MeasurementSkipFrames = 5;
 
@@ -270,19 +270,7 @@ public partial class MainPageViewModel : ObservableObject
     partial void OnIsConnectedChanged(bool value)
     {
         ConnectionStateText = value ? "Включено" : "Выключено";
-        ToolButtonBackground = value ? ConnectedBrush : DisconnectedBrush;
     }
-
-    partial void OnIsRingConnectedChanged(bool value)
-    {
-        RingButtonBackground = value ? ConnectedBrush : DisconnectedBrush;
-    }
-
-    [ObservableProperty]
-    public partial Brush ToolButtonBackground { get; set; } = DisconnectedBrush;
-
-    [ObservableProperty]
-    public partial Brush RingButtonBackground { get; set; } = DisconnectedBrush;
 
     public bool CanConnect => !IsConnected && !string.IsNullOrWhiteSpace(SelectedToolPort);
 
@@ -344,6 +332,9 @@ public partial class MainPageViewModel : ObservableObject
 
     [ObservableProperty]
     public partial Brush AirColumnBackground { get; set; } = AirColumnDefaultBrush;
+
+    [ObservableProperty]
+    public partial Brush AirColumnForeground { get; set; } = AirColumnDefaultForegroundBrush;
 
     [RelayCommand]
     private async Task ToggleToolAsync()
@@ -555,20 +546,38 @@ public partial class MainPageViewModel : ObservableObject
         StatusText = "Кольцо отключено";
     }
 
-    [RelayCommand]
-    private void Report()
+    public string CreateSuggestedReportFileName() =>
+        $"LOOP_report_{DateTime.Now:yyyyMMdd_HHmmss}";
+
+    public bool TryBuildReportRtf(out string rtf)
     {
+        rtf = string.Empty;
+
         if (ResistanceRows.Count == 0)
         {
-            StatusText = "Рапорт: нет данных";
-            return;
+            NotifyReportBlocked("В таблице нет строк с данными. Подключите прибор, считайте метрологию и заполните таблицу R1..R8 перед созданием рапорта.");
+            return false;
         }
 
         var selectedResistances = GetSelectedReportResistances();
         if (selectedResistances.Count == 0)
         {
-            StatusText = "Рапорт: выберите R1-R8";
-            return;
+            var filledResistances = GetFilledReportResistances();
+            var message = filledResistances.Count == 0
+                ? "Рапорт не может быть сформирован: в таблице нет заполненных столбцов и ни один чекбокс R1..R8 не выбран. Сначала заполните хотя бы один столбец R1..R8, затем отметьте его чекбокс."
+                : $"Рапорт не может быть сформирован: не выбран ни один чекбокс R1..R8. Отметьте нужные столбцы для рапорта. Сейчас в таблице есть данные для: {FormatResistanceList(filledResistances)}.";
+            NotifyReportBlocked(message);
+            return false;
+        }
+
+        var emptySelected = selectedResistances
+            .Where(resistanceIndex => !HasAnyReportData(resistanceIndex))
+            .ToArray();
+        if (emptySelected.Length > 0)
+        {
+            NotifyReportBlocked(
+                $"Рапорт не может быть сформирован: выбранные столбцы {FormatResistanceList(emptySelected)} не содержат данных. Заполните эти столбцы или снимите с них чекбоксы.");
+            return false;
         }
 
         var report = new LoopReport(
@@ -577,15 +586,43 @@ public partial class MainPageViewModel : ObservableObject
             _loopParameters.Take(MeasurementTable.ResistanceCount).Select(parameter => parameter.Resistance).ToArray(),
             selectedResistances,
             BuildReportChannels(selectedResistances));
-        var rtf = LoopReportRtfBuilder.Build(report);
-        var directory = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-            "LOOP Next Reports");
-        Directory.CreateDirectory(directory);
 
-        var path = Path.Combine(directory, $"LOOP_report_{DateTime.Now:yyyyMMdd_HHmmss}.rtf");
-        File.WriteAllText(path, rtf);
-        StatusText = $"Рапорт сохранён: {path}";
+        rtf = LoopReportRtfBuilder.Build(report);
+        StatusText = "Рапорт: выберите место сохранения";
+        return true;
+    }
+
+    public async Task SaveReportRtfAsync(string path, string rtf)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            NotifyReportSaveCanceled();
+            return;
+        }
+
+        try
+        {
+            await Task.Run(() => File.WriteAllText(path, rtf));
+            StatusText = $"Рапорт сохранён: {path}";
+            RaiseUserMessage("Рапорт сохранён", $"Файл рапорта успешно сохранён:\n{path}");
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Write(ex, "Ошибка сохранения рапорта");
+            StatusText = $"Рапорт не сохранён: {ex.Message}";
+            RaiseUserMessage("Рапорт не сохранён", $"Не удалось записать файл рапорта:\n{path}\n\nПричина: {ex.Message}");
+        }
+    }
+
+    public void NotifyReportSaveCanceled()
+    {
+        StatusText = "Рапорт: сохранение отменено";
+    }
+
+    public void NotifyReportSaveDialogError(string errorMessage)
+    {
+        StatusText = "Рапорт: ошибка выбора файла";
+        RaiseUserMessage("Рапорт не сохранён", $"Не удалось открыть окно сохранения рапорта.\n\nПричина: {errorMessage}");
     }
 
     private bool CanRunResistance(object? parameter) =>
@@ -1683,7 +1720,9 @@ public partial class MainPageViewModel : ObservableObject
             : "Локальный воздух";
 
         var airBackground = isSet ? LocalAirSetBrush : AirColumnDefaultBrush;
+        var airForeground = isSet ? AirColumnSetForegroundBrush : AirColumnDefaultForegroundBrush;
         AirColumnBackground = airBackground;
+        AirColumnForeground = airForeground;
     }
 
     private void UpdateResistanceRows(V10 resistivity, V10 corrected)
@@ -2082,6 +2121,42 @@ public partial class MainPageViewModel : ObservableObject
             return (_activeResistanceIndex, _activeCapacitanceIndex, _activeMeasurementFrameCount);
         }
     }
+
+    private void NotifyReportBlocked(string message)
+    {
+        StatusText = "Рапорт не сформирован";
+        RaiseUserMessage("Рапорт не сформирован", message);
+    }
+
+    private IReadOnlyList<int> GetFilledReportResistances()
+    {
+        var filled = new List<int>(MeasurementTable.ResistanceCount);
+        for (var resistanceIndex = 1; resistanceIndex <= MeasurementTable.ResistanceCount; resistanceIndex++)
+        {
+            if (HasAnyReportData(resistanceIndex))
+            {
+                filled.Add(resistanceIndex);
+            }
+        }
+
+        return filled;
+    }
+
+    private bool HasAnyReportData(int resistanceIndex)
+    {
+        foreach (var row in ResistanceRows)
+        {
+            if (!string.IsNullOrWhiteSpace(row.GetResistanceText(resistanceIndex)))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static string FormatResistanceList(IEnumerable<int> resistanceIndexes) =>
+        string.Join(", ", resistanceIndexes.Select(resistanceIndex => $"R{resistanceIndex}"));
 
     private IReadOnlyList<int> GetSelectedReportResistances()
     {

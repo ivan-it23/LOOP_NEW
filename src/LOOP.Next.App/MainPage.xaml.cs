@@ -212,4 +212,38 @@ public sealed partial class MainPage : Page
 
         await ViewModel.WriteMetrologyToFileAsync(file.Path);
     }
+
+    private async void Report_Click(object sender, RoutedEventArgs e)
+    {
+        if (!ViewModel.TryBuildReportRtf(out var rtf))
+        {
+            return;
+        }
+
+        try
+        {
+            var picker = new FileSavePicker
+            {
+                SuggestedFileName = ViewModel.CreateSuggestedReportFileName(),
+                SuggestedStartLocation = PickerLocationId.DocumentsLibrary,
+                DefaultFileExtension = ".rtf"
+            };
+            WinRT.Interop.InitializeWithWindow.Initialize(picker, App.WindowHandle);
+            picker.FileTypeChoices.Add("RTF-рапорт", new List<string> { ".rtf" });
+
+            var file = await picker.PickSaveFileAsync();
+            if (file is null)
+            {
+                ViewModel.NotifyReportSaveCanceled();
+                return;
+            }
+
+            await ViewModel.SaveReportRtfAsync(file.Path, rtf);
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Write(ex, "Ошибка выбора файла рапорта");
+            ViewModel.NotifyReportSaveDialogError(ex.Message);
+        }
+    }
 }
