@@ -19,10 +19,10 @@ namespace LOOP_Next_App.ViewModels;
 // ViewModel координирует UI главной страницы, аппаратный слой и расчётный конвейер измерений.
 public partial class MainPageViewModel : ObservableObject
 {
-    private static readonly SolidColorBrush DisconnectedBrush = new(Colors.Green);
-    private static readonly SolidColorBrush ConnectedBrush = new(Colors.Red);
+    private static readonly SolidColorBrush DisconnectedBrush = new(ColorHelper.FromArgb(255, 31, 94, 69));
+    private static readonly SolidColorBrush ConnectedBrush = new(ColorHelper.FromArgb(255, 139, 58, 58));
     private static readonly SolidColorBrush AirColumnDefaultBrush = new(Colors.White);
-    private static readonly SolidColorBrush LocalAirSetBrush = new(Colors.Red);
+    private static readonly SolidColorBrush LocalAirSetBrush = new(ColorHelper.FromArgb(255, 139, 58, 58));
 
     private const int MeasurementSkipFrames = 5;
 

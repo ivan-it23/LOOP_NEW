@@ -65,9 +65,57 @@
             <Setter Property="MinHeight" Value="30" />
             <Setter Property="Margin" Value="2,2" />
             <Setter Property="Padding" Value="4,0" />
-            <Setter Property="BorderBrush" Value="Black" />
+            <Setter Property="BorderBrush" Value="{ThemeResource ControlStrokeColorDefaultBrush}" />
             <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="4" />
             <Setter Property="FontSize" Value="13" />
+            <Setter Property="TextAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+
+        <!-- Карточка вкладки "Поверка кольца": единый корпоративный вид панелей. -->
+        <Style x:Key="RingCardBorderStyle" TargetType="Border">
+            <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}" />
+            <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Padding" Value="12" />
+        </Style>
+
+        <!-- Заголовок секции вкладки "Поверка кольца". -->
+        <Style x:Key="RingSectionHeaderTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{ThemeResource TextFillColorPrimaryBrush}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <!-- Подпись поля/строки вкладки "Поверка кольца": приглушённый вторичный тон. -->
+        <Style x:Key="RingFieldLabelTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <!-- Укрупнённая подпись строки для растянутых на всю ширину таблиц поверки. -->
+        <Style x:Key="RingTableLabelTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Foreground" Value="Black" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <!-- Значение растянутой таблицы поверки: занимает всю ширину ячейки, увеличенный шрифт. -->
+        <Style x:Key="RingValueStretchTextBoxStyle" TargetType="TextBox">
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="MinHeight" Value="38" />
+            <Setter Property="Height" Value="38" />
+            <Setter Property="Margin" Value="3,2" />
+            <Setter Property="Padding" Value="6,0" />
+            <Setter Property="BorderBrush" Value="{ThemeResource ControlStrokeColorDefaultBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="FontSize" Value="16" />
             <Setter Property="TextAlignment" Value="Center" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
@@ -192,14 +240,16 @@
 
                 <StackPanel Grid.Column="2" Spacing="4">
                     <Button
-                        Width="150"
+                        Width="170"
                         Content="{x:Bind ViewModel.ToolToggleText, Mode=OneWay}"
                         Background="{x:Bind ViewModel.ToolButtonBackground, Mode=OneWay}"
+                        Foreground="White"
+                        FontWeight="SemiBold"
                         IsEnabled="{x:Bind ViewModel.CanToggleTool, Mode=OneWay}"
                         Command="{x:Bind ViewModel.ToggleToolCommand}" />
                     <StackPanel Orientation="Horizontal" Spacing="4">
                         <ComboBox
-                            Width="150"
+                            Width="134"
                             ItemsSource="{x:Bind ViewModel.ToolPorts}"
                             SelectedItem="{x:Bind ViewModel.SelectedToolPort, Mode=TwoWay}"
                             PlaceholderText="COM прибора" />
@@ -216,14 +266,16 @@
 
                 <StackPanel Grid.Column="3" Spacing="4">
                     <Button
-                        Width="150"
+                        Width="170"
                         Content="{x:Bind ViewModel.RingToggleText, Mode=OneWay}"
                         Background="{x:Bind ViewModel.RingButtonBackground, Mode=OneWay}"
+                        Foreground="White"
+                        FontWeight="SemiBold"
                         IsEnabled="{x:Bind ViewModel.CanToggleRing, Mode=OneWay}"
                         Command="{x:Bind ViewModel.ToggleRingCommand}" />
                     <StackPanel Orientation="Horizontal" Spacing="4">
                         <ComboBox
-                            Width="150"
+                            Width="134"
                             ItemsSource="{x:Bind ViewModel.RingPorts}"
                             SelectedItem="{x:Bind ViewModel.SelectedRingPort, Mode=TwoWay}"
                             PlaceholderText="COM кольца" />
@@ -805,26 +857,26 @@
             <ScrollViewer
                 Grid.Row="0"
                 Grid.RowSpan="3"
-                HorizontalScrollBarVisibility="Auto"
+                HorizontalScrollBarVisibility="Disabled"
+                HorizontalScrollMode="Disabled"
+                HorizontalContentAlignment="Stretch"
                 VerticalScrollBarVisibility="Auto">
-                <Grid Width="1080" HorizontalAlignment="Left" RowSpacing="8">
+                <Grid HorizontalAlignment="Stretch" RowSpacing="8">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="260" />
-                        <ColumnDefinition Width="800" />
+                        <ColumnDefinition Width="25*" />
+                        <ColumnDefinition Width="75*" />
                     </Grid.ColumnDefinitions>
 
                     <Border
                         Grid.Row="0"
                         Grid.Column="0"
                         Margin="0,0,10,0"
-                        BorderBrush="Black"
-                        BorderThickness="1"
-                        Padding="6">
+                        Style="{StaticResource RingCardBorderStyle}">
                         <Grid RowSpacing="5">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
@@ -832,43 +884,52 @@
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
 
-                            <TextBlock Text="Геометрия зонда" FontSize="12" />
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Border Width="3" Height="14" Background="{ThemeResource SystemControlForegroundAccentBrush}" CornerRadius="2" Opacity="0.72" />
+                                <TextBlock Text="Геометрия зонда" Style="{StaticResource RingSectionHeaderTextStyle}" />
+                            </StackPanel>
                             <Grid Grid.Row="1" Margin="0,2,0,6">
                                 <Grid.RowDefinitions>
-                                    <RowDefinition Height="22" />
+                                    <RowDefinition Height="26" />
                                     <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="58" />
-                                    <ColumnDefinition Width="82" />
-                                    <ColumnDefinition Width="82" />
+                                    <ColumnDefinition Width="0.8*" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
 
-                                <TextBlock Grid.Row="0" Grid.Column="1" Text="L1, мм" FontSize="12" HorizontalAlignment="Center" />
-                                <TextBlock Grid.Row="0" Grid.Column="2" Text="L2, мм" FontSize="12" HorizontalAlignment="Center" />
+                                <TextBlock Grid.Row="0" Grid.Column="1" Text="L1, мм" Style="{StaticResource RingTableLabelTextStyle}" HorizontalAlignment="Center" />
+                                <TextBlock Grid.Row="0" Grid.Column="2" Text="L2, мм" Style="{StaticResource RingTableLabelTextStyle}" HorizontalAlignment="Center" />
 
                                 <ItemsControl
                                     Grid.Row="1"
                                     Grid.ColumnSpan="3"
+                                    HorizontalContentAlignment="Stretch"
                                     ItemsSource="{x:Bind ViewModel.RingGeometryRows}">
+                                    <ItemsControl.ItemContainerStyle>
+                                        <Style TargetType="ContentPresenter">
+                                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                        </Style>
+                                    </ItemsControl.ItemContainerStyle>
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate x:DataType="vm:RingCalibrationRowViewModel">
-                                            <Grid Height="34">
+                                            <Grid Height="42" HorizontalAlignment="Stretch">
                                                 <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="58" />
-                                                    <ColumnDefinition Width="82" />
-                                                    <ColumnDefinition Width="82" />
+                                                    <ColumnDefinition Width="0.8*" />
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="*" />
                                                 </Grid.ColumnDefinitions>
-                                                <TextBlock Grid.Column="0" Text="{x:Bind Label}" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                <TextBlock Grid.Column="0" Text="{x:Bind Label}" FontSize="15" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
                                                 <TextBox
                                                     Grid.Column="1"
-                                                    Style="{StaticResource RingValueTextBoxStyle}"
+                                                    Style="{StaticResource RingValueStretchTextBoxStyle}"
                                                     IsReadOnly="True"
                                                     Text="{x:Bind L1Text, Mode=OneWay}"
                                                     TextAlignment="Center" />
                                                 <TextBox
                                                     Grid.Column="2"
-                                                    Style="{StaticResource RingValueTextBoxStyle}"
+                                                    Style="{StaticResource RingValueStretchTextBoxStyle}"
                                                     IsReadOnly="True"
                                                     Text="{x:Bind L2Text, Mode=OneWay}"
                                                     TextAlignment="Center" />
@@ -880,18 +941,25 @@
 
                             <ItemsControl
                                 Grid.Row="2"
+                                HorizontalContentAlignment="Stretch"
                                 ItemsSource="{x:Bind ViewModel.RingFrequencyRows}">
+                                <ItemsControl.ItemContainerStyle>
+                                    <Style TargetType="ContentPresenter">
+                                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                    </Style>
+                                </ItemsControl.ItemContainerStyle>
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate x:DataType="vm:RingCalibrationRowViewModel">
-                                        <Grid Height="34">
+                                        <Grid Height="42" HorizontalAlignment="Stretch">
                                             <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="90" />
-                                                <ColumnDefinition Width="82" />
+                                                <ColumnDefinition Width="0.8*" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="*" />
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="0" Text="{x:Bind Label}" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                            <TextBlock Grid.Column="0" Text="{x:Bind Label}" FontSize="15" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
                                             <TextBox
                                                 Grid.Column="1"
-                                                Style="{StaticResource RingValueTextBoxStyle}"
+                                                Style="{StaticResource RingValueStretchTextBoxStyle}"
                                                 IsReadOnly="True"
                                                 Text="{x:Bind FrequencyText, Mode=OneWay}"
                                                 TextAlignment="Center" />
@@ -905,9 +973,7 @@
                     <Border
                         Grid.Row="0"
                         Grid.Column="1"
-                        BorderBrush="Black"
-                        BorderThickness="1"
-                        Padding="6">
+                        Style="{StaticResource RingCardBorderStyle}">
                         <Grid RowSpacing="7">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
@@ -919,98 +985,93 @@
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
 
-                            <TextBlock Text="Расчёт ёмкостей" FontSize="12" />
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Border Width="3" Height="14" Background="{ThemeResource SystemControlForegroundAccentBrush}" CornerRadius="2" Opacity="0.72" />
+                                <TextBlock Text="Расчёт ёмкостей" Style="{StaticResource RingSectionHeaderTextStyle}" />
+                            </StackPanel>
 
                             <Grid Grid.Row="1">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="92" />
-                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="1*" />
+                                    <ColumnDefinition Width="9*" />
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0" Text="C_req, Pf" FontSize="12" VerticalAlignment="Center" />
-                                <ItemsControl Grid.Column="1" ItemsSource="{x:Bind ViewModel.RingCalibrationRows}">
-                                    <ItemsControl.ItemsPanel>
-                                        <ItemsPanelTemplate>
-                                            <StackPanel Orientation="Horizontal" />
-                                        </ItemsPanelTemplate>
-                                    </ItemsControl.ItemsPanel>
-                                    <ItemsControl.ItemTemplate>
+                                <TextBlock Grid.Column="0" Text="C_req, Pf" Style="{StaticResource RingTableLabelTextStyle}" />
+                                <ItemsRepeater Grid.Column="1" ItemsSource="{x:Bind ViewModel.RingCalibrationRows}">
+                                    <ItemsRepeater.Layout>
+                                        <UniformGridLayout Orientation="Horizontal" ItemsStretch="Fill" MinItemWidth="60" MinItemHeight="38" MinColumnSpacing="4" MinRowSpacing="4" MaximumRowsOrColumns="{x:Bind ViewModel.RingCalibrationRows.Count, Mode=OneWay}" />
+                                    </ItemsRepeater.Layout>
+                                    <ItemsRepeater.ItemTemplate>
                                         <DataTemplate x:DataType="vm:RingCalibrationRowViewModel">
                                             <TextBox
-                                                Style="{StaticResource RingValueTextBoxStyle}"
+                                                Style="{StaticResource RingValueStretchTextBoxStyle}"
                                                 IsReadOnly="{x:Bind IsRingValueReadOnly, Mode=OneWay}"
                                                 Text="{x:Bind CapacitanceText, Mode=TwoWay}" />
                                         </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
+                                    </ItemsRepeater.ItemTemplate>
+                                </ItemsRepeater>
                             </Grid>
 
                             <Grid Grid.Row="2">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="92" />
-                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="1*" />
+                                    <ColumnDefinition Width="9*" />
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0" Text="RE_calk, ohm" FontSize="12" VerticalAlignment="Center" />
-                                <ItemsControl Grid.Column="1" ItemsSource="{x:Bind ViewModel.RingCalibrationRows}">
-                                    <ItemsControl.ItemsPanel>
-                                        <ItemsPanelTemplate>
-                                            <StackPanel Orientation="Horizontal" />
-                                        </ItemsPanelTemplate>
-                                    </ItemsControl.ItemsPanel>
-                                    <ItemsControl.ItemTemplate>
+                                <TextBlock Grid.Column="0" Text="RE_calk, ohm" Style="{StaticResource RingTableLabelTextStyle}" />
+                                <ItemsRepeater Grid.Column="1" ItemsSource="{x:Bind ViewModel.RingCalibrationRows}">
+                                    <ItemsRepeater.Layout>
+                                        <UniformGridLayout Orientation="Horizontal" ItemsStretch="Fill" MinItemWidth="60" MinItemHeight="38" MinColumnSpacing="4" MinRowSpacing="4" MaximumRowsOrColumns="{x:Bind ViewModel.RingCalibrationRows.Count, Mode=OneWay}" />
+                                    </ItemsRepeater.Layout>
+                                    <ItemsRepeater.ItemTemplate>
                                         <DataTemplate x:DataType="vm:RingCalibrationRowViewModel">
                                             <TextBox
-                                                Style="{StaticResource RingValueTextBoxStyle}"
+                                                Style="{StaticResource RingValueStretchTextBoxStyle}"
                                                 IsReadOnly="{x:Bind IsRingValueReadOnly, Mode=OneWay}"
                                                 Text="{x:Bind ReactanceCalculatedText, Mode=TwoWay}" />
                                         </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
+                                    </ItemsRepeater.ItemTemplate>
+                                </ItemsRepeater>
                             </Grid>
 
                             <Grid Grid.Row="3">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="92" />
-                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="1*" />
+                                    <ColumnDefinition Width="9*" />
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0" Text="R, ohm" FontSize="12" VerticalAlignment="Center" />
-                                <ItemsControl Grid.Column="1" ItemsSource="{x:Bind ViewModel.RingResistanceRows}">
-                                    <ItemsControl.ItemsPanel>
-                                        <ItemsPanelTemplate>
-                                            <StackPanel Orientation="Horizontal" />
-                                        </ItemsPanelTemplate>
-                                    </ItemsControl.ItemsPanel>
-                                    <ItemsControl.ItemTemplate>
+                                <TextBlock Grid.Column="0" Text="R, ohm" Style="{StaticResource RingTableLabelTextStyle}" />
+                                <ItemsRepeater Grid.Column="1" ItemsSource="{x:Bind ViewModel.RingResistanceRows}">
+                                    <ItemsRepeater.Layout>
+                                        <UniformGridLayout Orientation="Horizontal" ItemsStretch="Fill" MinItemWidth="60" MinItemHeight="38" MinColumnSpacing="4" MinRowSpacing="4" MaximumRowsOrColumns="{x:Bind ViewModel.RingCalibrationRows.Count, Mode=OneWay}" />
+                                    </ItemsRepeater.Layout>
+                                    <ItemsRepeater.ItemTemplate>
                                         <DataTemplate x:DataType="vm:RingCalibrationRowViewModel">
                                             <TextBox
-                                                Style="{StaticResource RingValueTextBoxStyle}"
+                                                Style="{StaticResource RingValueStretchTextBoxStyle}"
                                                 IsReadOnly="{x:Bind IsRingValueReadOnly, Mode=OneWay}"
                                                 Text="{x:Bind ResistanceText, Mode=TwoWay}" />
                                         </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
+                                    </ItemsRepeater.ItemTemplate>
+                                </ItemsRepeater>
                             </Grid>
 
                             <Grid Grid.Row="4">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="92" />
-                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="1*" />
+                                    <ColumnDefinition Width="9*" />
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0" Text="Re meas" FontSize="12" VerticalAlignment="Center" />
-                                <ItemsControl Grid.Column="1" ItemsSource="{x:Bind ViewModel.RingCalibrationRows}">
-                                    <ItemsControl.ItemsPanel>
-                                        <ItemsPanelTemplate>
-                                            <StackPanel Orientation="Horizontal" />
-                                        </ItemsPanelTemplate>
-                                    </ItemsControl.ItemsPanel>
-                                    <ItemsControl.ItemTemplate>
+                                <TextBlock Grid.Column="0" Text="Re meas" Style="{StaticResource RingTableLabelTextStyle}" />
+                                <ItemsRepeater Grid.Column="1" ItemsSource="{x:Bind ViewModel.RingCalibrationRows}">
+                                    <ItemsRepeater.Layout>
+                                        <UniformGridLayout Orientation="Horizontal" ItemsStretch="Fill" MinItemWidth="60" MinItemHeight="38" MinColumnSpacing="4" MinRowSpacing="4" MaximumRowsOrColumns="{x:Bind ViewModel.RingCalibrationRows.Count, Mode=OneWay}" />
+                                    </ItemsRepeater.Layout>
+                                    <ItemsRepeater.ItemTemplate>
                                         <DataTemplate x:DataType="vm:RingCalibrationRowViewModel">
                                             <TextBox
-                                                Style="{StaticResource RingValueTextBoxStyle}"
+                                                Style="{StaticResource RingValueStretchTextBoxStyle}"
                                                 IsReadOnly="{x:Bind IsRingValueReadOnly, Mode=OneWay}"
                                                 Text="{x:Bind ReactanceMeasuredText, Mode=TwoWay}" />
                                         </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
+                                    </ItemsRepeater.ItemTemplate>
+                                </ItemsRepeater>
                             </Grid>
 
                             <StackPanel Grid.Row="5" Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
@@ -1020,34 +1081,138 @@
                             </StackPanel>
 
                             <StackPanel Grid.Row="6" Orientation="Horizontal" Spacing="6" Margin="0,2,0,0">
-                                <TextBlock Text="Редактировать" FontSize="12" VerticalAlignment="Center" />
+                                <TextBlock Text="Редактировать" Style="{StaticResource RingFieldLabelTextStyle}" />
                                 <CheckBox IsChecked="{x:Bind ViewModel.IsRingEditMode, Mode=TwoWay}" />
                             </StackPanel>
                         </Grid>
                     </Border>
 
-                    <Border
-                        Grid.Row="1"
-                        Grid.ColumnSpan="2"
-                        BorderBrush="Black"
-                        BorderThickness="1"
-                        Padding="6">
-                        <StackPanel Spacing="6">
-                            <TextBlock Text="Идентификация зонда" FontSize="12" />
-                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                <TextBlock FontSize="12"><Run Text="Тип: " /><Run Text="{x:Bind ViewModel.ToolTypeName, Mode=OneWay}" /></TextBlock>
-                                <TextBlock FontSize="12"><Run Text="Кол-во TX: " /><Run Text="{x:Bind ViewModel.TransmitterCountText, Mode=OneWay}" /></TextBlock>
-                                <TextBlock FontSize="12"><Run Text="Модификация: " /><Run Text="{x:Bind ViewModel.ModificationText, Mode=OneWay}" /></TextBlock>
-                                <TextBlock FontSize="12"><Run Text="Номер: " /><Run Text="{x:Bind ViewModel.NumberText, Mode=OneWay}" /></TextBlock>
-                                <TextBlock FontSize="12"><Run Text="Серийный №: " /><Run Text="{x:Bind ViewModel.SerialText, Mode=OneWay}" /></TextBlock>
-                                <TextBlock FontSize="12"><Run Text="Позиция R1: " /><Run Text="{x:Bind ViewModel.RxPositionText, Mode=OneWay}" /></TextBlock>
-                            </StackPanel>
-                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                <TextBlock FontSize="12"><Run Text="Сигнатура: " /><Run Text="{x:Bind ViewModel.SignatureText, Mode=OneWay}" /></TextBlock>
-                                <TextBlock FontSize="12"><Run Text="Pallet: " /><Run Text="{x:Bind ViewModel.PaletteText, Mode=OneWay}" /></TextBlock>
-                            </StackPanel>
-                        </StackPanel>
-                    </Border>
+                    <!-- Дублирование карточек "Идентификация зонда" и "Состояние" с вкладки "Главная". -->
+                    <StackPanel Grid.Row="1" Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="12">
+                        <Border
+                            Width="470"
+                            Style="{StaticResource IdentificationPanelBorderStyle}">
+                            <Grid ColumnSpacing="10" RowSpacing="8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <Border
+                                    Grid.RowSpan="2"
+                                    Grid.Column="0"
+                                    Width="3"
+                                    Background="{ThemeResource SystemControlForegroundAccentBrush}"
+                                    CornerRadius="2"
+                                    Opacity="0.72" />
+
+                                <TextBlock
+                                    Grid.Row="0"
+                                    Grid.Column="1"
+                                    Text="Идентификация зонда"
+                                    Style="{StaticResource IdentificationSectionHeaderTextStyle}" />
+
+                                <Grid Grid.Row="1" Grid.Column="1" RowSpacing="6" ColumnSpacing="10">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Тип" Style="{StaticResource IdentificationLabelTextStyle}" />
+                                    <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource IdentificationCompactValueBorderStyle}">
+                                        <TextBlock
+                                            Text="{x:Bind ViewModel.ToolTypeName, Mode=OneWay}"
+                                            Style="{StaticResource IdentificationValueTextStyle}" />
+                                    </Border>
+
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Серийный №" Style="{StaticResource IdentificationLabelTextStyle}" />
+                                    <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource IdentificationCompactValueBorderStyle}">
+                                        <TextBlock
+                                            Text="{x:Bind ViewModel.SerialText, Mode=OneWay}"
+                                            Style="{StaticResource IdentificationValueTextStyle}"
+                                            FontFamily="Consolas" />
+                                    </Border>
+
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Сигнатура" Style="{StaticResource IdentificationLabelTextStyle}" />
+                                    <Border Grid.Row="2" Grid.Column="1" Style="{StaticResource IdentificationCompactValueBorderStyle}">
+                                        <TextBlock
+                                            Text="{x:Bind ViewModel.SignatureText, Mode=OneWay}"
+                                            Style="{StaticResource IdentificationValueTextStyle}"
+                                            FontFamily="Consolas" />
+                                    </Border>
+
+                                    <TextBlock Grid.Row="0" Grid.Column="2" Margin="6,0,0,0" Text="Номер" Style="{StaticResource IdentificationLabelTextStyle}" />
+                                    <Border Grid.Row="0" Grid.Column="3" Style="{StaticResource IdentificationCompactValueBorderStyle}">
+                                        <TextBlock
+                                            Text="{x:Bind ViewModel.NumberText, Mode=OneWay}"
+                                            Style="{StaticResource IdentificationValueTextStyle}" />
+                                    </Border>
+
+                                    <TextBlock Grid.Row="1" Grid.Column="2" Margin="6,0,0,0" Text="Модификация" Style="{StaticResource IdentificationLabelTextStyle}" />
+                                    <Border Grid.Row="1" Grid.Column="3" Style="{StaticResource IdentificationCompactValueBorderStyle}">
+                                        <TextBlock
+                                            Text="{x:Bind ViewModel.ModificationText, Mode=OneWay}"
+                                            Style="{StaticResource IdentificationValueTextStyle}" />
+                                    </Border>
+
+                                    <TextBlock Grid.Row="2" Grid.Column="2" Margin="6,0,0,0" Text="Позиция R1" Style="{StaticResource IdentificationLabelTextStyle}" />
+                                    <Border Grid.Row="2" Grid.Column="3" Style="{StaticResource IdentificationCompactValueBorderStyle}">
+                                        <TextBlock
+                                            Text="{x:Bind ViewModel.RxPositionText, Mode=OneWay}"
+                                            Style="{StaticResource IdentificationValueTextStyle}" />
+                                    </Border>
+                                </Grid>
+                            </Grid>
+                        </Border>
+
+                        <Border
+                            Width="200"
+                            Style="{StaticResource IdentificationPanelBorderStyle}">
+                            <Grid RowSpacing="8">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <TextBlock
+                                    Grid.Row="0"
+                                    Text="Состояние"
+                                    Style="{StaticResource IdentificationSectionHeaderTextStyle}" />
+
+                                <StackPanel Grid.Row="1" Spacing="6">
+                                    <Border Style="{StaticResource IdentificationStatusBadgeBorderStyle}">
+                                        <TextBlock Style="{StaticResource IdentificationValueTextStyle}" FontSize="12">
+                                            <Run Text="Воздух: " />
+                                            <Run Text="{x:Bind ViewModel.LocalAirState, Mode=OneWay}" />
+                                        </TextBlock>
+                                    </Border>
+                                    <Border Style="{StaticResource IdentificationStatusBadgeBorderStyle}">
+                                        <TextBlock Style="{StaticResource IdentificationValueTextStyle}" FontSize="12">
+                                            <Run Text="Кадров: " />
+                                            <Run Text="{x:Bind ViewModel.FrameCount, Mode=OneWay}" />
+                                        </TextBlock>
+                                    </Border>
+                                    <Border Style="{StaticResource IdentificationStatusBadgeBorderStyle}">
+                                        <TextBlock Style="{StaticResource IdentificationValueTextStyle}" FontSize="12">
+                                            <Run Text="Температура: " />
+                                            <Run Text="{x:Bind ViewModel.TemperatureText, Mode=OneWay}" />
+                                        </TextBlock>
+                                    </Border>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </StackPanel>
 
                     <StackPanel Grid.Row="2" Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="8">
                         <Button Content="Метрология -> Зонд" Command="{x:Bind ViewModel.ReadMetrologyFromToolCommand}" />
