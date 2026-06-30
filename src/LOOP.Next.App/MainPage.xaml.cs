@@ -1,5 +1,6 @@
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml;
+using LoopNext.Core.Logging;
 using LOOP_Next_App.ViewModels;
 using Windows.Storage.Pickers;
 
@@ -12,10 +13,49 @@ public sealed partial class MainPage : Page
 {
     public MainPageViewModel ViewModel { get; } = new();
 
+    // Гарантирует, что одновременно отображается не более одного модального уведомления.
+    private bool _isShowingNotification;
+
     public MainPage()
     {
         InitializeComponent();
         UpdateSelectedTabContent();
+        ViewModel.NotificationRequested += OnNotificationRequested;
+    }
+
+    private async void OnNotificationRequested(UserNotification notification)
+    {
+        if (_isShowingNotification)
+        {
+            return;
+        }
+
+        var xamlRoot = XamlRoot ?? Content?.XamlRoot;
+        if (xamlRoot is null)
+        {
+            return;
+        }
+
+        _isShowingNotification = true;
+        try
+        {
+            var dialog = new ContentDialog
+            {
+                Title = notification.Title,
+                Content = notification.Message,
+                CloseButtonText = "ОК",
+                XamlRoot = xamlRoot
+            };
+            await dialog.ShowAsync();
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Write(ex, "Ошибка показа диалога уведомления");
+        }
+        finally
+        {
+            _isShowingNotification = false;
+        }
     }
 
     private void RootTabs_SelectionChanged(object sender, SelectionChangedEventArgs e)

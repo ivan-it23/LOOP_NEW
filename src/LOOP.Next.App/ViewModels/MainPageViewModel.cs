@@ -59,6 +59,9 @@ public partial class MainPageViewModel : ObservableObject
         RefreshPorts();
     }
 
+    // Запрос на показ модального сообщения пользователю; обрабатывается code-behind страницы.
+    public event Action<UserNotification>? NotificationRequested;
+
     public ObservableCollection<string> ToolPorts { get; } = new();
 
     public ObservableCollection<string> RingPorts { get; } = new();
@@ -1338,19 +1341,24 @@ public partial class MainPageViewModel : ObservableObject
         await Task.Delay(200, token);
 
         AppLogger.Write($"{modeName}: установка R{resistanceIndex}/C1...");
-        var result = await Task.Run(
+        var outcome = await Task.Run(
             () => RingConnection.SetMeasurementPoint(_ringPort, resistanceIndex, 1),
             token);
-        if (result != RingWorkResult.Ok)
+        if (!outcome.IsOk)
         {
-            AppLogger.Write($"{modeName}: ошибка установки R{resistanceIndex}/C1 ({result}).");
-            StatusText = $"{modeName}: ошибка установки R{resistanceIndex}/C1 ({result})";
+            var reason = outcome.FailureReason ?? $"Кольцо не ответило ({outcome.Result}).";
+            AppLogger.Write($"{modeName}: ошибка установки R{resistanceIndex}/C1 ({outcome.Result}): {reason}");
+            StatusText = $"{modeName} остановлен: {reason}";
             lock (_autoLock)
             {
                 _autoMeasurementCompleteTcs = null;
                 SetActiveMeasurementPoint(0, 0);
             }
 
+            RaiseUserMessage(
+                "Не удалось установить точку на кольце",
+                $"{modeName} остановлен на точке R{resistanceIndex}.\n\nПричина: {reason}\n\n" +
+                $"Проверьте питание и подключение кольца (порт {_ringPort.PortName}), затем переподключите кольцо и повторите.");
             return false;
         }
 
@@ -1492,8 +1500,8 @@ public partial class MainPageViewModel : ObservableObject
             _ = Task.Run(() =>
             {
                 AppLogger.Write($"AUTO_SWITCH_SEND: R={nextR}, C={nextC}, command_RES={nextR}, command_CAP={nextC}");
-                var result = RingConnection.SetMeasurementPoint(_ringPort, nextR, nextC);
-                AppLogger.Write($"AUTO_SWITCH_RESULT: R={nextR}, C={nextC}, result={result}");
+                var outcome = RingConnection.SetMeasurementPoint(_ringPort, nextR, nextC);
+                AppLogger.Write($"AUTO_SWITCH_RESULT: R={nextR}, C={nextC}, result={outcome.Result}, reason={outcome.FailureReason}");
             });
         }
     }
@@ -2264,6 +2272,19 @@ public partial class MainPageViewModel : ObservableObject
         App.DispatcherQueue.TryEnqueue(() => StatusText = message);
     }
 
+    // Маршалирует запрос на показ сообщения в UI-поток и дублирует его в журнал для диагностики.
+    private void RaiseUserMessage(string title, string message)
+    {
+        AppLogger.Write($"USER_MESSAGE: {title} — {message}");
+        var handler = NotificationRequested;
+        if (handler is null)
+        {
+            return;
+        }
+
+        App.DispatcherQueue.TryEnqueue(() => handler(new UserNotification(title, message)));
+    }
+
     private readonly record struct ToolPortOperationResult<T>(bool Success, T Value, string? ErrorMessage)
     {
         public static ToolPortOperationResult<T> Ok(T value) => new(true, value, null);
@@ -2271,3 +2292,6 @@ public partial class MainPageViewModel : ObservableObject
         public static ToolPortOperationResult<T> Fail(string errorMessage) => new(false, default!, errorMessage);
     }
 }
+
+// Модальное уведомление для пользователя: заголовок и текст причины.
+public readonly record struct UserNotification(string Title, string Message);

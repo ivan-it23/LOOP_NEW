@@ -7,6 +7,16 @@ public static class RingProtocolConstants
     public const int BaudRate = 9600;
     public const int TimeoutMs = 500;
 
+    // Число попыток установки точки R/C с переоткрытием порта при сбое обмена.
+    // Повышено относительно исходных 2 попыток для устойчивости к залипанию USB-Serial.
+    public const int SetPointMaxAttempts = 5;
+
+    // Пауза между попытками установки точки.
+    public const int RetryDelayMs = 150;
+
+    // Пауза после закрытия порта перед повторным открытием при восстановлении.
+    public const int ReopenDelayMs = 200;
+
     // Команда идентификации кольца и ожидаемый префикс ответа.
     public const string IdentifyCommand = "$\r\n";
     public const string ExpectedReplyPrefix = "Unknown";

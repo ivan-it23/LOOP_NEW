@@ -197,12 +197,12 @@ public static class RingConnection
         return new RingLoopParameterWriteResult(allSucceeded, results);
     }
 
-    public static RingWorkResult SetMeasurementPoint(SerialPort port, int resistanceIndex, int capacitanceIndex)
+    public static RingWorkOutcome SetMeasurementPoint(SerialPort port, int resistanceIndex, int capacitanceIndex)
     {
         if (!port.IsOpen)
         {
             AppLogger.Write("ОШИБКА: невозможно установить точку кольца — порт не открыт.");
-            return RingWorkResult.NotConnected;
+            return RingWorkOutcome.NotConnected($"Порт кольца {port.PortName} не открыт.");
         }
 
         var resistanceCommand = string.Format(CultureInfo.InvariantCulture, RingProtocolConstants.SetResistanceCommandFormat, resistanceIndex);
@@ -215,7 +215,9 @@ public static class RingConnection
             $"LOOP_WORK_DIAG: command1='{resistanceCommand.Trim()}', command2='{capacitanceCommand.Trim()}', " +
             $"expect1='{resistanceReply}', expect2='{capacitanceReply}', port={port.PortName}");
 
-        for (var attempt = 0; attempt < 2; attempt++)
+        var maxAttempts = RingProtocolConstants.SetPointMaxAttempts;
+        string? lastReason = null;
+        for (var attempt = 0; attempt < maxAttempts; attempt++)
         {
             var stopwatch = Stopwatch.StartNew();
             try
@@ -231,26 +233,79 @@ public static class RingConnection
                 var second = port.ReadLine();
                 stopwatch.Stop();
                 AppLogger.Write(
-                    $"LOOP_WORK: attempt={attempt + 1}, elapsed_ms={stopwatch.ElapsedMilliseconds}, " +
+                    $"LOOP_WORK: attempt={attempt + 1}/{maxAttempts}, elapsed_ms={stopwatch.ElapsedMilliseconds}, " +
                     $"response1='{first.Trim()}', response2='{second.Trim()}'");
                 if (first.StartsWith(resistanceReply, StringComparison.Ordinal) &&
                     second.StartsWith(capacitanceReply, StringComparison.Ordinal))
                 {
                     AppLogger.Write("LOOP_WORK: точка установлена успешно.");
-                    return RingWorkResult.Ok;
+                    return RingWorkOutcome.Ok();
                 }
+
+                lastReason =
+                    $"Неожиданный ответ кольца на порту {port.PortName}: '{first.Trim()}' / '{second.Trim()}' " +
+                    $"(ожидалось '{resistanceReply}' / '{capacitanceReply}').";
+                AppLogger.Write($"LOOP_WORK: attempt={attempt + 1}/{maxAttempts}, {lastReason}");
             }
             catch (Exception ex)
             {
-                AppLogger.Write(ex, $"LOOP_WORK: attempt={attempt + 1}, ошибка установки точки");
+                lastReason = DescribeRingError(ex, port.PortName);
+                AppLogger.Write(ex, $"LOOP_WORK: attempt={attempt + 1}/{maxAttempts}, ошибка установки точки");
             }
 
-            Thread.Sleep(150);
+            // Переоткрытие порта между попытками сбрасывает зависшее состояние COM-дескриптора
+            // (частая причина 'The write timed out' на USB-Serial адаптерах).
+            if (attempt < maxAttempts - 1)
+            {
+                TryReopenPort(port);
+                Thread.Sleep(RingProtocolConstants.RetryDelayMs);
+            }
         }
 
-        AppLogger.Write("LOOP_WORK: не удалось установить точку после 2 попыток.");
-        return RingWorkResult.Failed;
+        AppLogger.Write($"LOOP_WORK: не удалось установить точку после {maxAttempts} попыток.");
+        return RingWorkOutcome.Failed(lastReason ?? $"Кольцо на порту {port.PortName} не отвечает.");
     }
+
+    // Переоткрывает COM-порт кольца с теми же параметрами и поднимает линии DTR/RTS.
+    // Применяется для восстановления обмена при тайм-аутах записи/чтения.
+    private static void TryReopenPort(SerialPort port)
+    {
+        try
+        {
+            AppLogger.Write($"LOOP_WORK: переоткрытие порта {port.PortName} для сброса состояния...");
+            if (port.IsOpen)
+            {
+                port.Close();
+            }
+
+            Thread.Sleep(RingProtocolConstants.ReopenDelayMs);
+            port.Open();
+            port.DtrEnable = true;
+            port.RtsEnable = true;
+            port.DiscardInBuffer();
+            port.DiscardOutBuffer();
+            AppLogger.Write($"LOOP_WORK: порт {port.PortName} переоткрыт успешно.");
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Write(ex, $"LOOP_WORK: не удалось переоткрыть порт {port.PortName}");
+        }
+    }
+
+    // Формирует понятную пользователю причину сбоя обмена с кольцом по типу исключения.
+    private static string DescribeRingError(Exception ex, string portName) => ex switch
+    {
+        TimeoutException =>
+            $"Тайм-аут обмена с кольцом на порту {portName}. Кольцо не отвечает на команды — " +
+            "проверьте питание и кабель кольца.",
+        UnauthorizedAccessException =>
+            $"Порт {portName} занят другим приложением или недоступен.",
+        System.IO.IOException io =>
+            $"Ошибка ввода-вывода на порту {portName}: {io.Message}",
+        InvalidOperationException =>
+            $"Порт {portName} закрыт или находится в недопустимом состоянии.",
+        _ => $"{ex.GetType().Name} на порту {portName}: {ex.Message}"
+    };
 
     private static RingLoopParameterCell ParseLoopParameterCell(int index, string response, string prefix)
     {
@@ -298,6 +353,18 @@ public enum RingWorkResult
     Ok,
     Failed,
     NotConnected
+}
+
+// Результат установки точки R/C: статус и понятная пользователю причина сбоя.
+public readonly record struct RingWorkOutcome(RingWorkResult Result, string? FailureReason)
+{
+    public bool IsOk => Result == RingWorkResult.Ok;
+
+    public static RingWorkOutcome Ok() => new(RingWorkResult.Ok, null);
+
+    public static RingWorkOutcome Failed(string reason) => new(RingWorkResult.Failed, reason);
+
+    public static RingWorkOutcome NotConnected(string reason) => new(RingWorkResult.NotConnected, reason);
 }
 
 public readonly record struct RingLoopParameterCell(int Index, float Resistance, float Reactance, bool HasValue);
