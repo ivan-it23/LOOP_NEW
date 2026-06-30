@@ -1,4 +1,5 @@
 using LoopNext.Core.Logging;
+using LOOP_Next_App.Services;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Data;
@@ -59,5 +60,6 @@ public partial class App : Application
         Window = new MainWindow();
         DispatcherQueue = Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread();
         Window.Activate();
+        _ = AutoUpdateService.RunUpdateCheckAsync(WindowHandle, silent: true);
     }
 }
