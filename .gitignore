@@ -402,6 +402,9 @@ FodyWeavers.xsd
 *.msm
 *.msp
 
+# Inno Setup generated installers
+installer/Output/
+
 # JetBrains Rider
 *.sln.iml
 .idea/
