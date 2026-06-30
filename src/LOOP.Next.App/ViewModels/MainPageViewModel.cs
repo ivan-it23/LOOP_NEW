@@ -322,6 +322,9 @@ public partial class MainPageViewModel : ObservableObject
     public partial string RxPositionText { get; set; } = "—";
 
     [ObservableProperty]
+    public partial string TemperatureText { get; set; } = "—";
+
+    [ObservableProperty]
     public partial string ModificationText { get; set; } = "—";
 
     [ObservableProperty]
@@ -946,7 +949,8 @@ public partial class MainPageViewModel : ObservableObject
         SignatureText = $"0x{identity.Signature:X8}";
         SerialText = identity.Serial.ToString();
         TransmitterCountText = identity.TransmitterCount.ToString();
-        RxPositionText = identity.RxPosition.ToString();
+        // Позиция R1 отображается как сопоставление приёмника с передатчиком: 0 -> T1, 1 -> T2.
+        RxPositionText = $"R1 -> T{identity.RxPosition + 1}";
         ModificationText = identity.Modification.ToString();
         NumberText = identity.Number.ToString();
         PaletteText = identity.PaletteSignature.ToString();
@@ -1598,7 +1602,7 @@ public partial class MainPageViewModel : ObservableObject
                     AppLogger.Write("Вычислены УЭС по скорректированным фазам.");
 
                     _frameCounter++;
-                    DispatchFrame(frame.Phases, air, corrected, resistivity, _frameCounter);
+                    DispatchFrame(frame.Phases, air, corrected, resistivity, _frameCounter, frame.Temperature);
                 }
                 else
                 {
@@ -1626,7 +1630,7 @@ public partial class MainPageViewModel : ObservableObject
         AppLogger.Write($"{header} (мГ): {values}");
     }
 
-    private void DispatchFrame(V10 oriented, V10 air, V10 corrected, V10 resistivity, int frameNumber)
+    private void DispatchFrame(V10 oriented, V10 air, V10 corrected, V10 resistivity, int frameNumber, float temperature)
     {
         var orientedCopy = oriented;
         var airCopy = air;
@@ -1636,6 +1640,7 @@ public partial class MainPageViewModel : ObservableObject
         App.DispatcherQueue.TryEnqueue(() =>
         {
             FrameCount = frameNumber;
+            TemperatureText = temperature.ToString("F1", CultureInfo.InvariantCulture) + " °C";
             var count = Math.Min(Channels.Count, Math.Min(ResistanceRows.Count, V10.ChannelCount));
             for (var i = 0; i < count; i++)
             {

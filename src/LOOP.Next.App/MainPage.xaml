@@ -71,6 +71,57 @@
             <Setter Property="TextAlignment" Value="Center" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
+
+        <Style x:Key="IdentificationPanelBorderStyle" TargetType="Border">
+            <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}" />
+            <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Padding" Value="10,8" />
+        </Style>
+
+        <Style x:Key="IdentificationLabelTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <Style x:Key="IdentificationValueTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Foreground" Value="{ThemeResource TextFillColorPrimaryBrush}" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <!-- Заголовок секции идентификации и статуса: единый строгий стиль для обеих карточек. -->
+        <Style x:Key="IdentificationSectionHeaderTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{ThemeResource TextFillColorPrimaryBrush}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <!-- Компактный контейнер значения: сохраняет рамку технических данных, но без избыточной ширины. -->
+        <Style x:Key="IdentificationCompactValueBorderStyle" TargetType="Border">
+            <Setter Property="Background" Value="{ThemeResource LayerFillColorDefaultBrush}" />
+            <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="3" />
+            <Setter Property="MinWidth" Value="96" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="Padding" Value="6,2" />
+        </Style>
+
+        <!-- Статусный бейдж карточки состояния: фиксированная подпись и выровненное значение. -->
+        <Style x:Key="IdentificationStatusBadgeBorderStyle" TargetType="Border">
+            <Setter Property="Background" Value="{ThemeResource LayerFillColorDefaultBrush}" />
+            <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="3" />
+            <Setter Property="MinHeight" Value="26" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="Padding" Value="8,3" />
+        </Style>
     </Page.Resources>
 
     <Grid RowSpacing="0">
@@ -212,288 +263,297 @@
             </Grid>
         </Border>
 
-        <ScrollViewer
-            x:Name="MainResistanceTable"
+        <Grid
             Grid.Row="2"
             Margin="0,0,8,0"
-            HorizontalScrollBarVisibility="Disabled"
-            HorizontalScrollMode="Disabled"
-            HorizontalContentAlignment="Stretch"
-            VerticalScrollBarVisibility="Auto">
-            <Grid
-                HorizontalAlignment="Stretch"
-                Background="{StaticResource OldTableBackgroundBrush}"
-                Padding="6">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="44" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="104*" />
-                    <ColumnDefinition Width="94*" />
-                    <ColumnDefinition Width="424*" />
-                    <ColumnDefinition Width="88*" />
-                    <ColumnDefinition Width="86*" />
-                    <ColumnDefinition Width="86*" />
-                    <ColumnDefinition Width="86*" />
-                    <ColumnDefinition Width="86*" />
-                    <ColumnDefinition Width="86*" />
-                    <ColumnDefinition Width="86*" />
-                    <ColumnDefinition Width="86*" />
-                    <ColumnDefinition Width="86*" />
-                </Grid.ColumnDefinitions>
+            RowSpacing="8"
+            VerticalAlignment="Top">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
 
-                <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource OldTableCellBorderStyle}">
-                    <TextBlock Text="№ Зонда" Style="{StaticResource OldTableHeaderTextStyle}" />
-                </Border>
-                <Border Grid.Row="0" Grid.Column="1" Background="{x:Bind ViewModel.AirColumnBackground, Mode=OneWay}" Style="{StaticResource OldTableCellBorderStyle}">
-                    <TextBlock Text="AIR" Style="{StaticResource OldTableHeaderTextStyle}" />
-                </Border>
-                <Border Grid.Row="0" Grid.Column="2" Style="{StaticResource OldTableCellBorderStyle}">
-                    <Grid Margin="4,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Text="{x:Bind ViewModel.ScaleMinus3PercentLabel, Mode=OneWay}" Style="{StaticResource OldTableHeaderTextStyle}" FontSize="14" />
-                        <TextBlock Grid.Column="1" Text="{x:Bind ViewModel.ScaleMinus2PercentLabel, Mode=OneWay}" Style="{StaticResource OldTableHeaderTextStyle}" FontSize="14" />
-                        <TextBlock Grid.Column="2" Text="{x:Bind ViewModel.ScaleMinus1PercentLabel, Mode=OneWay}" Style="{StaticResource OldTableHeaderTextStyle}" FontSize="14" />
-                        <TextBlock Grid.Column="3" Text="{x:Bind ViewModel.ScalePlus1PercentLabel, Mode=OneWay}" Style="{StaticResource OldTableHeaderTextStyle}" FontSize="14" />
-                        <TextBlock Grid.Column="4" Text="{x:Bind ViewModel.ScalePlus2PercentLabel, Mode=OneWay}" Style="{StaticResource OldTableHeaderTextStyle}" FontSize="14" />
-                        <TextBlock Grid.Column="5" Text="{x:Bind ViewModel.ScalePlus3PercentLabel, Mode=OneWay}" Style="{StaticResource OldTableHeaderTextStyle}" FontSize="14" />
-                    </Grid>
-                </Border>
-                <Border Grid.Row="0" Grid.Column="3" Style="{StaticResource OldTableCellBorderStyle}">
-                    <TextBlock Text="УЭС Ом" Style="{StaticResource OldTableHeaderTextStyle}" />
-                </Border>
-                <Border Grid.Row="0" Grid.Column="4" Style="{StaticResource OldTableCellBorderStyle}">
-                    <Grid ColumnSpacing="2" Margin="2,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <CheckBox
-                            IsChecked="{x:Bind ViewModel.ReportR1Selected, Mode=TwoWay}"
-                            MinWidth="0"
-                            VerticalAlignment="Center"
-                            ToolTipService.ToolTip="R1 в рапорт" />
-                        <Button
-                            Grid.Column="1"
-                            Content="R1"
-                            Command="{x:Bind ViewModel.RunResistanceCommand}"
-                            CommandParameter="1"
-                            IsEnabled="{x:Bind ViewModel.CanStartSingleResistance, Mode=OneWay}"
-                            Padding="0"
-                            MinWidth="0"
-                            MinHeight="0"
-                            Height="28"
-                            HorizontalAlignment="Stretch"
-                            Background="Transparent"
-                            BorderThickness="0"
-                            FontSize="18"
-                            FontWeight="Bold" />
-                    </Grid>
-                </Border>
-                <Border Grid.Row="0" Grid.Column="5" Style="{StaticResource OldTableCellBorderStyle}">
-                    <Grid ColumnSpacing="2" Margin="2,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <CheckBox
-                            IsChecked="{x:Bind ViewModel.ReportR2Selected, Mode=TwoWay}"
-                            MinWidth="0"
-                            VerticalAlignment="Center"
-                            ToolTipService.ToolTip="R2 в рапорт" />
-                        <Button
-                            Grid.Column="1"
-                            Content="R2"
-                            Command="{x:Bind ViewModel.RunResistanceCommand}"
-                            CommandParameter="2"
-                            IsEnabled="{x:Bind ViewModel.CanStartSingleResistance, Mode=OneWay}"
-                            Padding="0"
-                            MinWidth="0"
-                            MinHeight="0"
-                            Height="28"
-                            HorizontalAlignment="Stretch"
-                            Background="Transparent"
-                            BorderThickness="0"
-                            FontSize="18"
-                            FontWeight="Bold" />
-                    </Grid>
-                </Border>
-                <Border Grid.Row="0" Grid.Column="6" Style="{StaticResource OldTableCellBorderStyle}">
-                    <Grid ColumnSpacing="2" Margin="2,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <CheckBox
-                            IsChecked="{x:Bind ViewModel.ReportR3Selected, Mode=TwoWay}"
-                            MinWidth="0"
-                            VerticalAlignment="Center"
-                            ToolTipService.ToolTip="R3 в рапорт" />
-                        <Button
-                            Grid.Column="1"
-                            Content="R3"
-                            Command="{x:Bind ViewModel.RunResistanceCommand}"
-                            CommandParameter="3"
-                            IsEnabled="{x:Bind ViewModel.CanStartSingleResistance, Mode=OneWay}"
-                            Padding="0"
-                            MinWidth="0"
-                            MinHeight="0"
-                            Height="28"
-                            HorizontalAlignment="Stretch"
-                            Background="Transparent"
-                            BorderThickness="0"
-                            FontSize="18"
-                            FontWeight="Bold" />
-                    </Grid>
-                </Border>
-                <Border Grid.Row="0" Grid.Column="7" Style="{StaticResource OldTableCellBorderStyle}">
-                    <Grid ColumnSpacing="2" Margin="2,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <CheckBox
-                            IsChecked="{x:Bind ViewModel.ReportR4Selected, Mode=TwoWay}"
-                            MinWidth="0"
-                            VerticalAlignment="Center"
-                            ToolTipService.ToolTip="R4 в рапорт" />
-                        <Button
-                            Grid.Column="1"
-                            Content="R4"
-                            Command="{x:Bind ViewModel.RunResistanceCommand}"
-                            CommandParameter="4"
-                            IsEnabled="{x:Bind ViewModel.CanStartSingleResistance, Mode=OneWay}"
-                            Padding="0"
-                            MinWidth="0"
-                            MinHeight="0"
-                            Height="28"
-                            HorizontalAlignment="Stretch"
-                            Background="Transparent"
-                            BorderThickness="0"
-                            FontSize="18"
-                            FontWeight="Bold" />
-                    </Grid>
-                </Border>
-                <Border Grid.Row="0" Grid.Column="8" Style="{StaticResource OldTableCellBorderStyle}">
-                    <Grid ColumnSpacing="2" Margin="2,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <CheckBox
-                            IsChecked="{x:Bind ViewModel.ReportR5Selected, Mode=TwoWay}"
-                            MinWidth="0"
-                            VerticalAlignment="Center"
-                            ToolTipService.ToolTip="R5 в рапорт" />
-                        <Button
-                            Grid.Column="1"
-                            Content="R5"
-                            Command="{x:Bind ViewModel.RunResistanceCommand}"
-                            CommandParameter="5"
-                            IsEnabled="{x:Bind ViewModel.CanStartSingleResistance, Mode=OneWay}"
-                            Padding="0"
-                            MinWidth="0"
-                            MinHeight="0"
-                            Height="28"
-                            HorizontalAlignment="Stretch"
-                            Background="Transparent"
-                            BorderThickness="0"
-                            FontSize="18"
-                            FontWeight="Bold" />
-                    </Grid>
-                </Border>
-                <Border Grid.Row="0" Grid.Column="9" Style="{StaticResource OldTableCellBorderStyle}">
-                    <Grid ColumnSpacing="2" Margin="2,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <CheckBox
-                            IsChecked="{x:Bind ViewModel.ReportR6Selected, Mode=TwoWay}"
-                            MinWidth="0"
-                            VerticalAlignment="Center"
-                            ToolTipService.ToolTip="R6 в рапорт" />
-                        <Button
-                            Grid.Column="1"
-                            Content="R6"
-                            Command="{x:Bind ViewModel.RunResistanceCommand}"
-                            CommandParameter="6"
-                            IsEnabled="{x:Bind ViewModel.CanStartSingleResistance, Mode=OneWay}"
-                            Padding="0"
-                            MinWidth="0"
-                            MinHeight="0"
-                            Height="28"
-                            HorizontalAlignment="Stretch"
-                            Background="Transparent"
-                            BorderThickness="0"
-                            FontSize="18"
-                            FontWeight="Bold" />
-                    </Grid>
-                </Border>
-                <Border Grid.Row="0" Grid.Column="10" Style="{StaticResource OldTableCellBorderStyle}">
-                    <Grid ColumnSpacing="2" Margin="2,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <CheckBox
-                            IsChecked="{x:Bind ViewModel.ReportR7Selected, Mode=TwoWay}"
-                            MinWidth="0"
-                            VerticalAlignment="Center"
-                            ToolTipService.ToolTip="R7 в рапорт" />
-                        <Button
-                            Grid.Column="1"
-                            Content="R7"
-                            Command="{x:Bind ViewModel.RunResistanceCommand}"
-                            CommandParameter="7"
-                            IsEnabled="{x:Bind ViewModel.CanStartSingleResistance, Mode=OneWay}"
-                            Padding="0"
-                            MinWidth="0"
-                            MinHeight="0"
-                            Height="28"
-                            HorizontalAlignment="Stretch"
-                            Background="Transparent"
-                            BorderThickness="0"
-                            FontSize="18"
-                            FontWeight="Bold" />
-                    </Grid>
-                </Border>
-                <Border Grid.Row="0" Grid.Column="11" Style="{StaticResource OldTableCellBorderStyle}">
-                    <Grid ColumnSpacing="2" Margin="2,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <CheckBox
-                            IsChecked="{x:Bind ViewModel.ReportR8Selected, Mode=TwoWay}"
-                            MinWidth="0"
-                            VerticalAlignment="Center"
-                            ToolTipService.ToolTip="R8 в рапорт" />
-                        <Button
-                            Grid.Column="1"
-                            Content="R8"
-                            Command="{x:Bind ViewModel.RunResistanceCommand}"
-                            CommandParameter="8"
-                            IsEnabled="{x:Bind ViewModel.CanStartSingleResistance, Mode=OneWay}"
-                            Padding="0"
-                            MinWidth="0"
-                            MinHeight="0"
-                            Height="28"
-                            HorizontalAlignment="Stretch"
-                            Background="Transparent"
-                            BorderThickness="0"
-                            FontSize="18"
-                            FontWeight="Bold" />
-                    </Grid>
-                </Border>
+            <ScrollViewer
+                x:Name="MainResistanceTable"
+                Grid.Row="0"
+                HorizontalScrollBarVisibility="Disabled"
+                HorizontalScrollMode="Disabled"
+                HorizontalContentAlignment="Stretch"
+                VerticalScrollBarVisibility="Auto">
+                <Grid
+                    HorizontalAlignment="Stretch"
+                    Background="{StaticResource OldTableBackgroundBrush}"
+                    Padding="6">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="44" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="104*" />
+                        <ColumnDefinition Width="94*" />
+                        <ColumnDefinition Width="424*" />
+                        <ColumnDefinition Width="88*" />
+                        <ColumnDefinition Width="86*" />
+                        <ColumnDefinition Width="86*" />
+                        <ColumnDefinition Width="86*" />
+                        <ColumnDefinition Width="86*" />
+                        <ColumnDefinition Width="86*" />
+                        <ColumnDefinition Width="86*" />
+                        <ColumnDefinition Width="86*" />
+                        <ColumnDefinition Width="86*" />
+                    </Grid.ColumnDefinitions>
+
+                    <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource OldTableCellBorderStyle}">
+                        <TextBlock Text="№ Зонда" Style="{StaticResource OldTableHeaderTextStyle}" />
+                    </Border>
+                    <Border Grid.Row="0" Grid.Column="1" Background="{x:Bind ViewModel.AirColumnBackground, Mode=OneWay}" Style="{StaticResource OldTableCellBorderStyle}">
+                        <TextBlock Text="AIR" Style="{StaticResource OldTableHeaderTextStyle}" />
+                    </Border>
+                    <Border Grid.Row="0" Grid.Column="2" Style="{StaticResource OldTableCellBorderStyle}">
+                        <Grid Margin="4,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="{x:Bind ViewModel.ScaleMinus3PercentLabel, Mode=OneWay}" Style="{StaticResource OldTableHeaderTextStyle}" FontSize="14" />
+                            <TextBlock Grid.Column="1" Text="{x:Bind ViewModel.ScaleMinus2PercentLabel, Mode=OneWay}" Style="{StaticResource OldTableHeaderTextStyle}" FontSize="14" />
+                            <TextBlock Grid.Column="2" Text="{x:Bind ViewModel.ScaleMinus1PercentLabel, Mode=OneWay}" Style="{StaticResource OldTableHeaderTextStyle}" FontSize="14" />
+                            <TextBlock Grid.Column="3" Text="{x:Bind ViewModel.ScalePlus1PercentLabel, Mode=OneWay}" Style="{StaticResource OldTableHeaderTextStyle}" FontSize="14" />
+                            <TextBlock Grid.Column="4" Text="{x:Bind ViewModel.ScalePlus2PercentLabel, Mode=OneWay}" Style="{StaticResource OldTableHeaderTextStyle}" FontSize="14" />
+                            <TextBlock Grid.Column="5" Text="{x:Bind ViewModel.ScalePlus3PercentLabel, Mode=OneWay}" Style="{StaticResource OldTableHeaderTextStyle}" FontSize="14" />
+                        </Grid>
+                    </Border>
+                    <Border Grid.Row="0" Grid.Column="3" Style="{StaticResource OldTableCellBorderStyle}">
+                        <TextBlock Text="УЭС Ом" Style="{StaticResource OldTableHeaderTextStyle}" />
+                    </Border>
+                    <Border Grid.Row="0" Grid.Column="4" Style="{StaticResource OldTableCellBorderStyle}">
+                        <Grid ColumnSpacing="2" Margin="2,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <CheckBox
+                                IsChecked="{x:Bind ViewModel.ReportR1Selected, Mode=TwoWay}"
+                                MinWidth="0"
+                                VerticalAlignment="Center"
+                                ToolTipService.ToolTip="R1 в рапорт" />
+                            <Button
+                                Grid.Column="1"
+                                Content="R1"
+                                Command="{x:Bind ViewModel.RunResistanceCommand}"
+                                CommandParameter="1"
+                                IsEnabled="{x:Bind ViewModel.CanStartSingleResistance, Mode=OneWay}"
+                                Padding="0"
+                                MinWidth="0"
+                                MinHeight="0"
+                                Height="28"
+                                HorizontalAlignment="Stretch"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                FontSize="18"
+                                FontWeight="Bold" />
+                        </Grid>
+                    </Border>
+                    <Border Grid.Row="0" Grid.Column="5" Style="{StaticResource OldTableCellBorderStyle}">
+                        <Grid ColumnSpacing="2" Margin="2,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <CheckBox
+                                IsChecked="{x:Bind ViewModel.ReportR2Selected, Mode=TwoWay}"
+                                MinWidth="0"
+                                VerticalAlignment="Center"
+                                ToolTipService.ToolTip="R2 в рапорт" />
+                            <Button
+                                Grid.Column="1"
+                                Content="R2"
+                                Command="{x:Bind ViewModel.RunResistanceCommand}"
+                                CommandParameter="2"
+                                IsEnabled="{x:Bind ViewModel.CanStartSingleResistance, Mode=OneWay}"
+                                Padding="0"
+                                MinWidth="0"
+                                MinHeight="0"
+                                Height="28"
+                                HorizontalAlignment="Stretch"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                FontSize="18"
+                                FontWeight="Bold" />
+                        </Grid>
+                    </Border>
+                    <Border Grid.Row="0" Grid.Column="6" Style="{StaticResource OldTableCellBorderStyle}">
+                        <Grid ColumnSpacing="2" Margin="2,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <CheckBox
+                                IsChecked="{x:Bind ViewModel.ReportR3Selected, Mode=TwoWay}"
+                                MinWidth="0"
+                                VerticalAlignment="Center"
+                                ToolTipService.ToolTip="R3 в рапорт" />
+                            <Button
+                                Grid.Column="1"
+                                Content="R3"
+                                Command="{x:Bind ViewModel.RunResistanceCommand}"
+                                CommandParameter="3"
+                                IsEnabled="{x:Bind ViewModel.CanStartSingleResistance, Mode=OneWay}"
+                                Padding="0"
+                                MinWidth="0"
+                                MinHeight="0"
+                                Height="28"
+                                HorizontalAlignment="Stretch"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                FontSize="18"
+                                FontWeight="Bold" />
+                        </Grid>
+                    </Border>
+                    <Border Grid.Row="0" Grid.Column="7" Style="{StaticResource OldTableCellBorderStyle}">
+                        <Grid ColumnSpacing="2" Margin="2,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <CheckBox
+                                IsChecked="{x:Bind ViewModel.ReportR4Selected, Mode=TwoWay}"
+                                MinWidth="0"
+                                VerticalAlignment="Center"
+                                ToolTipService.ToolTip="R4 в рапорт" />
+                            <Button
+                                Grid.Column="1"
+                                Content="R4"
+                                Command="{x:Bind ViewModel.RunResistanceCommand}"
+                                CommandParameter="4"
+                                IsEnabled="{x:Bind ViewModel.CanStartSingleResistance, Mode=OneWay}"
+                                Padding="0"
+                                MinWidth="0"
+                                MinHeight="0"
+                                Height="28"
+                                HorizontalAlignment="Stretch"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                FontSize="18"
+                                FontWeight="Bold" />
+                        </Grid>
+                    </Border>
+                    <Border Grid.Row="0" Grid.Column="8" Style="{StaticResource OldTableCellBorderStyle}">
+                        <Grid ColumnSpacing="2" Margin="2,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <CheckBox
+                                IsChecked="{x:Bind ViewModel.ReportR5Selected, Mode=TwoWay}"
+                                MinWidth="0"
+                                VerticalAlignment="Center"
+                                ToolTipService.ToolTip="R5 в рапорт" />
+                            <Button
+                                Grid.Column="1"
+                                Content="R5"
+                                Command="{x:Bind ViewModel.RunResistanceCommand}"
+                                CommandParameter="5"
+                                IsEnabled="{x:Bind ViewModel.CanStartSingleResistance, Mode=OneWay}"
+                                Padding="0"
+                                MinWidth="0"
+                                MinHeight="0"
+                                Height="28"
+                                HorizontalAlignment="Stretch"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                FontSize="18"
+                                FontWeight="Bold" />
+                        </Grid>
+                    </Border>
+                    <Border Grid.Row="0" Grid.Column="9" Style="{StaticResource OldTableCellBorderStyle}">
+                        <Grid ColumnSpacing="2" Margin="2,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <CheckBox
+                                IsChecked="{x:Bind ViewModel.ReportR6Selected, Mode=TwoWay}"
+                                MinWidth="0"
+                                VerticalAlignment="Center"
+                                ToolTipService.ToolTip="R6 в рапорт" />
+                            <Button
+                                Grid.Column="1"
+                                Content="R6"
+                                Command="{x:Bind ViewModel.RunResistanceCommand}"
+                                CommandParameter="6"
+                                IsEnabled="{x:Bind ViewModel.CanStartSingleResistance, Mode=OneWay}"
+                                Padding="0"
+                                MinWidth="0"
+                                MinHeight="0"
+                                Height="28"
+                                HorizontalAlignment="Stretch"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                FontSize="18"
+                                FontWeight="Bold" />
+                        </Grid>
+                    </Border>
+                    <Border Grid.Row="0" Grid.Column="10" Style="{StaticResource OldTableCellBorderStyle}">
+                        <Grid ColumnSpacing="2" Margin="2,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <CheckBox
+                                IsChecked="{x:Bind ViewModel.ReportR7Selected, Mode=TwoWay}"
+                                MinWidth="0"
+                                VerticalAlignment="Center"
+                                ToolTipService.ToolTip="R7 в рапорт" />
+                            <Button
+                                Grid.Column="1"
+                                Content="R7"
+                                Command="{x:Bind ViewModel.RunResistanceCommand}"
+                                CommandParameter="7"
+                                IsEnabled="{x:Bind ViewModel.CanStartSingleResistance, Mode=OneWay}"
+                                Padding="0"
+                                MinWidth="0"
+                                MinHeight="0"
+                                Height="28"
+                                HorizontalAlignment="Stretch"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                FontSize="18"
+                                FontWeight="Bold" />
+                        </Grid>
+                    </Border>
+                    <Border Grid.Row="0" Grid.Column="11" Style="{StaticResource OldTableCellBorderStyle}">
+                        <Grid ColumnSpacing="2" Margin="2,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <CheckBox
+                                IsChecked="{x:Bind ViewModel.ReportR8Selected, Mode=TwoWay}"
+                                MinWidth="0"
+                                VerticalAlignment="Center"
+                                ToolTipService.ToolTip="R8 в рапорт" />
+                            <Button
+                                Grid.Column="1"
+                                Content="R8"
+                                Command="{x:Bind ViewModel.RunResistanceCommand}"
+                                CommandParameter="8"
+                                IsEnabled="{x:Bind ViewModel.CanStartSingleResistance, Mode=OneWay}"
+                                Padding="0"
+                                MinWidth="0"
+                                MinHeight="0"
+                                Height="28"
+                                HorizontalAlignment="Stretch"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                FontSize="18"
+                                FontWeight="Bold" />
+                        </Grid>
+                    </Border>
 
                 <ItemsControl
                     Grid.Row="1"
@@ -567,56 +627,167 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
 
-            </Grid>
-        </ScrollViewer>
+                </Grid>
+            </ScrollViewer>
 
-        <Border
-            x:Name="MainIdentificationPanel"
-            Grid.Row="3"
-            Background="{StaticResource LoopBandBrush}"
-            BorderBrush="{StaticResource LoopBandBorderBrush}"
-            BorderThickness="0,1,0,0"
-            Padding="8">
-            <Grid ColumnSpacing="24">
+            <Grid
+                x:Name="MainIdentificationPanel"
+                Grid.Row="1"
+                ColumnSpacing="12"
+                VerticalAlignment="Top">
                 <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="160" />
+                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
-                <Grid Grid.Column="0" RowSpacing="5">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
+                <!-- Карточка идентификации: фиксированная компактная ширина, поля в две колонки. -->
+                <Border
+                    Grid.Column="0"
+                    Width="420"
+                    Style="{StaticResource IdentificationPanelBorderStyle}">
+                    <Grid ColumnSpacing="10" RowSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
 
-                    <TextBlock Grid.Row="0" Text="Идентификация зонда" Style="{StaticResource CaptionTextBlockStyle}" />
+                        <Border
+                            Grid.RowSpan="2"
+                            Grid.Column="0"
+                            Width="3"
+                            Background="{ThemeResource SystemControlForegroundAccentBrush}"
+                            CornerRadius="2"
+                            Opacity="0.72" />
 
-                    <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="12">
-                        <TextBlock><Run Text="Тип: " /><Run Text="{x:Bind ViewModel.ToolTypeName, Mode=OneWay}" /></TextBlock>
-                        <TextBlock><Run Text="Кол-во TX: " /><Run Text="{x:Bind ViewModel.TransmitterCountText, Mode=OneWay}" /></TextBlock>
-                        <TextBlock><Run Text="Модификация: " /><Run Text="{x:Bind ViewModel.ModificationText, Mode=OneWay}" /></TextBlock>
-                        <TextBlock><Run Text="Номер: " /><Run Text="{x:Bind ViewModel.NumberText, Mode=OneWay}" /></TextBlock>
-                        <TextBlock><Run Text="Серийный №: " /><Run Text="{x:Bind ViewModel.SerialText, Mode=OneWay}" /></TextBlock>
-                        <TextBlock><Run Text="Позиция R1: " /><Run Text="{x:Bind ViewModel.RxPositionText, Mode=OneWay}" /></TextBlock>
-                    </StackPanel>
+                        <TextBlock
+                            Grid.Row="0"
+                            Grid.Column="1"
+                            Text="Идентификация зонда"
+                            Style="{StaticResource IdentificationSectionHeaderTextStyle}" />
 
-                    <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="12">
-                        <TextBlock><Run Text="Сигнатура: " /><Run Text="{x:Bind ViewModel.SignatureText, Mode=OneWay}" /></TextBlock>
-                        <TextBlock><Run Text="Pallet: " /><Run Text="{x:Bind ViewModel.PaletteText, Mode=OneWay}" /></TextBlock>
-                        <TextBlock><Run Text="Кадров принято: " /><Run Text="{x:Bind ViewModel.FrameCount, Mode=OneWay}" /></TextBlock>
-                        <TextBlock><Run Text="Локальный воздух: " /><Run Text="{x:Bind ViewModel.LocalAirState, Mode=OneWay}" /></TextBlock>
-                    </StackPanel>
-                </Grid>
+                        <Grid Grid.Row="1" Grid.Column="1" RowSpacing="6" ColumnSpacing="10">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Левый столбец: тип прибора, серийный номер, сигнатура. -->
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Тип" Style="{StaticResource IdentificationLabelTextStyle}" />
+                            <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource IdentificationCompactValueBorderStyle}">
+                                <TextBlock
+                                    Text="{x:Bind ViewModel.ToolTypeName, Mode=OneWay}"
+                                    Style="{StaticResource IdentificationValueTextStyle}" />
+                            </Border>
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Серийный №" Style="{StaticResource IdentificationLabelTextStyle}" />
+                            <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource IdentificationCompactValueBorderStyle}">
+                                <TextBlock
+                                    Text="{x:Bind ViewModel.SerialText, Mode=OneWay}"
+                                    Style="{StaticResource IdentificationValueTextStyle}"
+                                    FontFamily="Consolas" />
+                            </Border>
+
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Сигнатура" Style="{StaticResource IdentificationLabelTextStyle}" />
+                            <Border Grid.Row="2" Grid.Column="1" Style="{StaticResource IdentificationCompactValueBorderStyle}">
+                                <TextBlock
+                                    Text="{x:Bind ViewModel.SignatureText, Mode=OneWay}"
+                                    Style="{StaticResource IdentificationValueTextStyle}"
+                                    FontFamily="Consolas" />
+                            </Border>
+
+                            <!-- Правый столбец: номер, модификация, позиция R1. -->
+                            <TextBlock Grid.Row="0" Grid.Column="2" Margin="6,0,0,0" Text="Номер" Style="{StaticResource IdentificationLabelTextStyle}" />
+                            <Border Grid.Row="0" Grid.Column="3" Style="{StaticResource IdentificationCompactValueBorderStyle}">
+                                <TextBlock
+                                    Text="{x:Bind ViewModel.NumberText, Mode=OneWay}"
+                                    Style="{StaticResource IdentificationValueTextStyle}" />
+                            </Border>
+
+                            <TextBlock Grid.Row="1" Grid.Column="2" Margin="6,0,0,0" Text="Модификация" Style="{StaticResource IdentificationLabelTextStyle}" />
+                            <Border Grid.Row="1" Grid.Column="3" Style="{StaticResource IdentificationCompactValueBorderStyle}">
+                                <TextBlock
+                                    Text="{x:Bind ViewModel.ModificationText, Mode=OneWay}"
+                                    Style="{StaticResource IdentificationValueTextStyle}" />
+                            </Border>
+
+                            <TextBlock Grid.Row="2" Grid.Column="2" Margin="6,0,0,0" Text="Позиция R1" Style="{StaticResource IdentificationLabelTextStyle}" />
+                            <Border Grid.Row="2" Grid.Column="3" Style="{StaticResource IdentificationCompactValueBorderStyle}">
+                                <TextBlock
+                                    Text="{x:Bind ViewModel.RxPositionText, Mode=OneWay}"
+                                    Style="{StaticResource IdentificationValueTextStyle}" />
+                            </Border>
+                        </Grid>
+                    </Grid>
+                </Border>
+
+                <!-- Карточка состояния: локальный воздух, счётчик кадров и температура прибора. -->
+                <Border
+                    Grid.Column="1"
+                    Width="200"
+                    Style="{StaticResource IdentificationPanelBorderStyle}">
+                    <Grid RowSpacing="8">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock
+                            Grid.Row="0"
+                            Text="Состояние"
+                            Style="{StaticResource IdentificationSectionHeaderTextStyle}" />
+
+                        <StackPanel Grid.Row="1" Spacing="6">
+                            <Border Style="{StaticResource IdentificationStatusBadgeBorderStyle}">
+                                <TextBlock Style="{StaticResource IdentificationValueTextStyle}" FontSize="12">
+                                    <Run Text="AIR: " />
+                                    <Run Text="{x:Bind ViewModel.LocalAirState, Mode=OneWay}" />
+                                </TextBlock>
+                            </Border>
+                            <Border Style="{StaticResource IdentificationStatusBadgeBorderStyle}">
+                                <TextBlock Style="{StaticResource IdentificationValueTextStyle}" FontSize="12">
+                                    <Run Text="Кадров: " />
+                                    <Run Text="{x:Bind ViewModel.FrameCount, Mode=OneWay}" />
+                                </TextBlock>
+                            </Border>
+                            <Border Style="{StaticResource IdentificationStatusBadgeBorderStyle}">
+                                <TextBlock Style="{StaticResource IdentificationValueTextStyle}" FontSize="12">
+                                    <Run Text="Температура: " />
+                                    <Run Text="{x:Bind ViewModel.TemperatureText, Mode=OneWay}" />
+                                </TextBlock>
+                            </Border>
+                        </StackPanel>
+                    </Grid>
+                </Border>
 
                 <Button
-                    Grid.Column="1"
-                    Content="Рапорт"
+                    Grid.Column="3"
+                    Width="150"
+                    Height="32"
                     Command="{x:Bind ViewModel.ReportCommand}"
-                    HorizontalAlignment="Stretch"
-                    VerticalAlignment="Stretch" />
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Top"
+                    Padding="12,0"
+                    ToolTipService.ToolTip="Сформировать рапорт">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <FontIcon Glyph="&#xE8A5;" FontSize="13" />
+                        <TextBlock Text="Рапорт" />
+                    </StackPanel>
+                </Button>
             </Grid>
-        </Border>
+        </Grid>
 
         <Grid
             x:Name="RingVerificationContent"

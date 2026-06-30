@@ -19,7 +19,7 @@ public static class ToolPort
     // Постоянная нагрузка запроса данных, как в эталоне: { 0x05, 0x00 }.
     private static readonly byte[] RequestData = { 0x05, 0x00 };
 
-    public readonly record struct PhaseFrameResult(V10 Phases, V10 RawPhases, ToolResponseCode Code);
+    public readonly record struct PhaseFrameResult(V10 Phases, V10 RawPhases, ToolResponseCode Code, float Temperature);
 
     public readonly record struct SignatureResult(ToolResponseCode Code, uint Signature);
 
@@ -34,7 +34,7 @@ public static class ToolPort
 
         if (!com.IsOpen)
         {
-            return new PhaseFrameResult(phases, rawPhases, ToolResponseCode.PortClosed);
+            return new PhaseFrameResult(phases, rawPhases, ToolResponseCode.PortClosed, 0f);
         }
 
         var dataIn = new byte[FramePayloadLength];
@@ -46,7 +46,7 @@ public static class ToolPort
 
             if (ToolSerialTransport.Send(com, cmd, RequestData, RequestData.Length) != 0)
             {
-                return new PhaseFrameResult(phases, rawPhases, ToolResponseCode.Timeout);
+                return new PhaseFrameResult(phases, rawPhases, ToolResponseCode.Timeout, 0f);
             }
 
             var result = (ToolResponseCode)ToolSerialTransport.Receive(com, out _, dataIn, FramePayloadLength);
@@ -60,7 +60,7 @@ public static class ToolPort
                 var phaseResult = ToolPhaseProcessor.FillPhaseFromToolData(in toolData, in metrology);
                 phases = phaseResult.Phases;
                 rawPhases = phaseResult.RawPhases;
-                return new PhaseFrameResult(phases, rawPhases, ToolResponseCode.Ok);
+                return new PhaseFrameResult(phases, rawPhases, ToolResponseCode.Ok, toolData.Temperature);
             }
 
             if (result == ToolResponseCode.Timeout && retry < MaxRetries)
@@ -71,7 +71,7 @@ public static class ToolPort
             break;
         }
 
-        return new PhaseFrameResult(phases, rawPhases, lastCode);
+        return new PhaseFrameResult(phases, rawPhases, lastCode, 0f);
     }
 
     // Чтение сигнатуры прибора. Возвращает код результата и саму сигнатуру.
