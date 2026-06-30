@@ -1317,6 +1317,15 @@ public partial class MainPageViewModel : ObservableObject
             return false;
         }
 
+        if (!IsLocalAirSet())
+        {
+            const string message = "Сначала соберите локальный воздух, затем повторите заполнение таблицы.";
+            AppLogger.Write($"{modeName}: запуск заблокирован, локальный воздух не задан.");
+            StatusText = $"{modeName}: соберите локальный воздух";
+            RaiseUserMessage("Локальный воздух не задан", message);
+            return false;
+        }
+
         if (_loopParameters.Count == 0)
         {
             AppLogger.Write($"{modeName}: параметры кольца не загружены, читаем...");
@@ -1331,6 +1340,14 @@ public partial class MainPageViewModel : ObservableObject
         }
 
         return true;
+    }
+
+    private bool IsLocalAirSet()
+    {
+        lock (_airLock)
+        {
+            return _localAir.IsSet;
+        }
     }
 
     private async Task<bool> RunResistanceMeasurementAsync(int resistanceIndex, string modeName, CancellationToken token)

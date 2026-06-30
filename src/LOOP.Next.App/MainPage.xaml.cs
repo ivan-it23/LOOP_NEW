@@ -2,6 +2,8 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml;
 using LoopNext.Core.Logging;
 using LOOP_Next_App.ViewModels;
+using Microsoft.UI;
+using Microsoft.UI.Xaml.Media;
 using Windows.Storage.Pickers;
 
 namespace LOOP_Next_App;
@@ -41,11 +43,11 @@ public sealed partial class MainPage : Page
         {
             var dialog = new ContentDialog
             {
-                Title = notification.Title,
-                Content = notification.Message,
-                CloseButtonText = "ОК",
-                XamlRoot = xamlRoot
+                XamlRoot = xamlRoot,
+                DefaultButton = ContentDialogButton.None
             };
+            dialog.Content = BuildNotificationContent(notification, dialog);
+
             await dialog.ShowAsync();
         }
         catch (Exception ex)
@@ -56,6 +58,93 @@ public sealed partial class MainPage : Page
         {
             _isShowingNotification = false;
         }
+    }
+
+    private static UIElement BuildNotificationContent(UserNotification notification, ContentDialog owner)
+    {
+        var dialog = new Grid
+        {
+            MinWidth = 420,
+            MaxWidth = 560,
+            RowSpacing = 18
+        };
+        dialog.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        dialog.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        dialog.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+        var header = new Grid
+        {
+            ColumnSpacing = 16,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+        var iconBackground = new Border
+        {
+            Width = 44,
+            Height = 44,
+            CornerRadius = new CornerRadius(22),
+            Background = new SolidColorBrush(Colors.LightBlue),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        iconBackground.Child = new FontIcon
+        {
+            Glyph = "\uE946",
+            FontSize = 22,
+            Foreground = new SolidColorBrush(Colors.DarkBlue)
+        };
+
+        var title = new TextBlock
+        {
+            Text = notification.Title,
+            FontSize = 22,
+            FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+            TextWrapping = TextWrapping.Wrap,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+
+        header.Children.Add(iconBackground);
+        header.Children.Add(title);
+        Grid.SetColumn(title, 1);
+
+        var message = new TextBlock
+        {
+            Text = notification.Message,
+            FontSize = 15,
+            LineHeight = 22,
+            TextWrapping = TextWrapping.WrapWholeWords,
+            Margin = new Thickness(60, 0, 0, 0)
+        };
+
+        var actions = new Grid
+        {
+            Padding = new Thickness(0, 8, 0, 0)
+        };
+        var okButton = new Button
+        {
+            Content = "OK",
+            Width = 180,
+            Height = 38,
+            HorizontalAlignment = HorizontalAlignment.Center
+        };
+        if (Application.Current.Resources.TryGetValue("AccentButtonStyle", out var accentButtonStyle) &&
+            accentButtonStyle is Style style)
+        {
+            okButton.Style = style;
+        }
+
+        okButton.Click += (_, _) => owner.Hide();
+        actions.Children.Add(okButton);
+
+        dialog.Children.Add(header);
+        dialog.Children.Add(message);
+        dialog.Children.Add(actions);
+        Grid.SetRow(message, 1);
+        Grid.SetRow(actions, 2);
+
+        return dialog;
     }
 
     private void RootTabs_SelectionChanged(object sender, SelectionChangedEventArgs e)
