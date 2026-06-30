@@ -681,20 +681,34 @@
             <Grid
                 x:Name="MainIdentificationPanel"
                 Grid.Row="1"
-                ColumnSpacing="12"
+                Margin="6,0,6,0"
+                ColumnSpacing="0"
                 VerticalAlignment="Top">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="104*" />
+                    <ColumnDefinition Width="130*" />
+                    <ColumnDefinition Width="424*" />
+                    <ColumnDefinition Width="88*" />
+                    <ColumnDefinition Width="81*" />
+                    <ColumnDefinition Width="81*" />
+                    <ColumnDefinition Width="81*" />
+                    <ColumnDefinition Width="81*" />
+                    <ColumnDefinition Width="81*" />
+                    <ColumnDefinition Width="81*" />
+                    <ColumnDefinition Width="81*" />
+                    <ColumnDefinition Width="81*" />
                 </Grid.ColumnDefinitions>
 
-                <!-- Карточка идентификации: фиксированная компактная ширина, поля в две колонки. -->
-                <Border
+                <StackPanel
                     Grid.Column="0"
-                    Width="470"
-                    Style="{StaticResource IdentificationPanelBorderStyle}">
+                    Grid.ColumnSpan="10"
+                    Orientation="Horizontal"
+                    Spacing="12"
+                    HorizontalAlignment="Left">
+                    <!-- Карточка идентификации: фиксированная компактная ширина, поля в две колонки. -->
+                    <Border
+                        Width="470"
+                        Style="{StaticResource IdentificationPanelBorderStyle}">
                     <Grid ColumnSpacing="10" RowSpacing="8">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
@@ -779,13 +793,12 @@
                             </Border>
                         </Grid>
                     </Grid>
-                </Border>
+                    </Border>
 
-                <!-- Карточка состояния: локальный воздух, счётчик кадров и температура прибора. -->
-                <Border
-                    Grid.Column="1"
-                    Width="200"
-                    Style="{StaticResource IdentificationPanelBorderStyle}">
+                    <!-- Карточка состояния: локальный воздух, счётчик кадров и температура прибора. -->
+                    <Border
+                        Width="200"
+                        Style="{StaticResource IdentificationPanelBorderStyle}">
                     <Grid RowSpacing="8">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
@@ -818,17 +831,19 @@
                             </Border>
                         </StackPanel>
                     </Grid>
-                </Border>
+                    </Border>
+                </StackPanel>
 
                 <Button
-                    Grid.Column="3"
-                    Width="150"
-                    Height="32"
+                    Grid.Column="11"
+                    Height="35"
                     Content="Рапорт"
                     Click="Report_Click"
-                    HorizontalAlignment="Right"
+                    HorizontalAlignment="Stretch"
                     VerticalAlignment="Top"
-                    Padding="12,0"
+                    MinWidth="0"
+                    Padding="0"
+                    FontWeight="Bold"
                     ToolTipService.ToolTip="Сформировать рапорт" />
             </Grid>
         </Grid>
