@@ -190,7 +190,7 @@
                 <StackPanel Grid.Column="4" Spacing="4">
                     <Button
                         Width="148"
-                        Content="Локальный воздух"
+                        Content="{x:Bind ViewModel.LocalAirButtonText, Mode=OneWay}"
                         IsEnabled="{x:Bind ViewModel.IsConnected, Mode=OneWay}"
                         Command="{x:Bind ViewModel.LocalAirCommand}" />
                     <ComboBox
@@ -243,7 +243,7 @@
                 <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource OldTableCellBorderStyle}">
                     <TextBlock Text="№ Зонда" Style="{StaticResource OldTableHeaderTextStyle}" />
                 </Border>
-                <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource OldTableCellBorderStyle}">
+                <Border Grid.Row="0" Grid.Column="1" Background="{x:Bind ViewModel.AirColumnBackground, Mode=OneWay}" Style="{StaticResource OldTableCellBorderStyle}">
                     <TextBlock Text="AIR" Style="{StaticResource OldTableHeaderTextStyle}" />
                 </Border>
                 <Border Grid.Row="0" Grid.Column="2" Style="{StaticResource OldTableCellBorderStyle}">

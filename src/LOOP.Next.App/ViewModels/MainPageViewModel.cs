@@ -21,6 +21,8 @@ public partial class MainPageViewModel : ObservableObject
 {
     private static readonly SolidColorBrush DisconnectedBrush = new(Colors.Green);
     private static readonly SolidColorBrush ConnectedBrush = new(Colors.Red);
+    private static readonly SolidColorBrush AirColumnDefaultBrush = new(Colors.White);
+    private static readonly SolidColorBrush LocalAirSetBrush = new(Colors.Red);
 
     private const int MeasurementSkipFrames = 5;
 
@@ -333,6 +335,12 @@ public partial class MainPageViewModel : ObservableObject
 
     [ObservableProperty]
     public partial string LocalAirState { get; set; } = "Не задан";
+
+    [ObservableProperty]
+    public partial string LocalAirButtonText { get; set; } = "Локальный воздух";
+
+    [ObservableProperty]
+    public partial Brush AirColumnBackground { get; set; } = AirColumnDefaultBrush;
 
     [RelayCommand]
     private async Task ToggleToolAsync()
@@ -877,13 +885,13 @@ public partial class MainPageViewModel : ObservableObject
                 }
 
                 _localAir.Begin(SelectedFrameCount);
-                LocalAirState = "Сбор...";
+                RefreshLocalAirUi();
                 StatusText = "Сбор локального воздуха";
             }
             else
             {
                 _localAir.RequestReset();
-                LocalAirState = "Сброс";
+                RefreshLocalAirUi();
                 StatusText = "Сброс локального воздуха";
             }
         }
@@ -985,6 +993,7 @@ public partial class MainPageViewModel : ObservableObject
             BuildDefaultResistanceTable();
         }
 
+        RefreshLocalAirUi();
         ClearResistanceCells();
         ClearResistanceBuffers();
     }
@@ -1086,6 +1095,7 @@ public partial class MainPageViewModel : ObservableObject
             });
         }
 
+        RefreshLocalAirUi();
         ClearResistanceCells();
     }
 
@@ -1620,8 +1630,38 @@ public partial class MainPageViewModel : ObservableObject
 
             UpdateResistanceRows(resistivityCopy, correctedCopy);
             AdvanceAutoMeasurement();
-            LocalAirState = _localAir.IsSet ? "Задан" : _localAir.Collecting ? "Сбор..." : "Не задан";
+            RefreshLocalAirUi();
         });
+    }
+
+    private void RefreshLocalAirUi()
+    {
+        bool isSet;
+        bool isCollecting;
+        bool resetRequested;
+        int collectedSampleCount;
+
+        lock (_airLock)
+        {
+            isSet = _localAir.IsSet;
+            isCollecting = _localAir.Collecting;
+            resetRequested = _localAir.ResetRequested;
+            collectedSampleCount = _localAir.CollectedSampleCount;
+        }
+
+        LocalAirState = resetRequested
+            ? "Сброс"
+            : isSet
+                ? "Задан"
+                : isCollecting
+                    ? $"Сбор: {collectedSampleCount} кадров"
+                    : "Не задан";
+        LocalAirButtonText = isCollecting
+            ? $"Сбор: {collectedSampleCount} кадров"
+            : "Локальный воздух";
+
+        var airBackground = isSet ? LocalAirSetBrush : AirColumnDefaultBrush;
+        AirColumnBackground = airBackground;
     }
 
     private void UpdateResistanceRows(V10 resistivity, V10 corrected)

@@ -40,6 +40,10 @@ public sealed class LocalAirCorrector
 
     public bool Collecting => _collecting;
 
+    public bool ResetRequested => _resetRequested;
+
+    public int CollectedSampleCount => _sampleCounter;
+
     public static int ClampSampleCount(int requested)
     {
         if (requested < MinSampleCount)
