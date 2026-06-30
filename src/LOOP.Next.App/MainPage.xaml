@@ -290,24 +290,24 @@
                     </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="104*" />
-                        <ColumnDefinition Width="94*" />
+                        <ColumnDefinition Width="130*" />
                         <ColumnDefinition Width="424*" />
                         <ColumnDefinition Width="88*" />
-                        <ColumnDefinition Width="86*" />
-                        <ColumnDefinition Width="86*" />
-                        <ColumnDefinition Width="86*" />
-                        <ColumnDefinition Width="86*" />
-                        <ColumnDefinition Width="86*" />
-                        <ColumnDefinition Width="86*" />
-                        <ColumnDefinition Width="86*" />
-                        <ColumnDefinition Width="86*" />
+                        <ColumnDefinition Width="81*" />
+                        <ColumnDefinition Width="81*" />
+                        <ColumnDefinition Width="81*" />
+                        <ColumnDefinition Width="81*" />
+                        <ColumnDefinition Width="81*" />
+                        <ColumnDefinition Width="81*" />
+                        <ColumnDefinition Width="81*" />
+                        <ColumnDefinition Width="81*" />
                     </Grid.ColumnDefinitions>
 
                     <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource OldTableCellBorderStyle}">
                         <TextBlock Text="№ Зонда" Style="{StaticResource OldTableHeaderTextStyle}" />
                     </Border>
                     <Border Grid.Row="0" Grid.Column="1" Background="{x:Bind ViewModel.AirColumnBackground, Mode=OneWay}" Style="{StaticResource OldTableCellBorderStyle}">
-                        <TextBlock Text="AIR" Style="{StaticResource OldTableHeaderTextStyle}" />
+                        <TextBlock Text="Воздух" Style="{StaticResource OldTableHeaderTextStyle}" />
                     </Border>
                     <Border Grid.Row="0" Grid.Column="2" Style="{StaticResource OldTableCellBorderStyle}">
                         <Grid Margin="4,0">
@@ -570,17 +570,17 @@
                             <Grid Height="35" HorizontalAlignment="Stretch">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="104*" />
-                                    <ColumnDefinition Width="94*" />
+                                    <ColumnDefinition Width="130*" />
                                     <ColumnDefinition Width="424*" />
                                     <ColumnDefinition Width="88*" />
-                                    <ColumnDefinition Width="86*" />
-                                    <ColumnDefinition Width="86*" />
-                                    <ColumnDefinition Width="86*" />
-                                    <ColumnDefinition Width="86*" />
-                                    <ColumnDefinition Width="86*" />
-                                    <ColumnDefinition Width="86*" />
-                                    <ColumnDefinition Width="86*" />
-                                    <ColumnDefinition Width="86*" />
+                                    <ColumnDefinition Width="81*" />
+                                    <ColumnDefinition Width="81*" />
+                                    <ColumnDefinition Width="81*" />
+                                    <ColumnDefinition Width="81*" />
+                                    <ColumnDefinition Width="81*" />
+                                    <ColumnDefinition Width="81*" />
+                                    <ColumnDefinition Width="81*" />
+                                    <ColumnDefinition Width="81*" />
                                 </Grid.ColumnDefinitions>
 
                                 <Border Grid.Column="0" Style="{StaticResource OldTableCellBorderStyle}">
@@ -645,7 +645,7 @@
                 <!-- Карточка идентификации: фиксированная компактная ширина, поля в две колонки. -->
                 <Border
                     Grid.Column="0"
-                    Width="420"
+                    Width="470"
                     Style="{StaticResource IdentificationPanelBorderStyle}">
                     <Grid ColumnSpacing="10" RowSpacing="8">
                         <Grid.ColumnDefinitions>
@@ -752,7 +752,7 @@
                         <StackPanel Grid.Row="1" Spacing="6">
                             <Border Style="{StaticResource IdentificationStatusBadgeBorderStyle}">
                                 <TextBlock Style="{StaticResource IdentificationValueTextStyle}" FontSize="12">
-                                    <Run Text="AIR: " />
+                                    <Run Text="Воздух: " />
                                     <Run Text="{x:Bind ViewModel.LocalAirState, Mode=OneWay}" />
                                 </TextBlock>
                             </Border>
