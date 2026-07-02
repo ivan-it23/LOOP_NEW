@@ -8,7 +8,6 @@ public static class ToolProtocolConstants
     public const byte CmdGetData = 0x11;
     public const byte CmdGetSignature = 0x16;
     public const byte CmdGetMetrology = 0x13;
-    public const byte CmdSetMetrology = 0x12;
 
     public const int ToolBaudRate = 125000;
     public const int SdrBaudRate = 115200;

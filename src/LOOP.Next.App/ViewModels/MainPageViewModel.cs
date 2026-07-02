@@ -94,6 +94,10 @@ public partial class MainPageViewModel : ObservableObject
 
     public bool CanToggleAutoMode => !IsResistanceMeasurementRunning || IsAutoMode;
 
+    public bool CanReadMetrologyFromFile => !IsConnected;
+
+    public string MetrologyFileButtonText => IsConnected ? "(Считано из прибора)" : "Из файла";
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanConnect))]
     [NotifyPropertyChangedFor(nameof(CanToggleTool))]
@@ -246,6 +250,8 @@ public partial class MainPageViewModel : ObservableObject
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanConnect))]
     [NotifyPropertyChangedFor(nameof(CanToggleTool))]
+    [NotifyPropertyChangedFor(nameof(CanReadMetrologyFromFile))]
+    [NotifyPropertyChangedFor(nameof(MetrologyFileButtonText))]
     [NotifyPropertyChangedFor(nameof(ToolToggleText))]
     [NotifyPropertyChangedFor(nameof(CanStartSingleResistance))]
     [NotifyCanExecuteChangedFor(nameof(RunResistanceCommand))]
@@ -625,6 +631,17 @@ public partial class MainPageViewModel : ObservableObject
         RaiseUserMessage("Рапорт не сохранён", $"Не удалось открыть окно сохранения рапорта.\n\nПричина: {errorMessage}");
     }
 
+    public void NotifyMetrologyFileSelectionCanceled()
+    {
+        StatusText = "Выбор файла метрологии отменён";
+    }
+
+    public void NotifyMetrologyFileDialogError(string errorMessage)
+    {
+        StatusText = "Метрология из файла не считана";
+        RaiseUserMessage("Метрология не считана", $"Не удалось открыть окно выбора файла метрологии.\n\nПричина: {errorMessage}");
+    }
+
     private bool CanRunResistance(object? parameter) =>
         CanStartSingleResistance && TryGetResistanceIndex(parameter, out _);
 
@@ -704,63 +721,45 @@ public partial class MainPageViewModel : ObservableObject
         StatusText = "ФАЙЛ МЕТРОЛОГИИ СЧИТАН ИЗ ПРИБОРА!";
     }
 
-    [RelayCommand]
-    private async Task WriteMetrologyToToolAsync()
+    public async Task ApplyMetrologyFromFileAsync(string path)
     {
-        GpToolMetrology metrology;
-        try
+        if (IsConnected)
         {
-            metrology = BuildMetrologyFromCurrentFields();
-        }
-        catch (Exception ex)
-        {
-            AppLogger.Write(ex, "Ошибка подготовки метрологии к записи в зонд");
-            StatusText = $"ФАЙЛ МЕТРОЛОГИИ НЕ БЫЛ ЗАПИСАН В ПРИБОР! {ex.Message}";
+            StatusText = "Метрология уже считана из прибора";
             return;
         }
 
-        StatusText = "Запись метрологии в зонд...";
-        var result = await ExecuteToolPortOperationAsync(port => MetrologyPort.WriteToTool(port, in metrology));
-        if (!result.Success || !result.Value)
+        if (string.IsNullOrWhiteSpace(path))
         {
-            StatusText = result.ErrorMessage is null
-                ? "ФАЙЛ МЕТРОЛОГИИ НЕ БЫЛ ЗАПИСАН В ПРИБОР!"
-                : $"ФАЙЛ МЕТРОЛОГИИ НЕ БЫЛ ЗАПИСАН В ПРИБОР! {result.ErrorMessage}";
+            StatusText = "Выбор файла метрологии отменён";
             return;
         }
 
-        ApplyMetrology(metrology);
-        StatusText = "ФАЙЛ МЕТРОЛОГИИ ЗАПИСАН В ПРИБОР!";
-    }
-
-    public async Task ReadMetrologyFromFileAsync(string path)
-    {
         try
         {
+            StatusText = "Чтение метрологии из файла...";
             var metrology = await Task.Run(() => MetrologyFile.Read(path));
-            ApplyMetrology(metrology);
-            StatusText = $"Файл метрологии считан: {path}";
-        }
-        catch (Exception ex)
-        {
-            AppLogger.Write(ex, "Ошибка чтения файла метрологии");
-            StatusText = $"Не удалось открыть файл метрологии: {ex.Message}";
-        }
-    }
+            var parameters = MetrologyConverter.Convert(in metrology);
+            if (parameters.Count == 0)
+            {
+                StatusText = "Файл метрологии не содержит поддерживаемую сигнатуру";
+                RaiseUserMessage(
+                    "Метрология не считана",
+                    "Файл метрологии прочитан, но сигнатура зонда не соответствует поддерживаемым типам Автономный или LWD.");
+                return;
+            }
 
-    public async Task WriteMetrologyToFileAsync(string path)
-    {
-        try
-        {
-            var metrology = BuildMetrologyFromCurrentFields();
-            await Task.Run(() => MetrologyFile.Write(path, in metrology));
-            ApplyMetrology(metrology);
-            StatusText = $"Файл метрологии записан: {path}";
+            ApplyMetrology(in metrology);
+            AppLogger.Write($"METROLOGY_FILE: applied '{path}', Signature=0x{metrology.Signature:X8}, Serial={metrology.Serial}");
+            StatusText = "Метрология считана из файла";
         }
         catch (Exception ex)
         {
-            AppLogger.Write(ex, "Ошибка записи файла метрологии");
-            StatusText = $"Не удалось записать файл метрологии: {ex.Message}";
+            AppLogger.Write(ex, "Ошибка чтения метрологии из файла");
+            StatusText = "Метрология из файла не считана";
+            RaiseUserMessage(
+                "Метрология не считана",
+                $"Не удалось прочитать файл метрологии:\n{path}\n\nПричина: {ex.Message}");
         }
     }
 
@@ -1200,37 +1199,6 @@ public partial class MainPageViewModel : ObservableObject
     private IReadOnlyList<SondeParameter> GetRingCalculationParameters()
     {
         return _sondeParameters;
-    }
-
-    private GpToolMetrology BuildMetrologyFromCurrentFields()
-    {
-        var metrology = _metrology;
-        var geometryCount = Math.Min(RingGeometryRows.Count, GpToolMetrology.MaxTransmitterCount);
-        for (var tx = 0; tx < geometryCount; tx++)
-        {
-            var row = RingGeometryRows[tx];
-            if (TryParseDouble(row.L1Text, out var l1))
-            {
-                metrology.SetL1(tx, ToUInt16Scaled(l1, 1000.0, $"{row.Label} L1"));
-            }
-
-            if (TryParseDouble(row.L2Text, out var l2))
-            {
-                metrology.SetL2(tx, ToUInt16Scaled(l2, 1000.0, $"{row.Label} L2"));
-            }
-        }
-
-        var frequencyCount = Math.Min(RingFrequencyRows.Count, GpToolMetrology.FrequencyCount);
-        for (var frequency = 0; frequency < frequencyCount; frequency++)
-        {
-            var row = RingFrequencyRows[frequency];
-            if (TryParseDouble(row.FrequencyText, out var frequencyKHz))
-            {
-                metrology.SetFrequency(frequency, ToUInt16Scaled(frequencyKHz, 1.0, row.Label));
-            }
-        }
-
-        return metrology;
     }
 
     private IReadOnlyList<RingLoopParameterCell> BuildRingWriteCells()

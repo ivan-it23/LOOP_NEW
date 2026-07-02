@@ -17,12 +17,4 @@ public static class MetrologyFile
 
         return MemoryMarshal.Read<GpToolMetrology>(bytes.AsSpan(0, BinarySize));
     }
-
-    public static void Write(string path, in GpToolMetrology metrology)
-    {
-        var bytes = new byte[BinarySize];
-        var value = metrology;
-        MemoryMarshal.Write(bytes, in value);
-        File.WriteAllBytes(path, bytes);
-    }
 }

@@ -995,6 +995,14 @@
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <Border Width="3" Height="14" Background="{ThemeResource SystemControlForegroundAccentBrush}" CornerRadius="2" Opacity="0.72" />
                                 <TextBlock Text="Расчёт ёмкостей" Style="{StaticResource RingSectionHeaderTextStyle}" />
+                                <Button
+                                    MinHeight="0"
+                                    Height="24"
+                                    Padding="10,0"
+                                    FontSize="13"
+                                    Content="{x:Bind ViewModel.MetrologyFileButtonText, Mode=OneWay}"
+                                    IsEnabled="{x:Bind ViewModel.CanReadMetrologyFromFile, Mode=OneWay}"
+                                    Click="MetrologyFile_Click" />
                             </StackPanel>
 
                             <Grid Grid.Row="1">
@@ -1220,11 +1228,6 @@
                             </Grid>
                         </Border>
                     </StackPanel>
-
-                    <StackPanel Grid.Row="2" Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="8">
-                        <Button Content="Метрология -> Зонд" Command="{x:Bind ViewModel.ReadMetrologyFromToolCommand}" />
-                        <Button Content="Метрология -> Файл" Click="ReadMetrologyFromFile_Click" />
-                    </StackPanel>
                 </Grid>
             </ScrollViewer>
 
@@ -1316,7 +1319,17 @@
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
 
-                            <TextBlock Text="Расчёт ёмкостей" FontWeight="SemiBold" />
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock Text="Расчёт ёмкостей" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                <Button
+                                    MinHeight="0"
+                                    Height="24"
+                                    Padding="10,0"
+                                    FontSize="13"
+                                    Content="{x:Bind ViewModel.MetrologyFileButtonText, Mode=OneWay}"
+                                    IsEnabled="{x:Bind ViewModel.CanReadMetrologyFromFile, Mode=OneWay}"
+                                    Click="MetrologyFile_Click" />
+                            </StackPanel>
                             <Grid Grid.Row="1">
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="28" />
@@ -1393,11 +1406,6 @@
                             </StackPanel>
                         </StackPanel>
                     </Border>
-
-                    <StackPanel Grid.Row="2" Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="8">
-                        <Button Content="Метрология -> Зонд" />
-                        <Button Content="Метрология -> Файл" />
-                    </StackPanel>
                 </Grid>
             </ScrollViewer>
 

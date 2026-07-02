@@ -178,39 +178,36 @@ public sealed partial class MainPage : Page
         MainIdentificationPanel.Visibility = visibility;
     }
 
-    private async void ReadMetrologyFromFile_Click(object sender, RoutedEventArgs e)
+    private async void MetrologyFile_Click(object sender, RoutedEventArgs e)
     {
-        var picker = new FileOpenPicker();
-        WinRT.Interop.InitializeWithWindow.Initialize(picker, App.WindowHandle);
-        picker.FileTypeFilter.Add(".bin");
-
-        var file = await picker.PickSingleFileAsync();
-        if (file is null)
+        if (!ViewModel.CanReadMetrologyFromFile)
         {
-            ViewModel.StatusText = "Чтение файла метрологии отменено";
             return;
         }
 
-        await ViewModel.ReadMetrologyFromFileAsync(file.Path);
-    }
-
-    private async void WriteMetrologyToFile_Click(object sender, RoutedEventArgs e)
-    {
-        var picker = new FileSavePicker
+        try
         {
-            SuggestedFileName = "Metrology"
-        };
-        WinRT.Interop.InitializeWithWindow.Initialize(picker, App.WindowHandle);
-        picker.FileTypeChoices.Add("Файл метрологии", new List<string> { ".bin" });
+            var picker = new FileOpenPicker
+            {
+                SuggestedStartLocation = PickerLocationId.DocumentsLibrary
+            };
+            WinRT.Interop.InitializeWithWindow.Initialize(picker, App.WindowHandle);
+            picker.FileTypeFilter.Add("*");
 
-        var file = await picker.PickSaveFileAsync();
-        if (file is null)
-        {
-            ViewModel.StatusText = "Запись файла метрологии отменена";
-            return;
+            var file = await picker.PickSingleFileAsync();
+            if (file is null)
+            {
+                ViewModel.NotifyMetrologyFileSelectionCanceled();
+                return;
+            }
+
+            await ViewModel.ApplyMetrologyFromFileAsync(file.Path);
         }
-
-        await ViewModel.WriteMetrologyToFileAsync(file.Path);
+        catch (Exception ex)
+        {
+            AppLogger.Write(ex, "Ошибка выбора файла метрологии");
+            ViewModel.NotifyMetrologyFileDialogError(ex.Message);
+        }
     }
 
     private async void Report_Click(object sender, RoutedEventArgs e)

@@ -10652,3 +10652,279 @@ C:\Users\Admin\Downloads\LOOP_report_20260630_163705.rtf
 [2026-06-30 16:43:06.486] RO_DFI: фазы (мГ)=[[0]=-2,4, [1]=-8,3, [2]=-5,3, [3]=6,0, [4]=-0,9, [5]=-45,2, [6]=-0,7, [7]=7,8, [8]=-36,9, [9]=-97,0], УЭС (Ohm*m)=[[0]=7200,00, [1]=7200,00, [2]=7200,00, [3]=7200,00, [4]=7200,00, [5]=7200,00, [6]=7200,00, [7]=7200,00, [8]=7200,00, [9]=7200,00]
 [2026-06-30 16:43:06.486] Вычислены УЭС по скорректированным фазам.
 [2026-06-30 16:43:06.486] УЭС по каналам: [0]=7200, [1]=7200, [2]=7200, [3]=7200, [4]=7200, [5]=7200, [6]=7200, [7]=7200, [8]=7200, [9]=7200
+[2026-07-02 13:30:37.948] === НАЧАЛО ВКЛЮЧЕНИЯ ПРИБОРА (единый COM-опрос) ===
+[2026-07-02 13:30:38.076] Установка BaudRate = 125000, порт=COM7
+[2026-07-02 13:30:38.086] Порт прибора открыт успешно.
+[2026-07-02 13:30:38.248] Чтение метрологии (команда 0x13)...
+[2026-07-02 13:30:39.814] Метрология получена (попытка 1).
+[2026-07-02 13:30:39.930] Метрология прибора: Signature=0x00024DD9, Serial=12026, N_Tx=10
+[2026-07-02 13:30:39.934] METROLOGY_DETAIL: RxPosition=0, F0=401kHz, F1=2001kHz, L1(m)=[T0=0,365, T1=0,710, T2=1,070, T3=1,415, T4=1,768], L2(m)=[T0=0,635, T1=0,980, T2=1,340, T3=1,685, T4=2,038], Air_zz(m)=[F0T0=0,523, F0T1=-0,247, F0T2=0,254, F0T3=-0,161, F0T4=0,048, F1T0=0,756, F1T1=-1,234, F1T2=1,942, F1T3=-3,114, F1T4=3,693]
+[2026-07-02 13:30:39.934] === ПРИБОР УСПЕШНО ВКЛЮЧЕН ===
+[2026-07-02 13:30:39.966] --- Запуск фонового опроса прибора ---
+[2026-07-02 13:30:40.024] RAW_TOOL_DATA: signature=0x00024DD9, Tx=5, condition=0, frame=0, temp=0,00, rho=[F0T0=0,00, F0T1=0,00, F0T2=0,00, F0T3=0,00, F0T4=0,00, F1T0=0,00, F1T1=0,00, F1T2=0,00, F1T3=0,00, F1T4=0,00], phase_mG=[F0T0=0,0, F0T1=0,0, F0T2=0,0, F0T3=0,0, F0T4=0,0, F1T0=0,0, F1T1=0,0, F1T2=0,0, F1T3=0,0, F1T4=0,0], delta_mG=[F0T0=0,0, F0T1=0,0, F0T2=0,0, F0T3=0,0, F0T4=0,0, F1T0=0,0, F1T1=0,0, F1T2=0,0, F1T3=0,0, F1T4=0,0]
+[2026-07-02 13:30:40.030] PHASE_PIPELINE: signature=0x00024DD9, Tx=5, Rx=0, source=DELTA_PH, raw_normalized_mG=[[0]=0,0, [1]=0,0, [2]=0,0, [3]=0,0, [4]=0,0, [5]=0,0, [6]=0,0, [7]=0,0, [8]=0,0, [9]=0,0], oriented_mG=[[0]=0,0, [1]=-0,0, [2]=0,0, [3]=-0,0, [4]=0,0, [5]=0,0, [6]=-0,0, [7]=0,0, [8]=-0,0, [9]=0,0], phase_smt_used=false, air_zz_used=false
+[2026-07-02 13:30:40.031] PHASE_PIPELINE_CH: F0 Tx1, raw_delta_mG=0,0, normalized_mG=0,0, orientation_sign=1, oriented_mG=0,0
+[2026-07-02 13:30:40.032] PHASE_PIPELINE_CH: F0 Tx2, raw_delta_mG=0,0, normalized_mG=0,0, orientation_sign=-1, oriented_mG=-0,0
+[2026-07-02 13:30:40.032] PHASE_PIPELINE_CH: F0 Tx3, raw_delta_mG=0,0, normalized_mG=0,0, orientation_sign=1, oriented_mG=0,0
+[2026-07-02 13:30:40.032] PHASE_PIPELINE_CH: F0 Tx4, raw_delta_mG=0,0, normalized_mG=0,0, orientation_sign=-1, oriented_mG=-0,0
+[2026-07-02 13:30:40.032] PHASE_PIPELINE_CH: F0 Tx5, raw_delta_mG=0,0, normalized_mG=0,0, orientation_sign=1, oriented_mG=0,0
+[2026-07-02 13:30:40.032] PHASE_PIPELINE_CH: F1 Tx1, raw_delta_mG=0,0, normalized_mG=0,0, orientation_sign=1, oriented_mG=0,0
+[2026-07-02 13:30:40.033] PHASE_PIPELINE_CH: F1 Tx2, raw_delta_mG=0,0, normalized_mG=0,0, orientation_sign=-1, oriented_mG=-0,0
+[2026-07-02 13:30:40.033] PHASE_PIPELINE_CH: F1 Tx3, raw_delta_mG=0,0, normalized_mG=0,0, orientation_sign=1, oriented_mG=0,0
+[2026-07-02 13:30:40.033] PHASE_PIPELINE_CH: F1 Tx4, raw_delta_mG=0,0, normalized_mG=0,0, orientation_sign=-1, oriented_mG=-0,0
+[2026-07-02 13:30:40.033] PHASE_PIPELINE_CH: F1 Tx5, raw_delta_mG=0,0, normalized_mG=0,0, orientation_sign=1, oriented_mG=0,0
+[2026-07-02 13:30:40.036] Получен кадр от прибора: Code=Ok, RxPosition=0
+[2026-07-02 13:30:40.038] FRAME_PHASES raw_delta_normalized (мГ): [0]=0,0, [1]=0,0, [2]=0,0, [3]=0,0, [4]=0,0, [5]=0,0, [6]=0,0, [7]=0,0, [8]=0,0, [9]=0,0
+[2026-07-02 13:30:40.038] FRAME_PHASES oriented_before_air (мГ): [0]=0,0, [1]=-0,0, [2]=0,0, [3]=-0,0, [4]=0,0, [5]=0,0, [6]=-0,0, [7]=0,0, [8]=-0,0, [9]=0,0
+[2026-07-02 13:30:40.038] FRAME_PHASES local_air (мГ): [0]=0,0, [1]=0,0, [2]=0,0, [3]=0,0, [4]=0,0, [5]=0,0, [6]=0,0, [7]=0,0, [8]=0,0, [9]=0,0
+[2026-07-02 13:30:40.039] FRAME_PHASES corrected_after_air (мГ): [0]=0,0, [1]=-0,0, [2]=0,0, [3]=-0,0, [4]=0,0, [5]=0,0, [6]=-0,0, [7]=0,0, [8]=-0,0, [9]=0,0
+[2026-07-02 13:30:40.040] RO_DFI: фазы (мГ)=[[0]=0,0, [1]=-0,0, [2]=0,0, [3]=-0,0, [4]=0,0, [5]=0,0, [6]=-0,0, [7]=0,0, [8]=-0,0, [9]=0,0], УЭС (Ohm*m)=[[0]=7200,00, [1]=7200,00, [2]=7200,00, [3]=7200,00, [4]=7200,00, [5]=7200,00, [6]=7200,00, [7]=7200,00, [8]=7200,00, [9]=7200,00]
+[2026-07-02 13:30:40.041] Вычислены УЭС по скорректированным фазам.
+[2026-07-02 13:30:40.045] УЭС по каналам: [0]=7200, [1]=7200, [2]=7200, [3]=7200, [4]=7200, [5]=7200, [6]=7200, [7]=7200, [8]=7200, [9]=7200
+[2026-07-02 13:30:41.109] RAW_TOOL_DATA: signature=0x00024DD9, Tx=5, condition=7967, frame=0, temp=24,48, rho=[F0T0=672,96, F0T1=1634,75, F0T2=3276,42, F0T3=4911,56, F0T4=6563,97, F1T0=7200,00, F1T1=7200,00, F1T2=7200,00, F1T3=7200,00, F1T4=7200,00], phase_mG=[F0T0=35,5, F0T1=24,7, F0T2=17,5, F0T3=15,1, F0T4=13,8, F1T0=-90,7, F1T1=-123,6, F1T2=-297,9, F1T3=-530,6, F1T4=-680,3], delta_mG=[F0T0=579,0, F0T1=-251,2, F0T2=288,5, F0T3=-158,0, F0T4=79,9, F1T0=705,2, F1T1=-1070,5, F1T2=1825,2, F1T3=-2319,2, F1T4=3276,7]
+[2026-07-02 13:30:41.110] PHASE_PIPELINE: signature=0x00024DD9, Tx=5, Rx=0, source=DELTA_PH, raw_normalized_mG=[[0]=579,0, [1]=-251,2, [2]=288,5, [3]=-158,0, [4]=79,9, [5]=705,2, [6]=-1070,5, [7]=1825,2, [8]=-2319,2, [9]=3276,7], oriented_mG=[[0]=579,0, [1]=251,2, [2]=288,5, [3]=158,0, [4]=79,9, [5]=705,2, [6]=1070,5, [7]=1825,2, [8]=2319,2, [9]=3276,7], phase_smt_used=false, air_zz_used=false
+[2026-07-02 13:30:41.110] PHASE_PIPELINE_CH: F0 Tx1, raw_delta_mG=579,0, normalized_mG=579,0, orientation_sign=1, oriented_mG=579,0
+[2026-07-02 13:30:41.111] PHASE_PIPELINE_CH: F0 Tx2, raw_delta_mG=-251,2, normalized_mG=-251,2, orientation_sign=-1, oriented_mG=251,2
+[2026-07-02 13:30:41.111] PHASE_PIPELINE_CH: F0 Tx3, raw_delta_mG=288,5, normalized_mG=288,5, orientation_sign=1, oriented_mG=288,5
+[2026-07-02 13:30:41.111] PHASE_PIPELINE_CH: F0 Tx4, raw_delta_mG=-158,0, normalized_mG=-158,0, orientation_sign=-1, oriented_mG=158,0
+[2026-07-02 13:30:41.111] PHASE_PIPELINE_CH: F0 Tx5, raw_delta_mG=79,9, normalized_mG=79,9, orientation_sign=1, oriented_mG=79,9
+[2026-07-02 13:30:41.111] PHASE_PIPELINE_CH: F1 Tx1, raw_delta_mG=705,2, normalized_mG=705,2, orientation_sign=1, oriented_mG=705,2
+[2026-07-02 13:30:41.112] PHASE_PIPELINE_CH: F1 Tx2, raw_delta_mG=-1070,5, normalized_mG=-1070,5, orientation_sign=-1, oriented_mG=1070,5
+[2026-07-02 13:30:41.112] PHASE_PIPELINE_CH: F1 Tx3, raw_delta_mG=1825,2, normalized_mG=1825,2, orientation_sign=1, oriented_mG=1825,2
+[2026-07-02 13:30:41.113] PHASE_PIPELINE_CH: F1 Tx4, raw_delta_mG=-2319,2, normalized_mG=-2319,2, orientation_sign=-1, oriented_mG=2319,2
+[2026-07-02 13:30:41.113] PHASE_PIPELINE_CH: F1 Tx5, raw_delta_mG=3276,7, normalized_mG=3276,7, orientation_sign=1, oriented_mG=3276,7
+[2026-07-02 13:30:41.114] Получен кадр от прибора: Code=Ok, RxPosition=0
+[2026-07-02 13:30:41.114] FRAME_PHASES raw_delta_normalized (мГ): [0]=579,0, [1]=-251,2, [2]=288,5, [3]=-158,0, [4]=79,9, [5]=705,2, [6]=-1070,5, [7]=1825,2, [8]=-2319,2, [9]=3276,7
+[2026-07-02 13:30:41.115] FRAME_PHASES oriented_before_air (мГ): [0]=579,0, [1]=251,2, [2]=288,5, [3]=158,0, [4]=79,9, [5]=705,2, [6]=1070,5, [7]=1825,2, [8]=2319,2, [9]=3276,7
+[2026-07-02 13:30:41.115] FRAME_PHASES local_air (мГ): [0]=0,0, [1]=0,0, [2]=0,0, [3]=0,0, [4]=0,0, [5]=0,0, [6]=0,0, [7]=0,0, [8]=0,0, [9]=0,0
+[2026-07-02 13:30:41.115] FRAME_PHASES corrected_after_air (мГ): [0]=579,0, [1]=251,2, [2]=288,5, [3]=158,0, [4]=79,9, [5]=705,2, [6]=1070,5, [7]=1825,2, [8]=2319,2, [9]=3276,7
+[2026-07-02 13:30:41.116] RO_DFI: фазы (мГ)=[[0]=579,0, [1]=251,2, [2]=288,5, [3]=158,0, [4]=79,9, [5]=705,2, [6]=1070,5, [7]=1825,2, [8]=2319,2, [9]=3276,7], УЭС (Ohm*m)=[[0]=37,96, [1]=150,54, [2]=181,93, [3]=436,05, [4]=1082,20, [5]=153,71, [6]=158,04, [7]=115,99, [8]=105,23, [9]=77,12]
+[2026-07-02 13:30:41.116] Вычислены УЭС по скорректированным фазам.
+[2026-07-02 13:30:41.117] УЭС по каналам: [0]=38, [1]=151, [2]=182, [3]=436, [4]=1082, [5]=154, [6]=158, [7]=116, [8]=105, [9]=77
+[2026-07-02 13:30:42.174] RAW_TOOL_DATA: signature=0x00024DD9, Tx=5, condition=7967, frame=1, temp=24,48, rho=[F0T0=7200,00, F0T1=7200,00, F0T2=3443,18, F0T3=2060,12, F0T4=1479,04, F1T0=7200,00, F1T1=7200,00, F1T2=7200,00, F1T3=7200,00, F1T4=7200,00], phase_mG=[F0T0=-26,3, F0T1=-2,1, F0T2=16,7, F0T3=35,3, F0T4=59,1, F1T0=-90,8, F1T1=-140,0, F1T2=-315,6, F1T3=-556,3, F1T4=-735,5], delta_mG=[F0T0=508,0, F0T1=-233,5, F0T2=287,4, F0T3=-174,5, F0T4=128,9, F1T0=712,3, F1T1=-1047,0, F1T2=1799,8, F1T3=-2322,7, F1T4=3192,4]
+[2026-07-02 13:30:42.175] PHASE_PIPELINE: signature=0x00024DD9, Tx=5, Rx=0, source=DELTA_PH, raw_normalized_mG=[[0]=508,0, [1]=-233,5, [2]=287,4, [3]=-174,5, [4]=128,9, [5]=712,3, [6]=-1047,0, [7]=1799,8, [8]=-2322,7, [9]=3192,4], oriented_mG=[[0]=508,0, [1]=233,5, [2]=287,4, [3]=174,5, [4]=128,9, [5]=712,3, [6]=1047,0, [7]=1799,8, [8]=2322,7, [9]=3192,4], phase_smt_used=false, air_zz_used=false
+[2026-07-02 13:30:42.175] PHASE_PIPELINE_CH: F0 Tx1, raw_delta_mG=508,0, normalized_mG=508,0, orientation_sign=1, oriented_mG=508,0
+[2026-07-02 13:30:42.175] PHASE_PIPELINE_CH: F0 Tx2, raw_delta_mG=-233,5, normalized_mG=-233,5, orientation_sign=-1, oriented_mG=233,5
+[2026-07-02 13:30:42.176] PHASE_PIPELINE_CH: F0 Tx3, raw_delta_mG=287,4, normalized_mG=287,4, orientation_sign=1, oriented_mG=287,4
+[2026-07-02 13:30:42.176] PHASE_PIPELINE_CH: F0 Tx4, raw_delta_mG=-174,5, normalized_mG=-174,5, orientation_sign=-1, oriented_mG=174,5
+[2026-07-02 13:30:42.176] PHASE_PIPELINE_CH: F0 Tx5, raw_delta_mG=128,9, normalized_mG=128,9, orientation_sign=1, oriented_mG=128,9
+[2026-07-02 13:30:42.176] PHASE_PIPELINE_CH: F1 Tx1, raw_delta_mG=712,3, normalized_mG=712,3, orientation_sign=1, oriented_mG=712,3
+[2026-07-02 13:30:42.176] PHASE_PIPELINE_CH: F1 Tx2, raw_delta_mG=-1047,0, normalized_mG=-1047,0, orientation_sign=-1, oriented_mG=1047,0
+[2026-07-02 13:30:42.177] PHASE_PIPELINE_CH: F1 Tx3, raw_delta_mG=1799,8, normalized_mG=1799,8, orientation_sign=1, oriented_mG=1799,8
+[2026-07-02 13:30:42.177] PHASE_PIPELINE_CH: F1 Tx4, raw_delta_mG=-2322,7, normalized_mG=-2322,7, orientation_sign=-1, oriented_mG=2322,7
+[2026-07-02 13:30:42.177] PHASE_PIPELINE_CH: F1 Tx5, raw_delta_mG=3192,4, normalized_mG=3192,4, orientation_sign=1, oriented_mG=3192,4
+[2026-07-02 13:30:42.177] Получен кадр от прибора: Code=Ok, RxPosition=0
+[2026-07-02 13:30:42.178] FRAME_PHASES raw_delta_normalized (мГ): [0]=508,0, [1]=-233,5, [2]=287,4, [3]=-174,5, [4]=128,9, [5]=712,3, [6]=-1047,0, [7]=1799,8, [8]=-2322,7, [9]=3192,4
+[2026-07-02 13:30:42.178] FRAME_PHASES oriented_before_air (мГ): [0]=508,0, [1]=233,5, [2]=287,4, [3]=174,5, [4]=128,9, [5]=712,3, [6]=1047,0, [7]=1799,8, [8]=2322,7, [9]=3192,4
+[2026-07-02 13:30:42.178] FRAME_PHASES local_air (мГ): [0]=0,0, [1]=0,0, [2]=0,0, [3]=0,0, [4]=0,0, [5]=0,0, [6]=0,0, [7]=0,0, [8]=0,0, [9]=0,0
+[2026-07-02 13:30:42.178] FRAME_PHASES corrected_after_air (мГ): [0]=508,0, [1]=233,5, [2]=287,4, [3]=174,5, [4]=128,9, [5]=712,3, [6]=1047,0, [7]=1799,8, [8]=2322,7, [9]=3192,4
+[2026-07-02 13:30:42.179] RO_DFI: фазы (мГ)=[[0]=508,0, [1]=233,5, [2]=287,4, [3]=174,5, [4]=128,9, [5]=712,3, [6]=1047,0, [7]=1799,8, [8]=2322,7, [9]=3192,4], УЭС (Ohm*m)=[[0]=43,61, [1]=162,53, [2]=182,68, [3]=392,95, [4]=656,35, [5]=151,99, [6]=162,01, [7]=117,94, [8]=105,02, [9]=79,91]
+[2026-07-02 13:30:42.179] Вычислены УЭС по скорректированным фазам.
+[2026-07-02 13:30:42.179] УЭС по каналам: [0]=44, [1]=163, [2]=183, [3]=393, [4]=656, [5]=152, [6]=162, [7]=118, [8]=105, [9]=80
+[2026-07-02 13:30:43.241] RAW_TOOL_DATA: signature=0x00024DD9, Tx=5, condition=7967, frame=2, temp=24,31, rho=[F0T0=7200,00, F0T1=4837,00, F0T2=3861,72, F0T3=7200,00, F0T4=7200,00, F1T0=7200,00, F1T1=7200,00, F1T2=7200,00, F1T3=7200,00, F1T4=7200,00], phase_mG=[F0T0=-0,0, F0T1=9,4, F0T2=14,9, F0T3=9,6, F0T4=-2,8, F1T0=-58,7, F1T1=-125,8, F1T2=-312,4, F1T3=-542,9, F1T4=-698,1], delta_mG=[F0T0=529,6, F0T1=-249,7, F0T2=279,4, F0T3=-167,1, F0T4=48,6, F1T0=738,9, F1T1=-1066,6, F1T2=1790,7, F1T3=-2334,5, F1T4=3231,4]
+[2026-07-02 13:30:43.242] PHASE_PIPELINE: signature=0x00024DD9, Tx=5, Rx=0, source=DELTA_PH, raw_normalized_mG=[[0]=529,6, [1]=-249,7, [2]=279,4, [3]=-167,1, [4]=48,6, [5]=738,9, [6]=-1066,6, [7]=1790,7, [8]=-2334,5, [9]=3231,4], oriented_mG=[[0]=529,6, [1]=249,7, [2]=279,4, [3]=167,1, [4]=48,6, [5]=738,9, [6]=1066,6, [7]=1790,7, [8]=2334,5, [9]=3231,4], phase_smt_used=false, air_zz_used=false
+[2026-07-02 13:30:43.242] PHASE_PIPELINE_CH: F0 Tx1, raw_delta_mG=529,6, normalized_mG=529,6, orientation_sign=1, oriented_mG=529,6
+[2026-07-02 13:30:43.242] PHASE_PIPELINE_CH: F0 Tx2, raw_delta_mG=-249,7, normalized_mG=-249,7, orientation_sign=-1, oriented_mG=249,7
+[2026-07-02 13:30:43.242] PHASE_PIPELINE_CH: F0 Tx3, raw_delta_mG=279,4, normalized_mG=279,4, orientation_sign=1, oriented_mG=279,4
+[2026-07-02 13:30:43.243] PHASE_PIPELINE_CH: F0 Tx4, raw_delta_mG=-167,1, normalized_mG=-167,1, orientation_sign=-1, oriented_mG=167,1
+[2026-07-02 13:30:43.243] PHASE_PIPELINE_CH: F0 Tx5, raw_delta_mG=48,6, normalized_mG=48,6, orientation_sign=1, oriented_mG=48,6
+[2026-07-02 13:30:43.243] PHASE_PIPELINE_CH: F1 Tx1, raw_delta_mG=738,9, normalized_mG=738,9, orientation_sign=1, oriented_mG=738,9
+[2026-07-02 13:30:43.243] PHASE_PIPELINE_CH: F1 Tx2, raw_delta_mG=-1066,6, normalized_mG=-1066,6, orientation_sign=-1, oriented_mG=1066,6
+[2026-07-02 13:30:43.243] PHASE_PIPELINE_CH: F1 Tx3, raw_delta_mG=1790,7, normalized_mG=1790,7, orientation_sign=1, oriented_mG=1790,7
+[2026-07-02 13:30:43.244] PHASE_PIPELINE_CH: F1 Tx4, raw_delta_mG=-2334,5, normalized_mG=-2334,5, orientation_sign=-1, oriented_mG=2334,5
+[2026-07-02 13:30:43.244] PHASE_PIPELINE_CH: F1 Tx5, raw_delta_mG=3231,4, normalized_mG=3231,4, orientation_sign=1, oriented_mG=3231,4
+[2026-07-02 13:30:43.244] Получен кадр от прибора: Code=Ok, RxPosition=0
+[2026-07-02 13:30:43.244] FRAME_PHASES raw_delta_normalized (мГ): [0]=529,6, [1]=-249,7, [2]=279,4, [3]=-167,1, [4]=48,6, [5]=738,9, [6]=-1066,6, [7]=1790,7, [8]=-2334,5, [9]=3231,4
+[2026-07-02 13:30:43.245] FRAME_PHASES oriented_before_air (мГ): [0]=529,6, [1]=249,7, [2]=279,4, [3]=167,1, [4]=48,6, [5]=738,9, [6]=1066,6, [7]=1790,7, [8]=2334,5, [9]=3231,4
+[2026-07-02 13:30:43.245] FRAME_PHASES local_air (мГ): [0]=0,0, [1]=0,0, [2]=0,0, [3]=0,0, [4]=0,0, [5]=0,0, [6]=0,0, [7]=0,0, [8]=0,0, [9]=0,0
+[2026-07-02 13:30:43.246] FRAME_PHASES corrected_after_air (мГ): [0]=529,6, [1]=249,7, [2]=279,4, [3]=167,1, [4]=48,6, [5]=738,9, [6]=1066,6, [7]=1790,7, [8]=2334,5, [9]=3231,4
+[2026-07-02 13:30:43.246] RO_DFI: фазы (мГ)=[[0]=529,6, [1]=249,7, [2]=279,4, [3]=167,1, [4]=48,6, [5]=738,9, [6]=1066,6, [7]=1790,7, [8]=2334,5, [9]=3231,4], УЭС (Ohm*m)=[[0]=41,70, [1]=151,52, [2]=188,28, [3]=411,14, [4]=1808,03, [5]=146,16, [6]=158,68, [7]=118,66, [8]=104,36, [9]=78,60]
+[2026-07-02 13:30:43.247] Вычислены УЭС по скорректированным фазам.
+[2026-07-02 13:30:43.247] УЭС по каналам: [0]=42, [1]=152, [2]=188, [3]=411, [4]=1808, [5]=146, [6]=159, [7]=119, [8]=104, [9]=79
+[2026-07-02 13:30:44.311] RAW_TOOL_DATA: signature=0x00024DD9, Tx=5, condition=7967, frame=3, temp=24,48, rho=[F0T0=7200,00, F0T1=7200,00, F0T2=3425,60, F0T3=2322,92, F0T4=1974,65, F1T0=7200,00, F1T1=7200,00, F1T2=7200,00, F1T3=7200,00, F1T4=7200,00], phase_mG=[F0T0=-30,1, F0T1=-4,2, F0T2=16,7, F0T3=31,4, F0T4=44,7, F1T0=-87,5, F1T1=-122,9, F1T2=-292,8, F1T3=-527,4, F1T4=-692,2], delta_mG=[F0T0=494,5, F0T1=-241,2, F0T2=277,3, F0T3=-187,2, F0T4=97,9, F1T0=706,0, F1T1=-1073,5, F1T2=1821,2, F1T3=-2344,6, F1T4=3242,6]
+[2026-07-02 13:30:44.312] PHASE_PIPELINE: signature=0x00024DD9, Tx=5, Rx=0, source=DELTA_PH, raw_normalized_mG=[[0]=494,5, [1]=-241,2, [2]=277,3, [3]=-187,2, [4]=97,9, [5]=706,0, [6]=-1073,5, [7]=1821,2, [8]=-2344,6, [9]=3242,6], oriented_mG=[[0]=494,5, [1]=241,2, [2]=277,3, [3]=187,2, [4]=97,9, [5]=706,0, [6]=1073,5, [7]=1821,2, [8]=2344,6, [9]=3242,6], phase_smt_used=false, air_zz_used=false
+[2026-07-02 13:30:44.312] PHASE_PIPELINE_CH: F0 Tx1, raw_delta_mG=494,5, normalized_mG=494,5, orientation_sign=1, oriented_mG=494,5
+[2026-07-02 13:30:44.312] PHASE_PIPELINE_CH: F0 Tx2, raw_delta_mG=-241,2, normalized_mG=-241,2, orientation_sign=-1, oriented_mG=241,2
+[2026-07-02 13:30:44.312] PHASE_PIPELINE_CH: F0 Tx3, raw_delta_mG=277,3, normalized_mG=277,3, orientation_sign=1, oriented_mG=277,3
+[2026-07-02 13:30:44.313] PHASE_PIPELINE_CH: F0 Tx4, raw_delta_mG=-187,2, normalized_mG=-187,2, orientation_sign=-1, oriented_mG=187,2
+[2026-07-02 13:30:44.314] PHASE_PIPELINE_CH: F0 Tx5, raw_delta_mG=97,9, normalized_mG=97,9, orientation_sign=1, oriented_mG=97,9
+[2026-07-02 13:30:44.314] PHASE_PIPELINE_CH: F1 Tx1, raw_delta_mG=706,0, normalized_mG=706,0, orientation_sign=1, oriented_mG=706,0
+[2026-07-02 13:30:44.314] PHASE_PIPELINE_CH: F1 Tx2, raw_delta_mG=-1073,5, normalized_mG=-1073,5, orientation_sign=-1, oriented_mG=1073,5
+[2026-07-02 13:30:44.314] PHASE_PIPELINE_CH: F1 Tx3, raw_delta_mG=1821,2, normalized_mG=1821,2, orientation_sign=1, oriented_mG=1821,2
+[2026-07-02 13:30:44.315] PHASE_PIPELINE_CH: F1 Tx4, raw_delta_mG=-2344,6, normalized_mG=-2344,6, orientation_sign=-1, oriented_mG=2344,6
+[2026-07-02 13:30:44.315] PHASE_PIPELINE_CH: F1 Tx5, raw_delta_mG=3242,6, normalized_mG=3242,6, orientation_sign=1, oriented_mG=3242,6
+[2026-07-02 13:30:44.315] Получен кадр от прибора: Code=Ok, RxPosition=0
+[2026-07-02 13:30:44.316] FRAME_PHASES raw_delta_normalized (мГ): [0]=494,5, [1]=-241,2, [2]=277,3, [3]=-187,2, [4]=97,9, [5]=706,0, [6]=-1073,5, [7]=1821,2, [8]=-2344,6, [9]=3242,6
+[2026-07-02 13:30:44.316] FRAME_PHASES oriented_before_air (мГ): [0]=494,5, [1]=241,2, [2]=277,3, [3]=187,2, [4]=97,9, [5]=706,0, [6]=1073,5, [7]=1821,2, [8]=2344,6, [9]=3242,6
+[2026-07-02 13:30:44.316] FRAME_PHASES local_air (мГ): [0]=0,0, [1]=0,0, [2]=0,0, [3]=0,0, [4]=0,0, [5]=0,0, [6]=0,0, [7]=0,0, [8]=0,0, [9]=0,0
+[2026-07-02 13:30:44.316] FRAME_PHASES corrected_after_air (мГ): [0]=494,5, [1]=241,2, [2]=277,3, [3]=187,2, [4]=97,9, [5]=706,0, [6]=1073,5, [7]=1821,2, [8]=2344,6, [9]=3242,6
+[2026-07-02 13:30:44.317] RO_DFI: фазы (мГ)=[[0]=494,5, [1]=241,2, [2]=277,3, [3]=187,2, [4]=97,9, [5]=706,0, [6]=1073,5, [7]=1821,2, [8]=2344,6, [9]=3242,6], УЭС (Ohm*m)=[[0]=44,84, [1]=157,12, [2]=189,78, [3]=364,73, [4]=876,32, [5]=153,43, [6]=157,63, [7]=116,30, [8]=103,79, [9]=78,23]
+[2026-07-02 13:30:44.317] Вычислены УЭС по скорректированным фазам.
+[2026-07-02 13:30:44.317] УЭС по каналам: [0]=45, [1]=157, [2]=190, [3]=365, [4]=876, [5]=153, [6]=158, [7]=116, [8]=104, [9]=78
+[2026-07-02 13:30:45.390] RAW_TOOL_DATA: signature=0x00024DD9, Tx=5, condition=7967, frame=4, temp=24,48, rho=[F0T0=7200,00, F0T1=7200,00, F0T2=3500,11, F0T3=2620,93, F0T4=2347,22, F1T0=7200,00, F1T1=7200,00, F1T2=7200,00, F1T3=7200,00, F1T4=7200,00], phase_mG=[F0T0=-19,7, F0T1=-1,0, F0T2=15,6, F0T3=27,9, F0T4=37,8, F1T0=-92,3, F1T1=-136,5, F1T2=-303,0, F1T3=-537,5, F1T4=-717,7], delta_mG=[F0T0=515,6, F0T1=-233,7, F0T2=283,8, F0T3=-176,9, F0T4=97,7, F1T0=705,1, F1T1=-1056,1, F1T2=1802,7, F1T3=-2358,3, F1T4=3193,3]
+[2026-07-02 13:30:45.391] PHASE_PIPELINE: signature=0x00024DD9, Tx=5, Rx=0, source=DELTA_PH, raw_normalized_mG=[[0]=515,6, [1]=-233,7, [2]=283,8, [3]=-176,9, [4]=97,7, [5]=705,1, [6]=-1056,1, [7]=1802,7, [8]=-2358,3, [9]=3193,3], oriented_mG=[[0]=515,6, [1]=233,7, [2]=283,8, [3]=176,9, [4]=97,7, [5]=705,1, [6]=1056,1, [7]=1802,7, [8]=2358,3, [9]=3193,3], phase_smt_used=false, air_zz_used=false
+[2026-07-02 13:30:45.391] PHASE_PIPELINE_CH: F0 Tx1, raw_delta_mG=515,6, normalized_mG=515,6, orientation_sign=1, oriented_mG=515,6
+[2026-07-02 13:30:45.391] PHASE_PIPELINE_CH: F0 Tx2, raw_delta_mG=-233,7, normalized_mG=-233,7, orientation_sign=-1, oriented_mG=233,7
+[2026-07-02 13:30:45.391] PHASE_PIPELINE_CH: F0 Tx3, raw_delta_mG=283,8, normalized_mG=283,8, orientation_sign=1, oriented_mG=283,8
+[2026-07-02 13:30:45.392] PHASE_PIPELINE_CH: F0 Tx4, raw_delta_mG=-176,9, normalized_mG=-176,9, orientation_sign=-1, oriented_mG=176,9
+[2026-07-02 13:30:45.392] PHASE_PIPELINE_CH: F0 Tx5, raw_delta_mG=97,7, normalized_mG=97,7, orientation_sign=1, oriented_mG=97,7
+[2026-07-02 13:30:45.392] PHASE_PIPELINE_CH: F1 Tx1, raw_delta_mG=705,1, normalized_mG=705,1, orientation_sign=1, oriented_mG=705,1
+[2026-07-02 13:30:45.392] PHASE_PIPELINE_CH: F1 Tx2, raw_delta_mG=-1056,1, normalized_mG=-1056,1, orientation_sign=-1, oriented_mG=1056,1
+[2026-07-02 13:30:45.393] PHASE_PIPELINE_CH: F1 Tx3, raw_delta_mG=1802,7, normalized_mG=1802,7, orientation_sign=1, oriented_mG=1802,7
+[2026-07-02 13:30:45.393] PHASE_PIPELINE_CH: F1 Tx4, raw_delta_mG=-2358,3, normalized_mG=-2358,3, orientation_sign=-1, oriented_mG=2358,3
+[2026-07-02 13:30:45.393] PHASE_PIPELINE_CH: F1 Tx5, raw_delta_mG=3193,3, normalized_mG=3193,3, orientation_sign=1, oriented_mG=3193,3
+[2026-07-02 13:30:45.393] Получен кадр от прибора: Code=Ok, RxPosition=0
+[2026-07-02 13:30:45.393] FRAME_PHASES raw_delta_normalized (мГ): [0]=515,6, [1]=-233,7, [2]=283,8, [3]=-176,9, [4]=97,7, [5]=705,1, [6]=-1056,1, [7]=1802,7, [8]=-2358,3, [9]=3193,3
+[2026-07-02 13:30:45.394] FRAME_PHASES oriented_before_air (мГ): [0]=515,6, [1]=233,7, [2]=283,8, [3]=176,9, [4]=97,7, [5]=705,1, [6]=1056,1, [7]=1802,7, [8]=2358,3, [9]=3193,3
+[2026-07-02 13:30:45.394] FRAME_PHASES local_air (мГ): [0]=0,0, [1]=0,0, [2]=0,0, [3]=0,0, [4]=0,0, [5]=0,0, [6]=0,0, [7]=0,0, [8]=0,0, [9]=0,0
+[2026-07-02 13:30:45.394] FRAME_PHASES corrected_after_air (мГ): [0]=515,6, [1]=233,7, [2]=283,8, [3]=176,9, [4]=97,7, [5]=705,1, [6]=1056,1, [7]=1802,7, [8]=2358,3, [9]=3193,3
+[2026-07-02 13:30:45.394] RO_DFI: фазы (мГ)=[[0]=515,6, [1]=233,7, [2]=283,8, [3]=176,9, [4]=97,7, [5]=705,1, [6]=1056,1, [7]=1802,7, [8]=2358,3, [9]=3193,3], УЭС (Ohm*m)=[[0]=42,91, [1]=166,54, [2]=185,11, [3]=387,07, [4]=877,90, [5]=153,66, [6]=159,82, [7]=117,72, [8]=103,02, [9]=79,88]
+[2026-07-02 13:30:45.395] Вычислены УЭС по скорректированным фазам.
+[2026-07-02 13:30:45.395] УЭС по каналам: [0]=43, [1]=167, [2]=185, [3]=387, [4]=878, [5]=154, [6]=160, [7]=118, [8]=103, [9]=80
+[2026-07-02 13:30:46.465] RAW_TOOL_DATA: signature=0x00024DD9, Tx=5, condition=7967, frame=5, temp=24,64, rho=[F0T0=1084,77, F0T1=3379,55, F0T2=3964,66, F0T3=2868,70, F0T4=2719,71, F1T0=7200,00, F1T1=7200,00, F1T2=7200,00, F1T3=7200,00, F1T4=7200,00], phase_mG=[F0T0=22,1, F0T1=12,1, F0T2=14,5, F0T3=25,5, F0T4=32,8, F1T0=-107,3, F1T1=-144,0, F1T2=-303,6, F1T3=-490,9, F1T4=-582,7], delta_mG=[F0T0=574,6, F0T1=-229,5, F0T2=285,7, F0T3=-173,1, F0T4=94,2, F1T0=695,5, F1T1=-1043,2, F1T2=1808,1, F1T3=-2357,8, F1T4=3375,4]
+[2026-07-02 13:30:46.465] PHASE_PIPELINE: signature=0x00024DD9, Tx=5, Rx=0, source=DELTA_PH, raw_normalized_mG=[[0]=574,6, [1]=-229,5, [2]=285,7, [3]=-173,1, [4]=94,2, [5]=695,5, [6]=-1043,2, [7]=1808,1, [8]=-2357,8, [9]=3375,4], oriented_mG=[[0]=574,6, [1]=229,5, [2]=285,7, [3]=173,1, [4]=94,2, [5]=695,5, [6]=1043,2, [7]=1808,1, [8]=2357,8, [9]=3375,4], phase_smt_used=false, air_zz_used=false
+[2026-07-02 13:30:46.466] PHASE_PIPELINE_CH: F0 Tx1, raw_delta_mG=574,6, normalized_mG=574,6, orientation_sign=1, oriented_mG=574,6
+[2026-07-02 13:30:46.466] PHASE_PIPELINE_CH: F0 Tx2, raw_delta_mG=-229,5, normalized_mG=-229,5, orientation_sign=-1, oriented_mG=229,5
+[2026-07-02 13:30:46.466] PHASE_PIPELINE_CH: F0 Tx3, raw_delta_mG=285,7, normalized_mG=285,7, orientation_sign=1, oriented_mG=285,7
+[2026-07-02 13:30:46.466] PHASE_PIPELINE_CH: F0 Tx4, raw_delta_mG=-173,1, normalized_mG=-173,1, orientation_sign=-1, oriented_mG=173,1
+[2026-07-02 13:30:46.467] PHASE_PIPELINE_CH: F0 Tx5, raw_delta_mG=94,2, normalized_mG=94,2, orientation_sign=1, oriented_mG=94,2
+[2026-07-02 13:30:46.467] PHASE_PIPELINE_CH: F1 Tx1, raw_delta_mG=695,5, normalized_mG=695,5, orientation_sign=1, oriented_mG=695,5
+[2026-07-02 13:30:46.467] PHASE_PIPELINE_CH: F1 Tx2, raw_delta_mG=-1043,2, normalized_mG=-1043,2, orientation_sign=-1, oriented_mG=1043,2
+[2026-07-02 13:30:46.468] PHASE_PIPELINE_CH: F1 Tx3, raw_delta_mG=1808,1, normalized_mG=1808,1, orientation_sign=1, oriented_mG=1808,1
+[2026-07-02 13:30:46.468] PHASE_PIPELINE_CH: F1 Tx4, raw_delta_mG=-2357,8, normalized_mG=-2357,8, orientation_sign=-1, oriented_mG=2357,8
+[2026-07-02 13:30:46.468] PHASE_PIPELINE_CH: F1 Tx5, raw_delta_mG=3375,4, normalized_mG=3375,4, orientation_sign=1, oriented_mG=3375,4
+[2026-07-02 13:30:46.468] Получен кадр от прибора: Code=Ok, RxPosition=0
+[2026-07-02 13:30:46.469] FRAME_PHASES raw_delta_normalized (мГ): [0]=574,6, [1]=-229,5, [2]=285,7, [3]=-173,1, [4]=94,2, [5]=695,5, [6]=-1043,2, [7]=1808,1, [8]=-2357,8, [9]=3375,4
+[2026-07-02 13:30:46.469] FRAME_PHASES oriented_before_air (мГ): [0]=574,6, [1]=229,5, [2]=285,7, [3]=173,1, [4]=94,2, [5]=695,5, [6]=1043,2, [7]=1808,1, [8]=2357,8, [9]=3375,4
+[2026-07-02 13:30:46.469] FRAME_PHASES local_air (мГ): [0]=0,0, [1]=0,0, [2]=0,0, [3]=0,0, [4]=0,0, [5]=0,0, [6]=0,0, [7]=0,0, [8]=0,0, [9]=0,0
+[2026-07-02 13:30:46.469] FRAME_PHASES corrected_after_air (мГ): [0]=574,6, [1]=229,5, [2]=285,7, [3]=173,1, [4]=94,2, [5]=695,5, [6]=1043,2, [7]=1808,1, [8]=2357,8, [9]=3375,4
+[2026-07-02 13:30:46.470] RO_DFI: фазы (мГ)=[[0]=574,6, [1]=229,5, [2]=285,7, [3]=173,1, [4]=94,2, [5]=695,5, [6]=1043,2, [7]=1808,1, [8]=2357,8, [9]=3375,4], УЭС (Ohm*m)=[[0]=38,26, [1]=165,47, [2]=183,89, [3]=396,12, [4]=911,49, [5]=155,91, [6]=162,62, [7]=117,30, [8]=103,05, [9]=74,05]
+[2026-07-02 13:30:46.470] Вычислены УЭС по скорректированным фазам.
+[2026-07-02 13:30:46.470] УЭС по каналам: [0]=38, [1]=165, [2]=184, [3]=396, [4]=911, [5]=156, [6]=163, [7]=117, [8]=103, [9]=74
+[2026-07-02 13:30:47.540] RAW_TOOL_DATA: signature=0x00024DD9, Tx=5, condition=7967, frame=6, temp=24,48, rho=[F0T0=7200,00, F0T1=7200,00, F0T2=2868,71, F0T3=1932,75, F0T4=1847,40, F1T0=7200,00, F1T1=7200,00, F1T2=7200,00, F1T3=7200,00, F1T4=7200,00], phase_mG=[F0T0=-17,8, F0T1=-1,0, F0T2=19,9, F0T3=37,6, F0T4=47,6, F1T0=-88,5, F1T1=-130,0, F1T2=-301,1, F1T3=-533,8, F1T4=-698,5], delta_mG=[F0T0=527,0, F0T1=-224,2, F0T2=291,5, F0T3=-188,6, F0T4=105,6, F1T0=720,4, F1T1=-1051,1, F1T2=1823,3, F1T3=-2329,7, F1T4=3244,9]
+[2026-07-02 13:30:47.541] PHASE_PIPELINE: signature=0x00024DD9, Tx=5, Rx=0, source=DELTA_PH, raw_normalized_mG=[[0]=527,0, [1]=-224,2, [2]=291,5, [3]=-188,6, [4]=105,6, [5]=720,4, [6]=-1051,1, [7]=1823,3, [8]=-2329,7, [9]=3244,9], oriented_mG=[[0]=527,0, [1]=224,2, [2]=291,5, [3]=188,6, [4]=105,6, [5]=720,4, [6]=1051,1, [7]=1823,3, [8]=2329,7, [9]=3244,9], phase_smt_used=false, air_zz_used=false
+[2026-07-02 13:30:47.542] PHASE_PIPELINE_CH: F0 Tx1, raw_delta_mG=527,0, normalized_mG=527,0, orientation_sign=1, oriented_mG=527,0
+[2026-07-02 13:30:47.542] PHASE_PIPELINE_CH: F0 Tx2, raw_delta_mG=-224,2, normalized_mG=-224,2, orientation_sign=-1, oriented_mG=224,2
+[2026-07-02 13:30:47.542] PHASE_PIPELINE_CH: F0 Tx3, raw_delta_mG=291,5, normalized_mG=291,5, orientation_sign=1, oriented_mG=291,5
+[2026-07-02 13:30:47.542] PHASE_PIPELINE_CH: F0 Tx4, raw_delta_mG=-188,6, normalized_mG=-188,6, orientation_sign=-1, oriented_mG=188,6
+[2026-07-02 13:30:47.543] PHASE_PIPELINE_CH: F0 Tx5, raw_delta_mG=105,6, normalized_mG=105,6, orientation_sign=1, oriented_mG=105,6
+[2026-07-02 13:30:47.543] PHASE_PIPELINE_CH: F1 Tx1, raw_delta_mG=720,4, normalized_mG=720,4, orientation_sign=1, oriented_mG=720,4
+[2026-07-02 13:30:47.543] PHASE_PIPELINE_CH: F1 Tx2, raw_delta_mG=-1051,1, normalized_mG=-1051,1, orientation_sign=-1, oriented_mG=1051,1
+[2026-07-02 13:30:47.544] PHASE_PIPELINE_CH: F1 Tx3, raw_delta_mG=1823,3, normalized_mG=1823,3, orientation_sign=1, oriented_mG=1823,3
+[2026-07-02 13:30:47.544] PHASE_PIPELINE_CH: F1 Tx4, raw_delta_mG=-2329,7, normalized_mG=-2329,7, orientation_sign=-1, oriented_mG=2329,7
+[2026-07-02 13:30:47.544] PHASE_PIPELINE_CH: F1 Tx5, raw_delta_mG=3244,9, normalized_mG=3244,9, orientation_sign=1, oriented_mG=3244,9
+[2026-07-02 13:30:47.544] Получен кадр от прибора: Code=Ok, RxPosition=0
+[2026-07-02 13:30:47.545] FRAME_PHASES raw_delta_normalized (мГ): [0]=527,0, [1]=-224,2, [2]=291,5, [3]=-188,6, [4]=105,6, [5]=720,4, [6]=-1051,1, [7]=1823,3, [8]=-2329,7, [9]=3244,9
+[2026-07-02 13:30:47.545] FRAME_PHASES oriented_before_air (мГ): [0]=527,0, [1]=224,2, [2]=291,5, [3]=188,6, [4]=105,6, [5]=720,4, [6]=1051,1, [7]=1823,3, [8]=2329,7, [9]=3244,9
+[2026-07-02 13:30:47.545] FRAME_PHASES local_air (мГ): [0]=0,0, [1]=0,0, [2]=0,0, [3]=0,0, [4]=0,0, [5]=0,0, [6]=0,0, [7]=0,0, [8]=0,0, [9]=0,0
+[2026-07-02 13:30:47.545] FRAME_PHASES corrected_after_air (мГ): [0]=527,0, [1]=224,2, [2]=291,5, [3]=188,6, [4]=105,6, [5]=720,4, [6]=1051,1, [7]=1823,3, [8]=2329,7, [9]=3244,9
+[2026-07-02 13:30:47.546] RO_DFI: фазы (мГ)=[[0]=527,0, [1]=224,2, [2]=291,5, [3]=188,6, [4]=105,6, [5]=720,4, [6]=1051,1, [7]=1823,3, [8]=2329,7, [9]=3244,9], УЭС (Ohm*m)=[[0]=41,92, [1]=169,63, [2]=179,97, [3]=361,56, [4]=809,53, [5]=149,94, [6]=161,27, [7]=116,13, [8]=104,63, [9]=78,16]
+[2026-07-02 13:30:47.546] Вычислены УЭС по скорректированным фазам.
+[2026-07-02 13:30:47.546] УЭС по каналам: [0]=42, [1]=170, [2]=180, [3]=362, [4]=810, [5]=150, [6]=161, [7]=116, [8]=105, [9]=78
+[2026-07-02 13:30:48.608] RAW_TOOL_DATA: signature=0x00024DD9, Tx=5, condition=7967, frame=7, temp=24,31, rho=[F0T0=7200,00, F0T1=2840,25, F0T2=2230,85, F0T3=2748,17, F0T4=3035,36, F1T0=7200,00, F1T1=7200,00, F1T2=7200,00, F1T3=7200,00, F1T4=7200,00], phase_mG=[F0T0=-9,2, F0T1=14,3, F0T2=25,6, F0T3=26,6, F0T4=29,4, F1T0=-79,0, F1T1=-127,1, F1T2=-301,3, F1T3=-524,1, F1T4=-669,3], delta_mG=[F0T0=513,9, F0T1=-261,1, F0T2=292,0, F0T3=-173,3, F0T4=91,6, F1T0=724,2, F1T1=-1059,6, F1T2=1814,0, F1T3=-2338,9, F1T4=3274,5]
+[2026-07-02 13:30:48.608] PHASE_PIPELINE: signature=0x00024DD9, Tx=5, Rx=0, source=DELTA_PH, raw_normalized_mG=[[0]=513,9, [1]=-261,1, [2]=292,0, [3]=-173,3, [4]=91,6, [5]=724,2, [6]=-1059,6, [7]=1814,0, [8]=-2338,9, [9]=3274,5], oriented_mG=[[0]=513,9, [1]=261,1, [2]=292,0, [3]=173,3, [4]=91,6, [5]=724,2, [6]=1059,6, [7]=1814,0, [8]=2338,9, [9]=3274,5], phase_smt_used=false, air_zz_used=false
+[2026-07-02 13:30:48.608] PHASE_PIPELINE_CH: F0 Tx1, raw_delta_mG=513,9, normalized_mG=513,9, orientation_sign=1, oriented_mG=513,9
+[2026-07-02 13:30:48.608] PHASE_PIPELINE_CH: F0 Tx2, raw_delta_mG=-261,1, normalized_mG=-261,1, orientation_sign=-1, oriented_mG=261,1
+[2026-07-02 13:30:48.609] PHASE_PIPELINE_CH: F0 Tx3, raw_delta_mG=292,0, normalized_mG=292,0, orientation_sign=1, oriented_mG=292,0
+[2026-07-02 13:30:48.609] PHASE_PIPELINE_CH: F0 Tx4, raw_delta_mG=-173,3, normalized_mG=-173,3, orientation_sign=-1, oriented_mG=173,3
+[2026-07-02 13:30:48.609] PHASE_PIPELINE_CH: F0 Tx5, raw_delta_mG=91,6, normalized_mG=91,6, orientation_sign=1, oriented_mG=91,6
+[2026-07-02 13:30:48.609] PHASE_PIPELINE_CH: F1 Tx1, raw_delta_mG=724,2, normalized_mG=724,2, orientation_sign=1, oriented_mG=724,2
+[2026-07-02 13:30:48.610] PHASE_PIPELINE_CH: F1 Tx2, raw_delta_mG=-1059,6, normalized_mG=-1059,6, orientation_sign=-1, oriented_mG=1059,6
+[2026-07-02 13:30:48.610] PHASE_PIPELINE_CH: F1 Tx3, raw_delta_mG=1814,0, normalized_mG=1814,0, orientation_sign=1, oriented_mG=1814,0
+[2026-07-02 13:30:48.610] PHASE_PIPELINE_CH: F1 Tx4, raw_delta_mG=-2338,9, normalized_mG=-2338,9, orientation_sign=-1, oriented_mG=2338,9
+[2026-07-02 13:30:48.610] PHASE_PIPELINE_CH: F1 Tx5, raw_delta_mG=3274,5, normalized_mG=3274,5, orientation_sign=1, oriented_mG=3274,5
+[2026-07-02 13:30:48.610] Получен кадр от прибора: Code=Ok, RxPosition=0
+[2026-07-02 13:30:48.611] FRAME_PHASES raw_delta_normalized (мГ): [0]=513,9, [1]=-261,1, [2]=292,0, [3]=-173,3, [4]=91,6, [5]=724,2, [6]=-1059,6, [7]=1814,0, [8]=-2338,9, [9]=3274,5
+[2026-07-02 13:30:48.611] FRAME_PHASES oriented_before_air (мГ): [0]=513,9, [1]=261,1, [2]=292,0, [3]=173,3, [4]=91,6, [5]=724,2, [6]=1059,6, [7]=1814,0, [8]=2338,9, [9]=3274,5
+[2026-07-02 13:30:48.611] FRAME_PHASES local_air (мГ): [0]=0,0, [1]=0,0, [2]=0,0, [3]=0,0, [4]=0,0, [5]=0,0, [6]=0,0, [7]=0,0, [8]=0,0, [9]=0,0
+[2026-07-02 13:30:48.611] FRAME_PHASES corrected_after_air (мГ): [0]=513,9, [1]=261,1, [2]=292,0, [3]=173,3, [4]=91,6, [5]=724,2, [6]=1059,6, [7]=1814,0, [8]=2338,9, [9]=3274,5
+[2026-07-02 13:30:48.611] RO_DFI: фазы (мГ)=[[0]=513,9, [1]=261,1, [2]=292,0, [3]=173,3, [4]=91,6, [5]=724,2, [6]=1059,6, [7]=1814,0, [8]=2338,9, [9]=3274,5], УЭС (Ohm*m)=[[0]=43,06, [1]=144,56, [2]=179,69, [3]=395,74, [4]=938,35, [5]=149,30, [6]=159,85, [7]=116,85, [8]=104,11, [9]=77,19]
+[2026-07-02 13:30:48.612] Вычислены УЭС по скорректированным фазам.
+[2026-07-02 13:30:48.612] УЭС по каналам: [0]=43, [1]=145, [2]=180, [3]=396, [4]=938, [5]=149, [6]=160, [7]=117, [8]=104, [9]=77
+[2026-07-02 13:30:49.677] RAW_TOOL_DATA: signature=0x00024DD9, Tx=5, condition=7967, frame=8, temp=24,72, rho=[F0T0=7200,00, F0T1=7200,00, F0T2=3379,55, F0T3=3127,42, F0T4=4372,36, F1T0=7200,00, F1T1=7200,00, F1T2=7200,00, F1T3=7200,00, F1T4=7200,00], phase_mG=[F0T0=-7,7, F0T1=3,6, F0T2=17,1, F0T3=23,4, F0T4=20,5, F1T0=-82,2, F1T1=-125,6, F1T2=-300,3, F1T3=-535,7, F1T4=-700,5], delta_mG=[F0T0=534,5, F0T1=-231,4, F0T2=288,0, F0T3=-176,7, F0T4=76,2, F1T0=714,2, F1T1=-1067,9, F1T2=1813,3, F1T3=-2335,9, F1T4=3234,7]
+[2026-07-02 13:30:49.678] PHASE_PIPELINE: signature=0x00024DD9, Tx=5, Rx=0, source=DELTA_PH, raw_normalized_mG=[[0]=534,5, [1]=-231,4, [2]=288,0, [3]=-176,7, [4]=76,2, [5]=714,2, [6]=-1067,9, [7]=1813,3, [8]=-2335,9, [9]=3234,7], oriented_mG=[[0]=534,5, [1]=231,4, [2]=288,0, [3]=176,7, [4]=76,2, [5]=714,2, [6]=1067,9, [7]=1813,3, [8]=2335,9, [9]=3234,7], phase_smt_used=false, air_zz_used=false
+[2026-07-02 13:30:49.678] PHASE_PIPELINE_CH: F0 Tx1, raw_delta_mG=534,5, normalized_mG=534,5, orientation_sign=1, oriented_mG=534,5
+[2026-07-02 13:30:49.678] PHASE_PIPELINE_CH: F0 Tx2, raw_delta_mG=-231,4, normalized_mG=-231,4, orientation_sign=-1, oriented_mG=231,4
+[2026-07-02 13:30:49.678] PHASE_PIPELINE_CH: F0 Tx3, raw_delta_mG=288,0, normalized_mG=288,0, orientation_sign=1, oriented_mG=288,0
+[2026-07-02 13:30:49.679] PHASE_PIPELINE_CH: F0 Tx4, raw_delta_mG=-176,7, normalized_mG=-176,7, orientation_sign=-1, oriented_mG=176,7
+[2026-07-02 13:30:49.679] PHASE_PIPELINE_CH: F0 Tx5, raw_delta_mG=76,2, normalized_mG=76,2, orientation_sign=1, oriented_mG=76,2
+[2026-07-02 13:30:49.679] PHASE_PIPELINE_CH: F1 Tx1, raw_delta_mG=714,2, normalized_mG=714,2, orientation_sign=1, oriented_mG=714,2
+[2026-07-02 13:30:49.679] PHASE_PIPELINE_CH: F1 Tx2, raw_delta_mG=-1067,9, normalized_mG=-1067,9, orientation_sign=-1, oriented_mG=1067,9
+[2026-07-02 13:30:49.679] PHASE_PIPELINE_CH: F1 Tx3, raw_delta_mG=1813,3, normalized_mG=1813,3, orientation_sign=1, oriented_mG=1813,3
+[2026-07-02 13:30:49.680] PHASE_PIPELINE_CH: F1 Tx4, raw_delta_mG=-2335,9, normalized_mG=-2335,9, orientation_sign=-1, oriented_mG=2335,9
+[2026-07-02 13:30:49.680] PHASE_PIPELINE_CH: F1 Tx5, raw_delta_mG=3234,7, normalized_mG=3234,7, orientation_sign=1, oriented_mG=3234,7
+[2026-07-02 13:30:49.680] Получен кадр от прибора: Code=Ok, RxPosition=0
+[2026-07-02 13:30:49.680] FRAME_PHASES raw_delta_normalized (мГ): [0]=534,5, [1]=-231,4, [2]=288,0, [3]=-176,7, [4]=76,2, [5]=714,2, [6]=-1067,9, [7]=1813,3, [8]=-2335,9, [9]=3234,7
+[2026-07-02 13:30:49.680] FRAME_PHASES oriented_before_air (мГ): [0]=534,5, [1]=231,4, [2]=288,0, [3]=176,7, [4]=76,2, [5]=714,2, [6]=1067,9, [7]=1813,3, [8]=2335,9, [9]=3234,7
+[2026-07-02 13:30:49.680] FRAME_PHASES local_air (мГ): [0]=0,0, [1]=0,0, [2]=0,0, [3]=0,0, [4]=0,0, [5]=0,0, [6]=0,0, [7]=0,0, [8]=0,0, [9]=0,0
+[2026-07-02 13:30:49.681] FRAME_PHASES corrected_after_air (мГ): [0]=534,5, [1]=231,4, [2]=288,0, [3]=176,7, [4]=76,2, [5]=714,2, [6]=1067,9, [7]=1813,3, [8]=2335,9, [9]=3234,7
+[2026-07-02 13:30:49.681] RO_DFI: фазы (мГ)=[[0]=534,5, [1]=231,4, [2]=288,0, [3]=176,7, [4]=76,2, [5]=714,2, [6]=1067,9, [7]=1813,3, [8]=2335,9, [9]=3234,7], УЭС (Ohm*m)=[[0]=41,31, [1]=164,12, [2]=182,31, [3]=387,44, [4]=1135,96, [5]=151,57, [6]=158,46, [7]=116,89, [8]=104,27, [9]=78,49]
+[2026-07-02 13:30:49.681] Вычислены УЭС по скорректированным фазам.
+[2026-07-02 13:30:49.682] УЭС по каналам: [0]=41, [1]=164, [2]=182, [3]=387, [4]=1136, [5]=152, [6]=158, [7]=117, [8]=104, [9]=78
+[2026-07-02 13:30:50.747] RAW_TOOL_DATA: signature=0x00024DD9, Tx=5, condition=7967, frame=9, temp=24,64, rho=[F0T0=7200,00, F0T1=4836,94, F0T2=2794,19, F0T3=3138,29, F0T4=4400,83, F1T0=7200,00, F1T1=7200,00, F1T2=7200,00, F1T3=7200,00, F1T4=7200,00], phase_mG=[F0T0=-6,5, F0T1=8,7, F0T2=20,6, F0T3=23,4, F0T4=20,3, F1T0=-62,4, F1T1=-106,8, F1T2=-291,7, F1T3=-512,8, F1T4=-629,5], delta_mG=[F0T0=528,4, F0T1=-243,8, F0T2=289,7, F0T3=-175,2, F0T4=77,5, F1T0=719,0, F1T1=-1101,7, F1T2=1816,1, F1T3=-2331,0, F1T4=3333,6]
+[2026-07-02 13:30:50.747] PHASE_PIPELINE: signature=0x00024DD9, Tx=5, Rx=0, source=DELTA_PH, raw_normalized_mG=[[0]=528,4, [1]=-243,8, [2]=289,7, [3]=-175,2, [4]=77,5, [5]=719,0, [6]=-1101,7, [7]=1816,1, [8]=-2331,0, [9]=3333,6], oriented_mG=[[0]=528,4, [1]=243,8, [2]=289,7, [3]=175,2, [4]=77,5, [5]=719,0, [6]=1101,7, [7]=1816,1, [8]=2331,0, [9]=3333,6], phase_smt_used=false, air_zz_used=false
+[2026-07-02 13:30:50.748] PHASE_PIPELINE_CH: F0 Tx1, raw_delta_mG=528,4, normalized_mG=528,4, orientation_sign=1, oriented_mG=528,4
+[2026-07-02 13:30:50.748] PHASE_PIPELINE_CH: F0 Tx2, raw_delta_mG=-243,8, normalized_mG=-243,8, orientation_sign=-1, oriented_mG=243,8
+[2026-07-02 13:30:50.748] PHASE_PIPELINE_CH: F0 Tx3, raw_delta_mG=289,7, normalized_mG=289,7, orientation_sign=1, oriented_mG=289,7
+[2026-07-02 13:30:50.749] PHASE_PIPELINE_CH: F0 Tx4, raw_delta_mG=-175,2, normalized_mG=-175,2, orientation_sign=-1, oriented_mG=175,2
+[2026-07-02 13:30:50.749] PHASE_PIPELINE_CH: F0 Tx5, raw_delta_mG=77,5, normalized_mG=77,5, orientation_sign=1, oriented_mG=77,5
+[2026-07-02 13:30:50.749] PHASE_PIPELINE_CH: F1 Tx1, raw_delta_mG=719,0, normalized_mG=719,0, orientation_sign=1, oriented_mG=719,0
+[2026-07-02 13:30:50.749] PHASE_PIPELINE_CH: F1 Tx2, raw_delta_mG=-1101,7, normalized_mG=-1101,7, orientation_sign=-1, oriented_mG=1101,7
+[2026-07-02 13:30:50.749] PHASE_PIPELINE_CH: F1 Tx3, raw_delta_mG=1816,1, normalized_mG=1816,1, orientation_sign=1, oriented_mG=1816,1
+[2026-07-02 13:30:50.750] PHASE_PIPELINE_CH: F1 Tx4, raw_delta_mG=-2331,0, normalized_mG=-2331,0, orientation_sign=-1, oriented_mG=2331,0
+[2026-07-02 13:30:50.750] PHASE_PIPELINE_CH: F1 Tx5, raw_delta_mG=3333,6, normalized_mG=3333,6, orientation_sign=1, oriented_mG=3333,6
+[2026-07-02 13:30:50.750] Получен кадр от прибора: Code=Ok, RxPosition=0
+[2026-07-02 13:30:50.750] FRAME_PHASES raw_delta_normalized (мГ): [0]=528,4, [1]=-243,8, [2]=289,7, [3]=-175,2, [4]=77,5, [5]=719,0, [6]=-1101,7, [7]=1816,1, [8]=-2331,0, [9]=3333,6
+[2026-07-02 13:30:50.751] FRAME_PHASES oriented_before_air (мГ): [0]=528,4, [1]=243,8, [2]=289,7, [3]=175,2, [4]=77,5, [5]=719,0, [6]=1101,7, [7]=1816,1, [8]=2331,0, [9]=3333,6
+[2026-07-02 13:30:50.751] FRAME_PHASES local_air (мГ): [0]=0,0, [1]=0,0, [2]=0,0, [3]=0,0, [4]=0,0, [5]=0,0, [6]=0,0, [7]=0,0, [8]=0,0, [9]=0,0
+[2026-07-02 13:30:50.751] FRAME_PHASES corrected_after_air (мГ): [0]=528,4, [1]=243,8, [2]=289,7, [3]=175,2, [4]=77,5, [5]=719,0, [6]=1101,7, [7]=1816,1, [8]=2331,0, [9]=3333,6
+[2026-07-02 13:30:50.752] RO_DFI: фазы (мГ)=[[0]=528,4, [1]=243,8, [2]=289,7, [3]=175,2, [4]=77,5, [5]=719,0, [6]=1101,7, [7]=1816,1, [8]=2331,0, [9]=3333,6], УЭС (Ohm*m)=[[0]=41,81, [1]=155,35, [2]=181,18, [3]=390,99, [4]=1117,37, [5]=150,47, [6]=153,06, [7]=116,74, [8]=104,55, [9]=75,33]
+[2026-07-02 13:30:50.752] Вычислены УЭС по скорректированным фазам.
+[2026-07-02 13:30:50.752] УЭС по каналам: [0]=42, [1]=155, [2]=181, [3]=391, [4]=1117, [5]=150, [6]=153, [7]=117, [8]=105, [9]=75
+[2026-07-02 13:30:51.239] --- Фоновый опрос прибора остановлен ---
+[2026-07-02 15:06:47.130] === НАЧАЛО ВКЛЮЧЕНИЯ ПРИБОРА (единый COM-опрос) ===
+[2026-07-02 15:06:47.256] Установка BaudRate = 125000, порт=COM7
+[2026-07-02 15:06:47.261] ИСКЛЮЧЕНИЕ при открытии порта или чтении метрологии: UnauthorizedAccessException: Access to the path 'COM7' is denied.
+[2026-07-02 15:06:47.261] ОШИБКА: Не удалось включить прибор!
+[2026-07-02 15:06:53.915] === НАЧАЛО ВКЛЮЧЕНИЯ ПРИБОРА (единый COM-опрос) ===
+[2026-07-02 15:06:54.021] Установка BaudRate = 125000, порт=COM7
+[2026-07-02 15:06:54.022] ИСКЛЮЧЕНИЕ при открытии порта или чтении метрологии: UnauthorizedAccessException: Access to the path 'COM7' is denied.
+[2026-07-02 15:06:54.023] ОШИБКА: Не удалось включить прибор!
+[2026-07-02 15:08:37.352] === НАЧАЛО ВКЛЮЧЕНИЯ ПРИБОРА (единый COM-опрос) ===
+[2026-07-02 15:08:37.471] Установка BaudRate = 125000, порт=COM7
+[2026-07-02 15:08:37.494] Порт прибора открыт успешно.
+[2026-07-02 15:08:37.658] Чтение метрологии (команда 0x13)...
+[2026-07-02 15:08:37.768] Метрология получена (попытка 1).
+[2026-07-02 15:08:37.874] Метрология прибора: Signature=0x00055349, Serial=1234, N_Tx=0
+[2026-07-02 15:08:37.876] METROLOGY_DETAIL: RxPosition=0, F0=401kHz, F1=2000kHz, L1(m)=[T0=0,360, T1=0,720, T2=1,080, T3=1,440], L2(m)=[T0=0,600, T1=0,960, T2=1,320, T3=1,680], Air_zz(m)=[F0T0=0,208, F0T1=0,167, F0T2=0,298, F0T3=0,059, F1T0=0,298, F1T1=0,294, F1T2=0,118, F1T3=0,098]
+[2026-07-02 15:08:37.876] === ПРИБОР УСПЕШНО ВКЛЮЧЕН ===
+[2026-07-02 15:08:37.894] --- Запуск фонового опроса прибора ---
+[2026-07-02 15:08:38.229] Получен кадр от прибора: Code=CrcError, RxPosition=0
+[2026-07-02 15:08:38.230] ОШИБКА опроса прибора: CrcError
+[2026-07-02 15:08:39.534] Получен кадр от прибора: Code=CrcError, RxPosition=0
+[2026-07-02 15:08:39.535] ОШИБКА опроса прибора: CrcError
+[2026-07-02 15:08:40.843] Получен кадр от прибора: Code=CrcError, RxPosition=0
+[2026-07-02 15:08:40.843] ОШИБКА опроса прибора: CrcError
+[2026-07-02 15:08:42.150] Получен кадр от прибора: Code=CrcError, RxPosition=0
+[2026-07-02 15:08:42.150] ОШИБКА опроса прибора: CrcError
+[2026-07-02 15:08:43.477] Получен кадр от прибора: Code=CrcError, RxPosition=0
+[2026-07-02 15:08:43.477] ОШИБКА опроса прибора: CrcError
+[2026-07-02 15:08:44.784] Получен кадр от прибора: Code=CrcError, RxPosition=0
+[2026-07-02 15:08:44.784] ОШИБКА опроса прибора: CrcError
+[2026-07-02 15:08:46.079] Получен кадр от прибора: Code=CrcError, RxPosition=0
+[2026-07-02 15:08:46.080] ОШИБКА опроса прибора: CrcError
+[2026-07-02 15:08:47.385] Получен кадр от прибора: Code=CrcError, RxPosition=0
+[2026-07-02 15:08:47.387] ОШИБКА опроса прибора: CrcError
+[2026-07-02 15:08:48.694] Получен кадр от прибора: Code=CrcError, RxPosition=0
+[2026-07-02 15:08:48.694] ОШИБКА опроса прибора: CrcError
+[2026-07-02 15:08:50.003] Получен кадр от прибора: Code=CrcError, RxPosition=0
+[2026-07-02 15:08:50.003] ОШИБКА опроса прибора: CrcError
+[2026-07-02 15:08:51.314] Получен кадр от прибора: Code=CrcError, RxPosition=0
+[2026-07-02 15:08:51.314] ОШИБКА опроса прибора: CrcError
+[2026-07-02 15:08:52.624] Получен кадр от прибора: Code=CrcError, RxPosition=0
+[2026-07-02 15:08:52.624] ОШИБКА опроса прибора: CrcError
+[2026-07-02 15:08:53.919] Получен кадр от прибора: Code=CrcError, RxPosition=0
+[2026-07-02 15:08:53.920] ОШИБКА опроса прибора: CrcError
+[2026-07-02 15:08:54.847] === ВЫКЛЮЧЕНИЕ ПРИБОРА ===
+[2026-07-02 15:08:54.857] --- Фоновый опрос прибора остановлен ---
+[2026-07-02 15:08:54.971] Порт прибора закрыт.
