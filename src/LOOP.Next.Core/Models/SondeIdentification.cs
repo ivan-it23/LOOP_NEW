@@ -37,6 +37,11 @@ public readonly record struct SondeIdentification(
     // Текст типа прибора для индикатора. Перенос DeviceTypeDisplayName (WorkForm.h:5667).
     private static string BuildDeviceTypeName(uint deviceType, uint transmitterCount)
     {
+        if (deviceType == ToolIdentity.DeviceTypeCartograph && transmitterCount == 4)
+        {
+            return "Картограф_Режим_LWD_4tx";
+        }
+
         var name = deviceType switch
         {
             ToolIdentity.DeviceTypeAutonom => "Автономный",

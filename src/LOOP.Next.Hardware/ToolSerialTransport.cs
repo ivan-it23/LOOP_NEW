@@ -1,4 +1,5 @@
 using System.IO.Ports;
+using LoopNext.Core.Logging;
 
 namespace LoopNext.Hardware;
 
@@ -12,8 +13,7 @@ public enum ToolResponseCode
 }
 
 // Низкоуровневый протокол обмена с прибором по UART.
-// Точный перенос send_to_tool и receive_from_tool из function.cpp.
-// Формат пакета: [CMD:1][PAYLOAD:N][CRC_lo:1][CRC_hi:1]; CRC считается по [CMD + PAYLOAD].
+// Формат старого пакета: [CMD:1][PAYLOAD:N][CRC_lo:1][CRC_hi:1]; CRC считается по [CMD + PAYLOAD].
 public static class ToolSerialTransport
 {
     // Отправка команды прибору. Возвращает 0 при успехе, 1 при ошибке записи (send_to_tool).
@@ -44,7 +44,7 @@ public static class ToolSerialTransport
 
     // Приём ответа фиксированной длины с накоплением до полного пакета или таймаута.
     // Возвращает 0 (Ok), 1 (Timeout/короткий ответ) или 2 (CRC не совпал). Перенос receive_from_tool.
-    public static int Receive(SerialPort com, out byte cmd, byte[] data, int length)
+    public static int Receive(SerialPort com, out byte cmd, byte[] data, int length, bool acceptZeroCrc = false)
     {
         cmd = 0;
         var total = length + 3;
@@ -89,7 +89,7 @@ public static class ToolSerialTransport
         {
             var calcCrc = Crc16.Compute(packet, length + 1);
             var recvCrc = (ushort)(packet[length + 1] | (packet[length + 2] << 8));
-            if (calcCrc == recvCrc)
+            if (calcCrc == recvCrc || (acceptZeroCrc && recvCrc == 0))
             {
                 cmd = packet[0];
                 for (var i = 0; i < length; i++)
@@ -97,12 +97,33 @@ public static class ToolSerialTransport
                     data[i] = packet[i + 1];
                 }
 
+                if (calcCrc != recvCrc)
+                {
+                    AppLogger.Write(
+                        $"TOOL_ZERO_CRC_ACCEPTED: expected_payload={length}, bytes_read={bytesRead}, cmd=0x{packet[0]:X2}, " +
+                        $"calc=0x{calcCrc:X4}, recv=0x{recvCrc:X4}, head={FormatPacketSlice(packet, 0, Math.Min(bytesRead, 16))}");
+                }
+
                 return (int)ToolResponseCode.Ok;
             }
 
+            AppLogger.Write(
+                $"TOOL_CRC_ERROR: expected_payload={length}, bytes_read={bytesRead}, cmd=0x{packet[0]:X2}, " +
+                $"calc=0x{calcCrc:X4}, recv=0x{recvCrc:X4}, head={FormatPacketSlice(packet, 0, Math.Min(bytesRead, 16))}, " +
+                $"tail={FormatPacketSlice(packet, Math.Max(0, bytesRead - 8), Math.Min(bytesRead, 8))}");
             return (int)ToolResponseCode.CrcError;
         }
 
         return (int)ToolResponseCode.Timeout;
+    }
+
+    private static string FormatPacketSlice(byte[] packet, int start, int count)
+    {
+        if (count <= 0)
+        {
+            return string.Empty;
+        }
+
+        return Convert.ToHexString(packet.AsSpan(start, count));
     }
 }

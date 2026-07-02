@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.IO;
 using System.IO.Ports;
 using System.Runtime.InteropServices;
 using LoopNext.Core.Logging;
@@ -15,6 +16,7 @@ public static class ToolPort
     private const int FramePayloadLength = ToolProtocolConstants.ToolPayloadLength; // 242
     private const int SignaturePayloadLength = 6;
     private const int MaxRetries = 1;
+    private const int PreFrameReceiveDelayMs = 50;
 
     // Постоянная нагрузка запроса данных, как в эталоне: { 0x05, 0x00 }.
     private static readonly byte[] RequestData = { 0x05, 0x00 };
@@ -37,25 +39,59 @@ public static class ToolPort
             return new PhaseFrameResult(phases, rawPhases, ToolResponseCode.PortClosed, 0f);
         }
 
+        var metrologyIdentity = ToolIdentity.Decode(metrology.Signature);
+        var acceptZeroFrameCrc = metrologyIdentity.IsCartographLwd4TxMode;
         var dataIn = new byte[FramePayloadLength];
         var lastCode = ToolResponseCode.Timeout;
 
         for (var retry = 0; retry <= MaxRetries; retry++)
         {
-            com.DiscardInBuffer();
+            try
+            {
+                com.DiscardInBuffer();
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or IOException)
+            {
+                AppLogger.Write(ex, "Порт прибора закрыт во время подготовки к опросу кадра.");
+                return new PhaseFrameResult(phases, rawPhases, ToolResponseCode.PortClosed, 0f);
+            }
 
             if (ToolSerialTransport.Send(com, cmd, RequestData, RequestData.Length) != 0)
             {
                 return new PhaseFrameResult(phases, rawPhases, ToolResponseCode.Timeout, 0f);
             }
 
-            var result = (ToolResponseCode)ToolSerialTransport.Receive(com, out _, dataIn, FramePayloadLength);
+            Thread.Sleep(PreFrameReceiveDelayMs);
+
+            ToolResponseCode result;
+            try
+            {
+                result = (ToolResponseCode)ToolSerialTransport.Receive(
+                    com,
+                    out _,
+                    dataIn,
+                    FramePayloadLength,
+                    acceptZeroCrc: acceptZeroFrameCrc);
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or IOException)
+            {
+                AppLogger.Write(ex, "Порт прибора закрыт во время чтения кадра.");
+                return new PhaseFrameResult(phases, rawPhases, ToolResponseCode.PortClosed, 0f);
+            }
+
             lastCode = result;
 
             if (result == ToolResponseCode.Ok)
             {
                 // GP_TOOL_DATA расположен со смещения 2 в принятой нагрузке.
                 var toolData = MemoryMarshal.Read<GpToolData>(dataIn.AsSpan(2));
+                if (acceptZeroFrameCrc && toolData.Signature != metrology.Signature)
+                {
+                    AppLogger.Write(
+                        $"CARTOGRAPH_LWD_SIGNATURE_MISMATCH: metrology=0x{metrology.Signature:X8}, frame=0x{toolData.Signature:X8}");
+                    return new PhaseFrameResult(phases, rawPhases, ToolResponseCode.CrcError, 0f);
+                }
+
                 LogRawToolData(in toolData);
                 var phaseResult = ToolPhaseProcessor.FillPhaseFromToolData(in toolData, in metrology);
                 phases = phaseResult.Phases;

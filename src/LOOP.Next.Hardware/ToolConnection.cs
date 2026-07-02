@@ -59,7 +59,10 @@ public static class ToolConnection
             Thread.Sleep(PostCloseDelayMs);
 
             var sondeParameters = MetrologyConverter.Convert(in metrology);
-            AppLogger.Write($"Метрология прибора: Signature=0x{metrology.Signature:X8}, Serial={metrology.Serial}, N_Tx={sondeParameters.Count}");
+            var identity = ToolIdentity.Decode(metrology.Signature);
+            AppLogger.Write(
+                $"Метрология прибора: Signature=0x{metrology.Signature:X8}, Serial={metrology.Serial}, " +
+                $"N_Tx={identity.TransmitterCount}, Channels={sondeParameters.Count}, DeviceType={identity.DeviceType}, Valid={identity.IsValid}");
             LogMetrologyDetails(in metrology);
             AppLogger.Write("=== ПРИБОР УСПЕШНО ВКЛЮЧЕН ===");
             return new ToolConnectResult(true, metrology, sondeParameters);
