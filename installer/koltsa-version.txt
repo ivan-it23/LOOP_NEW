@@ -1,2 +1,2 @@
-1.0.3
-Koltsa-Setup-1.0.3.exe
+1.0.4
+Koltsa-Setup-1.0.4.exe

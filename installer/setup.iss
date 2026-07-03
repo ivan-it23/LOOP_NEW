@@ -12,13 +12,13 @@
 ;   http://ivanbohg.beget.tech/FilesForProgramVisualisation/Koltsa-Setup-<version>.exe
 ;
 ; Формат koltsa-version.txt:
-;   1.0.3
-;   Koltsa-Setup-1.0.3.exe
+;   1.0.4
+;   Koltsa-Setup-1.0.4.exe
 ; ============================================================================
 
 #define MyAppId            "{{9A9B3C77-7E18-4F2D-B7E6-2F77770DA5A8}"
 #define MyAppName          "Кольца"
-#define MyAppVersion       "1.0.3"
+#define MyAppVersion       "1.0.4"
 #define MyAppPublisher     'ООО НПФ "АМК ГОРИЗОНТ"'
 #define MyAppExeName       "Кольца.exe"
 #define MyAppDescription   "Приложение поверки и калибровки зондов с RLC-кольцом"

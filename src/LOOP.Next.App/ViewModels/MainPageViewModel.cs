@@ -316,6 +316,9 @@ public partial class MainPageViewModel : ObservableObject
     public partial string SerialText { get; set; } = "—";
 
     [ObservableProperty]
+    public partial int TransmitterCount { get; set; } = 5;
+
+    [ObservableProperty]
     public partial string TransmitterCountText { get; set; } = "—";
 
     [ObservableProperty]
@@ -993,6 +996,7 @@ public partial class MainPageViewModel : ObservableObject
             : CompactIdentificationPanelWidth;
         SignatureText = $"0x{identity.Signature:X8}";
         SerialText = identity.Serial.ToString();
+        TransmitterCount = (int)identity.TransmitterCount;
         TransmitterCountText = identity.TransmitterCount.ToString();
         // Позиция R1 отображается как сопоставление приёмника с передатчиком: 0 -> T1, 1 -> T2.
         RxPositionText = $"R1 -> T{identity.RxPosition + 1}";
