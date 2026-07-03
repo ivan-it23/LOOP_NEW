@@ -705,9 +705,8 @@
                     Orientation="Horizontal"
                     Spacing="12"
                     HorizontalAlignment="Left">
-                    <!-- Карточка идентификации: фиксированная компактная ширина, поля в две колонки. -->
                     <Border
-                        Width="470"
+                        Width="{x:Bind ViewModel.IdentificationPanelWidth, Mode=OneWay}"
                         Style="{StaticResource IdentificationPanelBorderStyle}">
                     <Grid ColumnSpacing="10" RowSpacing="8">
                         <Grid.ColumnDefinitions>
@@ -1091,8 +1090,8 @@
 
                             <StackPanel Grid.Row="5" Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
                                 <Button Content="Рассчитать" Command="{x:Bind ViewModel.CalculateRingCalibrationCommand}" />
-                                <Button Content="Прочитать" Command="{x:Bind ViewModel.ReadRingParametersCommand}" />
-                                <Button Content="Записать" Command="{x:Bind ViewModel.WriteRingParametersCommand}" />
+                                <Button Content="Прочитать из кольца" Command="{x:Bind ViewModel.ReadRingParametersCommand}" />
+                                <Button Content="Записать в кольцо" Command="{x:Bind ViewModel.WriteRingParametersCommand}" />
                             </StackPanel>
 
                             <StackPanel Grid.Row="6" Orientation="Horizontal" Spacing="6" Margin="0,2,0,0">
@@ -1105,7 +1104,7 @@
                     <!-- Дублирование карточек "Идентификация зонда" и "Состояние" с вкладки "Главная". -->
                     <StackPanel Grid.Row="1" Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="12">
                         <Border
-                            Width="470"
+                            Width="{x:Bind ViewModel.IdentificationPanelWidth, Mode=OneWay}"
                             Style="{StaticResource IdentificationPanelBorderStyle}">
                             <Grid ColumnSpacing="10" RowSpacing="8">
                                 <Grid.ColumnDefinitions>
@@ -1376,8 +1375,8 @@
 
                             <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8">
                                 <Button Content="Рассчитать" Command="{x:Bind ViewModel.CalculateRingCalibrationCommand}" />
-                                <Button Content="Прочитать" Command="{x:Bind ViewModel.ReadRingParametersCommand}" />
-                                <Button Content="Записать" Command="{x:Bind ViewModel.WriteRingParametersCommand}" />
+                                <Button Content="Прочитать из кольца" Command="{x:Bind ViewModel.ReadRingParametersCommand}" />
+                                <Button Content="Записать в кольцо" Command="{x:Bind ViewModel.WriteRingParametersCommand}" />
                                 <CheckBox Content="Редактировать" VerticalAlignment="Center" />
                             </StackPanel>
                         </Grid>

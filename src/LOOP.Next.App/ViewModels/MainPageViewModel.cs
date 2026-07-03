@@ -25,6 +25,9 @@ public partial class MainPageViewModel : ObservableObject
     private static readonly SolidColorBrush AirColumnSetForegroundBrush = new(Colors.White);
 
     private const int MeasurementSkipFrames = 5;
+    private const double CompactIdentificationPanelWidth = 470;
+    private const double ExpandedIdentificationPanelWidth = 540;
+    private const int ExpandedIdentificationTypeNameLength = 14;
 
     private readonly SerialPort _toolPort = new();
     private readonly SerialPort _ringPort = new();
@@ -302,6 +305,9 @@ public partial class MainPageViewModel : ObservableObject
 
     [ObservableProperty]
     public partial string ToolTypeName { get; set; } = "—";
+
+    [ObservableProperty]
+    public partial double IdentificationPanelWidth { get; set; } = CompactIdentificationPanelWidth;
 
     [ObservableProperty]
     public partial string SignatureText { get; set; } = "—";
@@ -982,6 +988,9 @@ public partial class MainPageViewModel : ObservableObject
     {
         var identity = SondeIdentification.FromMetrology(in metrology);
         ToolTypeName = identity.DeviceTypeName;
+        IdentificationPanelWidth = ToolTypeName.Length > ExpandedIdentificationTypeNameLength
+            ? ExpandedIdentificationPanelWidth
+            : CompactIdentificationPanelWidth;
         SignatureText = $"0x{identity.Signature:X8}";
         SerialText = identity.Serial.ToString();
         TransmitterCountText = identity.TransmitterCount.ToString();

@@ -39,7 +39,7 @@ public readonly record struct SondeIdentification(
     {
         if (deviceType == ToolIdentity.DeviceTypeCartograph && transmitterCount == 4)
         {
-            return "Картограф_Режим_LWD_4tx";
+            return "Картограф->LWD-4TX";
         }
 
         var name = deviceType switch
