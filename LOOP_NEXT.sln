@@ -5,6 +5,8 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{827E0CD3-B72D-47B6-A68D-7590B98EB39B}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{DA49D3D8-82AE-4A99-8F19-5934F7ED307E}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LOOP.Next.App", "src\LOOP.Next.App\LOOP.Next.App.csproj", "{3E0F6AFD-CBFD-48B0-A366-950E754802B5}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LOOP.Next.Core", "src\LOOP.Next.Core\LOOP.Next.Core.csproj", "{DB61CE07-320A-4D83-A75F-E7040A001D12}"
@@ -14,6 +16,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LOOP.Next.Metrology", "src\LOOP.Next.Metrology\LOOP.Next.Metrology.csproj", "{2AE5C781-1432-4BC0-AE62-C7054A683E80}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LOOP.Next.Reporting", "src\LOOP.Next.Reporting\LOOP.Next.Reporting.csproj", "{A5016BAB-40FA-4C67-8543-E0589D73C50F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LOOP.Next.Hardware.ProtocolChecks", "tests\LOOP.Next.Hardware.ProtocolChecks\LOOP.Next.Hardware.ProtocolChecks.csproj", "{B7B0180D-793D-46A8-864D-2D4D94CA771D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -41,6 +45,10 @@ Global
 		{A5016BAB-40FA-4C67-8543-E0589D73C50F}.Debug|x64.Build.0 = Debug|Any CPU
 		{A5016BAB-40FA-4C67-8543-E0589D73C50F}.Release|x64.ActiveCfg = Release|Any CPU
 		{A5016BAB-40FA-4C67-8543-E0589D73C50F}.Release|x64.Build.0 = Release|Any CPU
+		{B7B0180D-793D-46A8-864D-2D4D94CA771D}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{B7B0180D-793D-46A8-864D-2D4D94CA771D}.Debug|x64.Build.0 = Debug|Any CPU
+		{B7B0180D-793D-46A8-864D-2D4D94CA771D}.Release|x64.ActiveCfg = Release|Any CPU
+		{B7B0180D-793D-46A8-864D-2D4D94CA771D}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -51,6 +59,7 @@ Global
 		{0CC1E50C-1E8A-4D2F-BD1E-1DF0A1CD732C} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{2AE5C781-1432-4BC0-AE62-C7054A683E80} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{A5016BAB-40FA-4C67-8543-E0589D73C50F} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{B7B0180D-793D-46A8-864D-2D4D94CA771D} = {DA49D3D8-82AE-4A99-8F19-5934F7ED307E}
 	EndGlobalSection
 EndGlobal
 

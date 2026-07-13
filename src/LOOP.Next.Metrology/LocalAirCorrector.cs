@@ -27,6 +27,7 @@ public sealed class LocalAirCorrector
     private int _sampleCount = DefaultSampleCount;
     private int _sampleCounter;
     private int _settleCounter;
+    private string _diagnosticCorrelationId = "none";
 
     public LocalAirCorrector()
     {
@@ -55,19 +56,34 @@ public sealed class LocalAirCorrector
     }
 
     // Запускает сбор baseline после установки кольца в R0/C0.
-    public void Begin(int sampleCount)
+    public void Begin(int sampleCount, string? diagnosticCorrelationId = null)
     {
+        var requestedSampleCount = sampleCount;
+        _diagnosticCorrelationId = string.IsNullOrWhiteSpace(diagnosticCorrelationId)
+            ? "none"
+            : diagnosticCorrelationId;
         _sampleCount = ClampSampleCount(sampleCount);
-        AppLogger.Write($"LOCAL_AIR: start, samples={_sampleCount}, settle={SettleFrames}");
+        AppLogger.WriteDiagnostic(
+            "RING_AIR",
+            "BEGIN",
+            $"correlation={_diagnosticCorrelationId}|requested_samples={requestedSampleCount}|samples={_sampleCount}|settle_frames={SettleFrames}");
         _air.Clear();
         ResetAccumulator();
         _collecting = true;
         _resetRequested = false;
     }
 
-    public void RequestReset()
+    public void RequestReset(string? diagnosticCorrelationId = null)
     {
-        AppLogger.Write("LOCAL_AIR: reset requested.");
+        if (!string.IsNullOrWhiteSpace(diagnosticCorrelationId))
+        {
+            _diagnosticCorrelationId = diagnosticCorrelationId;
+        }
+
+        AppLogger.WriteDiagnostic(
+            "RING_AIR",
+            "RESET_REQUESTED",
+            $"correlation={_diagnosticCorrelationId}|is_set={_isSet}|collecting={_collecting}|collected_samples={_sampleCounter}");
         _resetRequested = true;
     }
 
@@ -89,7 +105,10 @@ public sealed class LocalAirCorrector
         if (_settleCounter < SettleFrames)
         {
             _settleCounter++;
-            AppLogger.Write($"LOCAL_AIR: settling frame {_settleCounter}/{SettleFrames}");
+            AppLogger.WriteDiagnostic(
+                "RING_AIR",
+                "SETTLING_FRAME",
+                $"correlation={_diagnosticCorrelationId}|frame={_settleCounter}|required={SettleFrames}");
         }
         else if (_sampleCounter < _sampleCount)
         {
@@ -111,7 +130,10 @@ public sealed class LocalAirCorrector
             }
 
             _sampleCounter++;
-            AppLogger.Write($"LOCAL_AIR: collecting sample {_sampleCounter}/{_sampleCount}");
+            AppLogger.WriteDiagnostic(
+                "RING_AIR",
+                "SAMPLE_COLLECTED",
+                $"correlation={_diagnosticCorrelationId}|sample={_sampleCounter}|required={_sampleCount}|channels={count}");
         }
 
         if (_sampleCounter == _sampleCount)
@@ -129,9 +151,10 @@ public sealed class LocalAirCorrector
                 }
 
                 var stdDev = MathF.Sqrt(variance);
-                AppLogger.Write(
-                    $"LOCAL_AIR: channel={i}, mean_mG={mean * PhysicalConstants.Milligrad:F1}, std_mG={stdDev * PhysicalConstants.Milligrad:F1}, " +
-                    $"min_mG={_min[i] * PhysicalConstants.Milligrad:F1}, max_mG={_max[i] * PhysicalConstants.Milligrad:F1}");
+                AppLogger.WriteDiagnostic(
+                    "RING_AIR",
+                    "CHANNEL_STATS",
+                    $"correlation={_diagnosticCorrelationId}|channel={i}|mean_mG={mean * PhysicalConstants.Milligrad:F3}|std_mG={stdDev * PhysicalConstants.Milligrad:F3}|min_mG={_min[i] * PhysicalConstants.Milligrad:F3}|max_mG={_max[i] * PhysicalConstants.Milligrad:F3}");
             }
 
             _collecting = false;
@@ -140,7 +163,10 @@ public sealed class LocalAirCorrector
             _settleCounter = 0;
 
             var airValues = string.Join(", ", Enumerable.Range(0, count).Select(i => $"[{i}]={(_air.GetValue(i) * PhysicalConstants.Milligrad):F1}"));
-            AppLogger.Write($"LOCAL_AIR: accepted_mG=[{airValues}]");
+            AppLogger.WriteDiagnostic(
+                "RING_AIR",
+                "ACCEPTED",
+                $"correlation={_diagnosticCorrelationId}|channels={count}|air_mG=[{airValues}]");
         }
     }
 
@@ -161,7 +187,10 @@ public sealed class LocalAirCorrector
         _isSet = false;
         _collecting = false;
         ResetAccumulator();
-        AppLogger.Write("LOCAL_AIR: reset to zero.");
+        AppLogger.WriteDiagnostic(
+            "RING_AIR",
+            "RESET_COMPLETED",
+            $"correlation={_diagnosticCorrelationId}|channels={count}");
     }
 
     private V10 ApplyCorrection(in V10 phase, int channelCount)

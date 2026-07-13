@@ -34,6 +34,11 @@ public partial class App : Application
     {
         InitializeComponent();
 
+        AppLogger.WriteDiagnostic(
+            "APP_SESSION",
+            "START",
+            $"pid={Environment.ProcessId}|version={ApplicationInfo.CurrentVersion}|base_directory={AppContext.BaseDirectory}|log_path={AppLogger.LogFilePath}");
+
         // Перехват необработанных исключений UI-потока: фиксирует причину сбоя в журнал
         // и не даёт процессу молча завершиться, оставляя окно приложения открытым.
         UnhandledException += OnUnhandledException;
@@ -57,9 +62,14 @@ public partial class App : Application
     /// </summary>
     protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
     {
+        AppLogger.WriteDiagnostic("APP_SESSION", "WINDOW_CREATE");
         Window = new MainWindow();
         DispatcherQueue = Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread();
         Window.Activate();
+        AppLogger.WriteDiagnostic(
+            "APP_SESSION",
+            "WINDOW_ACTIVATED",
+            $"hwnd={WindowHandle}|title=Кольца");
         _ = AutoUpdateService.RunUpdateCheckAsync(WindowHandle, silent: true);
     }
 }

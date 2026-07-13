@@ -1,35 +1,43 @@
 namespace LoopNext.Hardware;
 
-// Константы текстового протокола кольца (loop).
-// Перенос из BT_ON и Loop_work (WorkForm.h:6431, 6488).
+// Константы текстового протокола кольца. Новая прошивка расширяет служебную
+// память и добавляет SGN-команды, но рабочие R/C-команды остаются совместимыми.
 public static class RingProtocolConstants
 {
     public const int BaudRate = 9600;
     public const int TimeoutMs = 500;
 
     // Число попыток установки точки R/C с переоткрытием порта при сбое обмена.
-    // Повышено относительно исходных 2 попыток для устойчивости к залипанию USB-Serial.
     public const int SetPointMaxAttempts = 5;
-
-    // Пауза между попытками установки точки.
+    public const int MemoryCommandMaxAttempts = 3;
     public const int RetryDelayMs = 150;
-
-    // Пауза после закрытия порта перед повторным открытием при восстановлении.
     public const int ReopenDelayMs = 200;
+    public const int CommandDelayMs = 50;
 
-    // Команда идентификации кольца и ожидаемый префикс ответа.
-    public const string IdentifyCommand = "$\r\n";
-    public const string ExpectedReplyPrefix = "Unknown";
+    public const int MinimumResistanceIndex = 0;
+    public const int MaximumResistanceIndex = 8;
+    public const int MinimumCapacitanceIndex = 0;
+    public const int MaximumCapacitanceIndex = 10;
 
-    // Шаблоны команд установки сопротивления и ёмкости (Loop_work, WorkForm.h:6499-6500).
+    // Первые 10 ячеек имеют прежний прикладной смысл и участвуют в расчётах.
+    // Новая прошивка физически предоставляет 32 ячейки; Z10..Z31 сохраняются
+    // приложением без изменения при штатной записи параметров поверки.
+    public const int WorkingParameterCellCount = 10;
+    public const int LegacyMemoryCellCount = 10;
+    public const int ExtendedMemoryCellCount = 32;
+
+    public const string LegacyIdentifyCommand = "$\r\n";
+    public const string UnknownReplyPrefix = "Unknown";
+
+    public const string ReadSignatureCommand = "SGNREAD\r\n";
+    public const string WriteSignatureCommandFormat = "SGNWRITE {0}\r\n";
+    public const string EraseLoopParametersCommand = "ZERASE\r\n";
+
     public const string SetResistanceCommandFormat = "RES {0}\r\n";
     public const string SetCapacitanceCommandFormat = "CAP {0}\r\n";
     public const string SetResistanceReplyFormat = "RES={0} OK";
     public const string SetCapacitanceReplyFormat = "CAP={0} OK";
 
-    public const int LoopParameterCellCount = 10;
     public const string ReadLoopParameterCommandFormat = "ZREAD {0}\r\n";
-    public const string ReadLoopParameterReplyPrefixFormat = "Z{0} ";
     public const string WriteLoopParameterCommandFormat = "ZWRITE {0} {1} {2}\r\n";
-    public const string WriteLoopParameterReplyPrefixFormat = "WRITE Z{0} OK!";
 }

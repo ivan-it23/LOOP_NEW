@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO.Ports;
 using System.Linq;
@@ -31,6 +32,7 @@ public partial class MainPageViewModel : ObservableObject
 
     private readonly SerialPort _toolPort = new();
     private readonly SerialPort _ringPort = new();
+    private RingDeviceInfo _ringDeviceInfo = RingDeviceInfo.Unknown;
     private readonly LocalAirCorrector _localAir = new();
     private readonly object _airLock = new();
     private readonly object _measurementLock = new();
@@ -49,12 +51,18 @@ public partial class MainPageViewModel : ObservableObject
     private int _activeResistanceIndex;
     private int _activeCapacitanceIndex;
     private int _activeMeasurementFrameCount;
+    private string _activeMeasurementPointId = "none";
     private int _channelCount;
     private readonly object _autoLock = new();
     private TaskCompletionSource<bool>? _autoMeasurementCompleteTcs;
     private uint _rxPosition;
     private GpToolMetrology _metrology;
     private int _frameCounter;
+    private string _ringWorkflowId = "none";
+    private string _activeMeasurementRunId = "none";
+    private long _activeMeasurementRunStartedTimestamp;
+    private int _diagnosticCompletedPoints;
+    private int _diagnosticFailedPoints;
 
     public MainPageViewModel()
     {
@@ -62,6 +70,10 @@ public partial class MainPageViewModel : ObservableObject
         BuildDefaultResistanceTable();
         BuildDefaultRingCalibrationRows();
         RefreshPorts();
+        AppLogger.WriteDiagnostic(
+            "RING_WORKFLOW",
+            "VIEW_MODEL_READY",
+            $"workflow={_ringWorkflowId}|tool_port={SelectedToolPort ?? "none"}|ring_port={SelectedRingPort ?? "none"}|poll_interval_ms={PollIntervalMs:F0}|air_samples={SelectedFrameCount}|averaging={SelectedAveraging}|threshold_percent={ThresholdPercent}|express={ExpressMode}");
     }
 
     // Запрос на показ модального сообщения пользователю; обрабатывается code-behind страницы.
@@ -369,7 +381,7 @@ public partial class MainPageViewModel : ObservableObject
     {
         if (IsRingConnected)
         {
-            DisconnectRing();
+            await DisconnectRingAsync();
         }
         else
         {
@@ -467,6 +479,10 @@ public partial class MainPageViewModel : ObservableObject
 
         if (!result.Success)
         {
+            AppLogger.WriteDiagnostic(
+                "RING_WORKFLOW",
+                "TOOL_CONNECT_FAILED",
+                $"workflow={CurrentRingWorkflowId}|port={portName}|error={SanitizeDiagnosticValue(result.ErrorMessage ?? "unknown")}");
             StatusText = result.ErrorMessage ?? "Не удалось открыть порт прибора";
             IsConnected = false;
             return;
@@ -476,11 +492,23 @@ public partial class MainPageViewModel : ObservableObject
         _channelCount = _sondeParameters.Count;
         _rxPosition = result.Metrology.RxPosition;
         _metrology = result.Metrology;
+        AppLogger.WriteDiagnostic(
+            "RING_WORKFLOW",
+            "TOOL_CONNECTED",
+            $"workflow={CurrentRingWorkflowId}|port={portName}|signature=0x{_metrology.Signature:X8}|serial={_metrology.Serial}|work_type={_metrology.WorkType}|tx={_channelCount / MetrologyConverter.FrequencyCount}|channels={_channelCount}|rx_position={_rxPosition}");
+        for (var channel = 0; channel < _sondeParameters.Count; channel++)
+        {
+            var parameter = _sondeParameters[channel];
+            AppLogger.WriteDiagnostic(
+                "RING_CALIBRATION",
+                "METROLOGY_CHANNEL",
+                $"workflow={CurrentRingWorkflowId}|source=tool|channel={channel}|frequency_Hz={parameter.Frequency:G9}|L1_m={parameter.L1:G9}|L2_m={parameter.L2:G9}");
+        }
 
         ApplyIdentification(in _metrology);
         BuildChannels(_sondeParameters, in _metrology);
         BuildRingCalibrationRows(_sondeParameters);
-        CalculateRingCalibration();
+        CalculateRingCalibrationCore(showUserMessage: false, populateMissingMeasuredValues: false);
         if (IsRingConnected)
         {
             await LoadRingParametersAsync();
@@ -500,6 +528,10 @@ public partial class MainPageViewModel : ObservableObject
     [RelayCommand]
     private void Disconnect()
     {
+        AppLogger.WriteDiagnostic(
+            "RING_WORKFLOW",
+            "TOOL_DISCONNECT",
+            $"workflow={CurrentRingWorkflowId}|port={_toolPort.PortName}|polling={IsPolling}|measurement_run={_activeMeasurementRunId}");
         StopPolling();
         ToolConnection.Disconnect(_toolPort);
         IsConnected = false;
@@ -521,19 +553,31 @@ public partial class MainPageViewModel : ObservableObject
         }
 
         var portName = SelectedRingPort;
+        _ringWorkflowId = AppLogger.NextOperationId("ring-workflow");
         SaveSelectedRingPort(portName);
         StatusText = "Подключение кольца...";
+        AppLogger.WriteDiagnostic(
+            "RING_WORKFLOW",
+            "RING_CONNECT_REQUESTED",
+            $"workflow={_ringWorkflowId}|ring_port={portName}|tool_connected={IsConnected}|tool_port={SelectedToolPort ?? "none"}|tool_signature=0x{_metrology.Signature:X8}|tx={_channelCount / MetrologyConverter.FrequencyCount}|channels={_channelCount}");
 
-        var status = await Task.Run(() =>
+        var result = await Task.Run(() =>
         {
             _ringPort.PortName = portName;
-            return RingConnection.Connect(_ringPort);
+            return RingConnection.Connect(_ringPort, _ringWorkflowId);
         });
 
-        if (status == RingConnection.RingConnectStatus.Connected)
+        if (result.IsConnected)
         {
+            _ringDeviceInfo = result.DeviceInfo;
             IsRingConnected = true;
-            StatusText = "Кольцо подключено";
+            AppLogger.WriteDiagnostic(
+                "RING_WORKFLOW",
+                "RING_CONNECTED",
+                $"workflow={_ringWorkflowId}|ring_port={portName}|profile={result.DeviceInfo.ProtocolVersion}|signature={result.DeviceInfo.Signature?.ToString(CultureInfo.InvariantCulture) ?? "none"}|memory_cells={result.DeviceInfo.ImpedanceCellCount}|working_cells={RingProtocolConstants.WorkingParameterCellCount}|tx={_channelCount / MetrologyConverter.FrequencyCount}|channels={_channelCount}");
+            StatusText = result.DeviceInfo.ProtocolVersion == RingProtocolVersion.Extended
+                ? $"Кольцо подключено, SGN={result.DeviceInfo.Signature}"
+                : "Кольцо подключено (совместимый режим)";
             if (IsConnected)
             {
                 await LoadRingParametersAsync();
@@ -541,24 +585,42 @@ public partial class MainPageViewModel : ObservableObject
         }
         else
         {
+            _ringDeviceInfo = RingDeviceInfo.Unknown;
             IsRingConnected = false;
-            StatusText = status switch
+            AppLogger.WriteDiagnostic(
+                "RING_WORKFLOW",
+                "RING_CONNECT_FAILED",
+                $"workflow={_ringWorkflowId}|ring_port={portName}|status={result.Status}");
+            StatusText = result.Status switch
             {
                 RingConnection.RingConnectStatus.PortOpenFailed => "Не удается открыть порт кольца!",
                 RingConnection.RingConnectStatus.NoResponse => "Нет ответа от кольца !",
                 RingConnection.RingConnectStatus.Rejected => "Не удается установить соединение !",
-                _ => $"Кольцо: {status}"
+                _ => $"Кольцо: {result.Status}"
             };
         }
     }
 
     [RelayCommand]
-    private void DisconnectRing()
+    private async Task DisconnectRingAsync()
     {
-        RingConnection.Disconnect(_ringPort);
-        IsRingConnected = false;
+        var workflow = CurrentRingWorkflowId;
+        AppLogger.WriteDiagnostic(
+            "RING_WORKFLOW",
+            "RING_DISCONNECT_REQUESTED",
+            $"workflow={workflow}|ring_port={_ringPort.PortName}|profile={_ringDeviceInfo.ProtocolVersion}|measurement_run={_activeMeasurementRunId}");
+        _autoCts?.Cancel();
+        _singleResistanceCts?.Cancel();
         SetActiveMeasurementPoint(0, 0);
+        await Task.Run(() => RingConnection.Disconnect(_ringPort, workflow));
+        _ringDeviceInfo = RingDeviceInfo.Unknown;
+        IsRingConnected = false;
         StatusText = "Кольцо отключено";
+        AppLogger.WriteDiagnostic(
+            "RING_WORKFLOW",
+            "RING_DISCONNECTED",
+            $"workflow={workflow}|ring_port={_ringPort.PortName}");
+        _ringWorkflowId = "none";
     }
 
     public string CreateSuggestedReportFileName() =>
@@ -566,7 +628,13 @@ public partial class MainPageViewModel : ObservableObject
 
     public bool TryBuildReportRtf(out string rtf)
     {
+        var reportId = AppLogger.NextOperationId("ring-report");
+        var correlation = BuildDiagnosticCorrelation(reportId);
         rtf = string.Empty;
+        AppLogger.WriteDiagnostic(
+            "RING_REPORT",
+            "BUILD_REQUESTED",
+            $"correlation={correlation}|workflow={CurrentRingWorkflowId}|measurement_run={_activeMeasurementRunId}|rows={ResistanceRows.Count}|selected=[{string.Join(",", GetSelectedReportResistances())}]");
 
         if (ResistanceRows.Count == 0)
         {
@@ -603,6 +671,17 @@ public partial class MainPageViewModel : ObservableObject
             BuildReportChannels(selectedResistances));
 
         rtf = LoopReportRtfBuilder.Build(report);
+        AppLogger.WriteDiagnostic(
+            "RING_REPORT",
+            "BUILT",
+            $"correlation={correlation}|serial={SerialText}|selected=[{string.Join(",", selectedResistances)}]|channels={report.Channels.Count}|rtf_characters={rtf.Length}");
+        foreach (var resistanceIndex in selectedResistances)
+        {
+            AppLogger.WriteDiagnostic(
+                "RING_REPORT",
+                "COLUMN_INCLUDED",
+                $"correlation={correlation}|R={resistanceIndex}|cells=[{FormatResistanceColumnDiagnostic(resistanceIndex)}]");
+        }
         StatusText = "Рапорт: выберите место сохранения";
         return true;
     }
@@ -618,12 +697,21 @@ public partial class MainPageViewModel : ObservableObject
         try
         {
             await Task.Run(() => File.WriteAllText(path, rtf));
+            AppLogger.WriteDiagnostic(
+                "RING_REPORT",
+                "SAVED",
+                $"workflow={CurrentRingWorkflowId}|path={SanitizeDiagnosticValue(path)}|characters={rtf.Length}");
             StatusText = $"Рапорт сохранён: {path}";
             RaiseUserMessage("Рапорт сохранён", $"Файл рапорта успешно сохранён:\n{path}");
         }
         catch (Exception ex)
         {
             AppLogger.Write(ex, "Ошибка сохранения рапорта");
+            AppLogger.WriteDiagnostic(
+                "RING_REPORT",
+                "SAVE_FAILED",
+                ex,
+                $"workflow={CurrentRingWorkflowId}|path={SanitizeDiagnosticValue(path)}|characters={rtf.Length}");
             StatusText = $"Рапорт не сохранён: {ex.Message}";
             RaiseUserMessage("Рапорт не сохранён", $"Не удалось записать файл рапорта:\n{path}\n\nПричина: {ex.Message}");
         }
@@ -672,15 +760,19 @@ public partial class MainPageViewModel : ObservableObject
         _singleResistanceCts = new CancellationTokenSource();
         var token = _singleResistanceCts.Token;
         IsResistanceMeasurementRunning = true;
+        var diagnosticRun = BeginMeasurementDiagnosticRun("manual", resistanceIndex);
+        var diagnosticStatus = "failed";
 
         try
         {
             AppLogger.Write($"=== РУЧНОЙ ЗАПУСК R{resistanceIndex} ===");
-            await RunResistanceMeasurementAsync(resistanceIndex, $"R{resistanceIndex}", token);
+            var measured = await RunResistanceMeasurementAsync(resistanceIndex, $"R{resistanceIndex}", token);
+            diagnosticStatus = measured ? "completed" : "failed";
             AppLogger.Write($"=== РУЧНОЙ ПРОХОД R{resistanceIndex} ЗАВЕРШЁН ===");
         }
         catch (OperationCanceledException)
         {
+            diagnosticStatus = "cancelled";
             AppLogger.Write($"РУЧНОЙ ПРОХОД R{resistanceIndex}: отменён.");
             StatusText = $"R{resistanceIndex}: остановлено";
         }
@@ -695,10 +787,13 @@ public partial class MainPageViewModel : ObservableObject
             if (_ringPort.IsOpen)
             {
                 AppLogger.Write($"РУЧНОЙ ПРОХОД R{resistanceIndex}: сброс кольца в 0/0.");
-                await Task.Run(() => RingConnection.SetMeasurementPoint(_ringPort, 0, 0), CancellationToken.None);
+                await Task.Run(
+                    () => RingConnection.SetMeasurementPoint(_ringPort, 0, 0, diagnosticRun),
+                    CancellationToken.None);
             }
 
             IsResistanceMeasurementRunning = false;
+            EndMeasurementDiagnosticRun(diagnosticRun, diagnosticStatus);
             _singleResistanceCts.Dispose();
             _singleResistanceCts = null;
         }
@@ -775,14 +870,39 @@ public partial class MainPageViewModel : ObservableObject
     [RelayCommand]
     private void CalculateRingCalibration()
     {
+        CalculateRingCalibrationCore(showUserMessage: true, populateMissingMeasuredValues: true);
+    }
+
+    private bool CalculateRingCalibrationCore(bool showUserMessage, bool populateMissingMeasuredValues)
+    {
+        var calculationId = AppLogger.NextOperationId("ring-capacitance-calc");
+        var correlation = BuildDiagnosticCorrelation(calculationId);
+        var stopwatch = Stopwatch.StartNew();
         var parameters = GetRingCalculationParameters();
+        AppLogger.WriteDiagnostic(
+            "RING_CALC",
+            "CAPACITANCE_BEGIN",
+            $"correlation={correlation}|sonde_parameters={parameters.Count}|rows={RingCalibrationRows.Count}|loop_inductance_H={RingCalibrationCalculator.DefaultLoopInductance:G17}|loop_radius_m={RingCalibrationCalculator.DefaultLoopRadius:G17}");
         if (parameters.Count == 0)
         {
+            AppLogger.WriteDiagnostic(
+                "RING_CALC",
+                "CAPACITANCE_SKIPPED",
+                $"correlation={correlation}|reason=no_sonde_metrology|elapsed_ms={stopwatch.ElapsedMilliseconds}");
             StatusText = "Нет метрологии зонда для расчёта кольца";
-            return;
+            if (showUserMessage)
+            {
+                RaiseUserMessage(
+                    "Расчёт не выполнен",
+                    "Нет метрологии зонда. Сначала подключите прибор или считайте метрологию из файла.");
+            }
+
+            return false;
         }
 
         var count = Math.Min(RingCalibrationRows.Count, parameters.Count);
+        var populatedMeasuredValues = 0;
+        var preservedMeasuredValues = 0;
         for (var i = 0; i < count; i++)
         {
             var parameter = parameters[i];
@@ -792,10 +912,46 @@ public partial class MainPageViewModel : ObservableObject
             RingCalibrationRows[i].FrequencyText = (parameter.Frequency / 1000f).ToString("F0");
             RingCalibrationRows[i].CapacitanceText = (value.CapacitanceFarads * 1_000_000_000_000f).ToString("F0");
             RingCalibrationRows[i].ReactanceCalculatedText = value.Reactance.ToString("F3");
+            var hasMeasuredReactance =
+                TryParseDouble(RingCalibrationRows[i].ReactanceMeasuredText, out var measuredReactance) &&
+                measuredReactance > 0.000001;
+            if (populateMissingMeasuredValues && !hasMeasuredReactance)
+            {
+                RingCalibrationRows[i].ReactanceMeasuredText = value.Reactance.ToString("F4");
+                populatedMeasuredValues++;
+            }
+            else if (hasMeasuredReactance)
+            {
+                preservedMeasuredValues++;
+            }
+
+            AppLogger.WriteDiagnostic(
+                "RING_CALC",
+                "CAPACITANCE_CHANNEL",
+                $"correlation={correlation}|channel={i}|frequency_Hz={parameter.Frequency:G9}|L1_m={parameter.L1:G9}|L2_m={parameter.L2:G9}|capacitance_F={value.CapacitanceFarads:G9}|capacitance_pF={value.CapacitanceFarads * 1_000_000_000_000f:F3}|reactance={value.Reactance:G9}|measured_reactance_source={(hasMeasuredReactance ? "preserved" : populateMissingMeasuredValues ? "calculated_fallback" : "unchanged")}");
+        }
+
+        if (populateMissingMeasuredValues)
+        {
+            RebuildLoopParametersFromRingRows();
         }
 
         RecalculateLoopReferences();
+        AppLogger.WriteDiagnostic(
+            "RING_CALC",
+            "CAPACITANCE_COMPLETED",
+            $"correlation={correlation}|calculated_channels={count}|populated_measured_values={populatedMeasuredValues}|preserved_measured_values={preservedMeasuredValues}|elapsed_ms={stopwatch.ElapsedMilliseconds}");
         StatusText = "Расчёт ёмкостей кольца выполнен";
+        if (showUserMessage)
+        {
+            RaiseUserMessage(
+                "Расчёт выполнен",
+                $"Рассчитаны ёмкости и реактивные сопротивления для {count} каналов.\n\n" +
+                $"Поле Re meas дополнено расчётными значениями: {populatedMeasuredValues}. " +
+                $"Сохранено ранее измеренных значений: {preservedMeasuredValues}.");
+        }
+
+        return true;
     }
 
     [RelayCommand]
@@ -804,13 +960,16 @@ public partial class MainPageViewModel : ObservableObject
         if (!IsRingConnected || !_ringPort.IsOpen)
         {
             StatusText = "Подключите кольцо";
+            RaiseUserMessage(
+                "Чтение не выполнено",
+                "Кольцо не подключено. Подключите кольцо и повторите чтение.");
             return;
         }
 
-        await LoadRingParametersAsync();
+        await LoadRingParametersAsync(showUserMessage: true);
     }
 
-    private async Task LoadRingParametersAsync()
+    private async Task LoadRingParametersAsync(bool showUserMessage = false)
     {
         if (!IsRingConnected || !_ringPort.IsOpen)
         {
@@ -818,7 +977,14 @@ public partial class MainPageViewModel : ObservableObject
         }
 
         StatusText = "Чтение параметров кольца...";
-        var result = await Task.Run(() => RingConnection.ReadLoopParameters(_ringPort));
+        var readId = AppLogger.NextOperationId("ring-parameters-read");
+        var correlation = BuildDiagnosticCorrelation(readId);
+        var stopwatch = Stopwatch.StartNew();
+        AppLogger.WriteDiagnostic(
+            "RING_CALIBRATION",
+            "PARAMETERS_READ_BEGIN",
+            $"correlation={correlation}|profile={_ringDeviceInfo.ProtocolVersion}|signature={_ringDeviceInfo.Signature?.ToString(CultureInfo.InvariantCulture) ?? "none"}|memory_cells={_ringDeviceInfo.ImpedanceCellCount}|working_cells={RingProtocolConstants.WorkingParameterCellCount}|channel_count={_channelCount}");
+        var result = await Task.Run(() => RingConnection.ReadLoopParameters(_ringPort, _ringDeviceInfo, correlation));
 
         var count = Math.Min(RingCalibrationRows.Count, result.Cells.Count);
         for (var i = 0; i < count; i++)
@@ -846,13 +1012,44 @@ public partial class MainPageViewModel : ObservableObject
             {
                 var cell = result.Cells[i];
                 AppLogger.Write($"Z{i}: R={cell.Resistance:F2}, Re={cell.Reactance:F4}, valid={cell.HasValue}");
+                AppLogger.WriteDiagnostic(
+                    "RING_CALIBRATION",
+                    "PARAMETER_CELL",
+                    $"correlation={correlation}|index={cell.Index}|role={(cell.Index < RingProtocolConstants.WorkingParameterCellCount ? "working" : "extended_ignored_by_math")}|valid={cell.HasValue}|resistance={cell.Resistance:G9}|reactance={cell.Reactance:G9}|displayed_in_ui={cell.Index < RingCalibrationRows.Count}|used_in_math={cell.Index < RingProtocolConstants.WorkingParameterCellCount && cell.HasValue && cell.Reactance > 0.000001f}");
             }
+            AppLogger.WriteDiagnostic(
+                "RING_CALIBRATION",
+                "PARAMETERS_READ_COMPLETED",
+                $"correlation={correlation}|success={result.Success}|cells={result.Cells.Count}|calculation_parameters={_loopParameters.Count}|required_parameters={requiredParameterCount}|has_required={hasRequiredParameters}|phase_reference_sets={_phaseReferences.Count}|resistivity_reference_sets={_resistivityReferences.Count}|elapsed_ms={stopwatch.ElapsedMilliseconds}");
             StatusText = $"Параметры кольца прочитаны: {_loopParameters.Count}";
+            if (showUserMessage)
+            {
+                RaiseUserMessage(
+                    "Чтение завершено",
+                    $"Из кольца считано {result.Cells.Count} ячеек.\n" +
+                    $"Полных расчётных параметров: {_loopParameters.Count} из {requiredParameterCount}.");
+            }
         }
         else
         {
             AppLogger.Write("Параметры кольца не получены.");
-            StatusText = "Параметры кольца не получены";
+            AppLogger.WriteDiagnostic(
+                "RING_CALIBRATION",
+                "PARAMETERS_READ_FAILED",
+                $"correlation={correlation}|result_success={result.Success}|cells={result.Cells.Count}|calculation_parameters={result.Parameters.Count}|required_parameters={requiredParameterCount}|has_required={hasRequiredParameters}|elapsed_ms={stopwatch.ElapsedMilliseconds}");
+            StatusText = result.Cells.Count > 0
+                ? $"Параметры кольца неполные: {result.Parameters.Count} из {requiredParameterCount}"
+                : "Параметры кольца не получены";
+            if (showUserMessage)
+            {
+                var message = result.Cells.Count > 0
+                    ? $"Ячейки кольца прочитаны, но полных расчётных параметров только {result.Parameters.Count} из {requiredParameterCount}.\n\n" +
+                      "Проверьте R и Re meas. Нулевое Re meas не может использоваться в расчётах."
+                    : "Кольцо не вернуло параметры. Проверьте соединение и повторите чтение.";
+                RaiseUserMessage(
+                    result.Cells.Count > 0 ? "Параметры прочитаны не полностью" : "Чтение не выполнено",
+                    message);
+            }
         }
     }
 
@@ -862,6 +1059,9 @@ public partial class MainPageViewModel : ObservableObject
         if (!IsRingConnected || !_ringPort.IsOpen)
         {
             StatusText = "Включите кольцо";
+            RaiseUserMessage(
+                "Запись не выполнена",
+                "Кольцо не подключено. Подключите кольцо и повторите запись.");
             return;
         }
 
@@ -874,24 +1074,83 @@ public partial class MainPageViewModel : ObservableObject
         {
             AppLogger.Write(ex, "Ошибка подготовки параметров кольца к записи");
             StatusText = $"Ошибка параметров кольца: {ex.Message}";
+            RaiseUserMessage(
+                "Запись не выполнена",
+                $"Нельзя подготовить данные для записи.\n\nПричина: {ex.Message}");
             return;
         }
 
         StatusText = "Запись параметров кольца...";
-        var result = await Task.Run(() => RingConnection.WriteLoopParameters(_ringPort, cells));
+        var writeId = AppLogger.NextOperationId("ring-parameters-write");
+        var correlation = BuildDiagnosticCorrelation(writeId);
+        var stopwatch = Stopwatch.StartNew();
+        AppLogger.WriteDiagnostic(
+            "RING_CALIBRATION",
+            "PARAMETERS_WRITE_BEGIN",
+            $"correlation={correlation}|cells={cells.Count}|indexes=[{string.Join(",", cells.Select(cell => cell.Index))}]|preserved_range=Z10..Z31");
+        foreach (var cell in cells)
+        {
+            AppLogger.WriteDiagnostic(
+                "RING_CALIBRATION",
+                "PARAMETER_WRITE_INPUT",
+                $"correlation={correlation}|index={cell.Index}|resistance={cell.Resistance:G9}|reactance={cell.Reactance:G9}|has_value={cell.HasValue}");
+        }
+
+        var result = await Task.Run(() => RingConnection.WriteLoopParameters(_ringPort, cells, correlation));
         if (result.Success)
         {
-            ApplyRingCells(cells);
+            StatusText = "Проверка записанных параметров...";
+            var verificationCorrelation = $"{correlation}:verify";
+            var verification = await Task.Run(
+                () => RingConnection.ReadLoopParameters(_ringPort, _ringDeviceInfo, verificationCorrelation));
+            var verificationFailures = GetRingWriteVerificationFailures(cells, verification.Cells);
+            AppLogger.WriteDiagnostic(
+                "RING_CALIBRATION",
+                verificationFailures.Count == 0 ? "PARAMETERS_WRITE_VERIFIED" : "PARAMETERS_WRITE_VERIFICATION_FAILED",
+                $"correlation={correlation}|read_cells={verification.Cells.Count}|failed_indexes=[{string.Join(",", verificationFailures)}]|elapsed_ms={stopwatch.ElapsedMilliseconds}");
+            if (verificationFailures.Count > 0)
+            {
+                var failedCells = string.Join(", ", verificationFailures.Select(index => $"Z{index}"));
+                StatusText = $"Запись кольца не подтверждена: {failedCells}";
+                RaiseUserMessage(
+                    "Запись не подтверждена",
+                    $"Кольцо подтвердило команды записи, но обратное чтение не совпало для: {failedCells}.\n\n" +
+                    "Повторите запись. Если ошибка повторится, переподключите кольцо.");
+                return;
+            }
+
+            var verifiedCells = verification.Cells
+                .Where(cell => cell.Index is >= 0 and < RingProtocolConstants.WorkingParameterCellCount)
+                .OrderBy(cell => cell.Index)
+                .ToArray();
+            ApplyRingCells(verifiedCells);
             RebuildLoopParametersFromRingRows();
             RecalculateLoopReferences();
             ClearResistanceBuffers();
             ClearResistanceCells();
-            StatusText = "Запись кольца прошла успешно";
+            AppLogger.WriteDiagnostic(
+                "RING_CALIBRATION",
+                "PARAMETERS_WRITE_COMPLETED",
+                $"correlation={correlation}|success=true|written={result.Cells.Count}|verified={verifiedCells.Length}|phase_reference_sets={_phaseReferences.Count}|resistivity_reference_sets={_resistivityReferences.Count}|elapsed_ms={stopwatch.ElapsedMilliseconds}");
+            StatusText = "Параметры кольца записаны и проверены";
+            RaiseUserMessage(
+                "Запись завершена",
+                $"В кольцо успешно записаны и проверены обратным чтением {verifiedCells.Length} рабочих ячеек.\n" +
+                "Служебные ячейки Z10…Z31 не изменялись.");
         }
         else
         {
             var failed = string.Join(", ", result.Cells.Where(cell => !cell.Success).Select(cell => $"Z{cell.Index}"));
-            StatusText = $"Ошибка записи кольца: {failed}";
+            AppLogger.WriteDiagnostic(
+                "RING_CALIBRATION",
+                "PARAMETERS_WRITE_FAILED",
+                $"correlation={correlation}|success=false|failed=[{failed}]|elapsed_ms={stopwatch.ElapsedMilliseconds}");
+            var failureDescription = string.IsNullOrWhiteSpace(failed) ? "нет ответа от кольца" : failed;
+            StatusText = $"Ошибка записи кольца: {failureDescription}";
+            RaiseUserMessage(
+                "Запись не выполнена",
+                $"Кольцо не подтвердило запись: {failureDescription}.\n\n" +
+                "Приложение уже выполнило повторные попытки. Проверьте соединение с кольцом.");
         }
     }
 
@@ -914,34 +1173,86 @@ public partial class MainPageViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void LocalAir()
+    private async Task LocalAirAsync()
     {
+        var airId = AppLogger.NextOperationId("ring-air");
+        var correlation = BuildDiagnosticCorrelation(airId);
         if (!IsConnected)
         {
+            AppLogger.WriteDiagnostic(
+                "RING_AIR",
+                "BLOCKED",
+                $"correlation={correlation}|reason=tool_not_connected");
             StatusText = "Подключите прибор";
             return;
         }
 
+        if (IsResistanceMeasurementRunning)
+        {
+            AppLogger.WriteDiagnostic(
+                "RING_AIR",
+                "BLOCKED",
+                $"correlation={correlation}|reason=measurement_running|measurement_run={_activeMeasurementRunId}");
+            StatusText = "Дождитесь завершения измерения сопротивления";
+            return;
+        }
+
+        bool isSet;
         lock (_airLock)
         {
-            if (!_localAir.IsSet)
+            isSet = _localAir.IsSet;
+        }
+        AppLogger.WriteDiagnostic(
+            "RING_AIR",
+            "REQUESTED",
+            $"correlation={correlation}|currently_set={isSet}|ring_connected={IsRingConnected}|ring_port_open={_ringPort.IsOpen}|selected_samples={SelectedFrameCount}|channels={_channelCount}");
+
+        if (!isSet)
+        {
+            if (IsRingConnected && _ringPort.IsOpen)
             {
-                if (IsRingConnected && _ringPort.IsOpen)
+                SetActiveMeasurementPoint(0, 0);
+                StatusText = "Отключение R/C перед сбором воздуха...";
+                var outcome = await Task.Run(() => RingConnection.SetMeasurementPoint(_ringPort, 0, 0, correlation));
+                if (!outcome.IsOk)
                 {
-                    SetActiveMeasurementPoint(0, 0);
-                    _ = Task.Run(() => RingConnection.SetMeasurementPoint(_ringPort, 0, 0));
+                    var reason = outcome.FailureReason ?? "Кольцо не подтвердило точку 0/0.";
+                    AppLogger.Write($"LOCAL_AIR: сбор не начат, сброс кольца 0/0 завершился ошибкой: {reason}");
+                    AppLogger.WriteDiagnostic(
+                        "RING_AIR",
+                        "RING_RESET_FAILED",
+                        $"correlation={correlation}|result={outcome.Result}|reason={SanitizeDiagnosticValue(reason)}");
+                    StatusText = $"Локальный воздух не запущен: {reason}";
+                    RaiseUserMessage(
+                        "Не удалось отключить меры кольца",
+                        $"Сбор локального воздуха не начат.\n\nПричина: {reason}");
+                    return;
                 }
 
-                _localAir.Begin(SelectedFrameCount);
-                RefreshLocalAirUi();
-                StatusText = "Сбор локального воздуха";
+                AppLogger.Write("LOCAL_AIR: кольцо подтвердило RES 0 / CAP 0, начинается сбор.");
+                AppLogger.WriteDiagnostic(
+                    "RING_AIR",
+                    "RING_RESET_ACKNOWLEDGED",
+                    $"correlation={correlation}|R=0|C=0");
             }
-            else
+
+            lock (_airLock)
             {
-                _localAir.RequestReset();
-                RefreshLocalAirUi();
-                StatusText = "Сброс локального воздуха";
+                _localAir.Begin(SelectedFrameCount, correlation);
             }
+
+            RefreshLocalAirUi();
+            StatusText = "Сбор локального воздуха";
+        }
+        else
+        {
+            lock (_airLock)
+            {
+                _localAir.RequestReset(correlation);
+            }
+
+            RefreshLocalAirUi();
+            StatusText = "Сброс локального воздуха";
         }
     }
 
@@ -1012,6 +1323,20 @@ public partial class MainPageViewModel : ObservableObject
         _rxPosition = metrology.RxPosition;
         _sondeParameters = MetrologyConverter.Convert(in _metrology);
         _channelCount = _sondeParameters.Count;
+        var metrologyId = AppLogger.NextOperationId("ring-metrology");
+        var correlation = BuildDiagnosticCorrelation(metrologyId);
+        AppLogger.WriteDiagnostic(
+            "RING_CALIBRATION",
+            "METROLOGY_APPLIED",
+            $"correlation={correlation}|signature=0x{metrology.Signature:X8}|serial={metrology.Serial}|work_type={metrology.WorkType}|rx_position={metrology.RxPosition}|diameter_mm={metrology.SondeDiameterMm}|channels={_channelCount}|tx={_channelCount / MetrologyConverter.FrequencyCount}");
+        for (var channel = 0; channel < _sondeParameters.Count; channel++)
+        {
+            var parameter = _sondeParameters[channel];
+            AppLogger.WriteDiagnostic(
+                "RING_CALIBRATION",
+                "METROLOGY_CHANNEL",
+                $"correlation={correlation}|channel={channel}|frequency_Hz={parameter.Frequency:G9}|L1_m={parameter.L1:G9}|L2_m={parameter.L2:G9}");
+        }
 
         ApplyIdentification(in _metrology);
         BuildChannels(_sondeParameters, in _metrology);
@@ -1216,8 +1541,8 @@ public partial class MainPageViewModel : ObservableObject
 
     private IReadOnlyList<RingLoopParameterCell> BuildRingWriteCells()
     {
-        var cells = new List<RingLoopParameterCell>(RingProtocolConstants.LoopParameterCellCount);
-        for (var index = 0; index < RingProtocolConstants.LoopParameterCellCount; index++)
+        var cells = new List<RingLoopParameterCell>(RingProtocolConstants.WorkingParameterCellCount);
+        for (var index = 0; index < RingProtocolConstants.WorkingParameterCellCount; index++)
         {
             var row = index < RingCalibrationRows.Count ? RingCalibrationRows[index] : null;
             var defaultResistance = index == 0 ? 1f : 0f;
@@ -1234,25 +1559,67 @@ public partial class MainPageViewModel : ObservableObject
                 resistance = (float)parsedResistance;
             }
 
-            var reactanceText = row is null
-                ? string.Empty
-                : string.IsNullOrWhiteSpace(row.ReactanceMeasuredText)
-                    ? row.ReactanceCalculatedText
-                    : row.ReactanceMeasuredText;
-            if (!string.IsNullOrWhiteSpace(reactanceText))
+            if (row is not null &&
+                !string.IsNullOrWhiteSpace(row.ReactanceMeasuredText) &&
+                !TryParseDouble(row.ReactanceMeasuredText, out _))
             {
-                if (!TryParseDouble(reactanceText, out var parsedReactance))
-                {
-                    throw new FormatException($"Некорректное Re в Z{index}");
-                }
+                throw new FormatException($"Некорректное Re meas в Z{index}");
+            }
 
-                reactance = (float)parsedReactance;
+            var measuredReactance = 0d;
+            var calculatedReactance = 0d;
+            var hasMeasuredReactance =
+                row is not null &&
+                TryParseDouble(row.ReactanceMeasuredText, out measuredReactance) &&
+                measuredReactance > 0.000001;
+            var hasCalculatedReactance =
+                row is not null &&
+                TryParseDouble(row.ReactanceCalculatedText, out calculatedReactance) &&
+                calculatedReactance > 0.000001;
+            if (hasMeasuredReactance)
+            {
+                reactance = (float)measuredReactance;
+            }
+            else if (hasCalculatedReactance)
+            {
+                reactance = (float)calculatedReactance;
+            }
+            else
+            {
+                throw new InvalidOperationException(
+                    $"Для Z{index} не задано Re meas и нет расчётного RE_calc. Нажмите «Рассчитать».");
             }
 
             cells.Add(new RingLoopParameterCell(index, resistance, reactance, true));
         }
 
         return cells;
+    }
+
+    private static IReadOnlyList<int> GetRingWriteVerificationFailures(
+        IReadOnlyList<RingLoopParameterCell> expectedCells,
+        IReadOnlyList<RingLoopParameterCell> actualCells)
+    {
+        var actualByIndex = actualCells.ToDictionary(cell => cell.Index);
+        var failed = new List<int>();
+        foreach (var expected in expectedCells)
+        {
+            if (!actualByIndex.TryGetValue(expected.Index, out var actual) ||
+                !actual.HasValue ||
+                !RingMemoryValueMatches(expected.Resistance, actual.Resistance) ||
+                !RingMemoryValueMatches(expected.Reactance, actual.Reactance))
+            {
+                failed.Add(expected.Index);
+            }
+        }
+
+        return failed;
+    }
+
+    private static bool RingMemoryValueMatches(float expected, float actual)
+    {
+        var tolerance = Math.Max(0.0001f, Math.Abs(expected) * 0.00001f);
+        return Math.Abs(expected - actual) <= tolerance;
     }
 
     private void ApplyRingCells(IReadOnlyList<RingLoopParameterCell> cells)
@@ -1292,12 +1659,32 @@ public partial class MainPageViewModel : ObservableObject
 
     private void RecalculateLoopReferences()
     {
+        var calculationId = AppLogger.NextOperationId("ring-reference-calc");
+        var correlation = BuildDiagnosticCorrelation(calculationId);
+        var stopwatch = Stopwatch.StartNew();
         var sondeParameters = GetRingCalculationParameters();
+        AppLogger.WriteDiagnostic(
+            "RING_CALC",
+            "REFERENCES_BEGIN",
+            $"correlation={correlation}|sonde_parameters={sondeParameters.Count}|loop_parameters={_loopParameters.Count}|channels={_channelCount}");
         if (sondeParameters.Count == 0 || _loopParameters.Count == 0)
         {
             _phaseReferences = Array.Empty<V10>();
             _resistivityReferences = Array.Empty<V10>();
+            AppLogger.WriteDiagnostic(
+                "RING_CALC",
+                "REFERENCES_SKIPPED",
+                $"correlation={correlation}|reason={(sondeParameters.Count == 0 ? "no_sonde_parameters" : "no_loop_parameters")}|elapsed_ms={stopwatch.ElapsedMilliseconds}");
             return;
+        }
+
+        for (var index = 0; index < _loopParameters.Count; index++)
+        {
+            var parameter = _loopParameters[index];
+            AppLogger.WriteDiagnostic(
+                "RING_CALC",
+                "REFERENCE_INPUT",
+                $"correlation={correlation}|index={index}|resistance={parameter.Resistance:G9}|reactance={parameter.Reactance:G9}|radius={parameter.Radius:G9}|additional_wire_resistance={parameter.AdditionalWireResistance:G9}");
         }
 
         _phaseReferences = LoopResistivity.CalcPhaseFromLoop(sondeParameters, _loopParameters);
@@ -1309,7 +1696,19 @@ public partial class MainPageViewModel : ObservableObject
             var reference = _resistivityReferences[i];
             var values = string.Join(", ", Enumerable.Range(0, Math.Min(_channelCount, V10.ChannelCount)).Select(c => $"[{c}]={reference.GetValue(c):F2}"));
             AppLogger.Write($"R{i}: эталонные УЭС={values}");
+            var phaseValues = i < _phaseReferences.Count
+                ? FormatV10Diagnostic(_phaseReferences[i], _channelCount, (float)PhysicalConstants.Milligrad, "F3")
+                : "none";
+            var resistivityValues = FormatV10Diagnostic(reference, _channelCount, 1f, "F3");
+            AppLogger.WriteDiagnostic(
+                "RING_CALC",
+                "REFERENCE_SET",
+                $"correlation={correlation}|R={i}|phase_mG=[{phaseValues}]|resistivity_ohm_m=[{resistivityValues}]");
         }
+        AppLogger.WriteDiagnostic(
+            "RING_CALC",
+            "REFERENCES_COMPLETED",
+            $"correlation={correlation}|phase_sets={_phaseReferences.Count}|resistivity_sets={_resistivityReferences.Count}|elapsed_ms={stopwatch.ElapsedMilliseconds}");
     }
 
     private static bool TryGetResistanceIndex(object? parameter, out int resistanceIndex)
@@ -1332,9 +1731,19 @@ public partial class MainPageViewModel : ObservableObject
 
     private async Task<bool> PrepareResistanceMeasurementAsync(string modeName)
     {
+        var preparationId = AppLogger.NextOperationId("measurement-prepare");
+        var correlation = BuildDiagnosticCorrelation(preparationId);
+        AppLogger.WriteDiagnostic(
+            "RING_MEASUREMENT",
+            "PREPARE_BEGIN",
+            $"correlation={correlation}|mode={SanitizeDiagnosticValue(modeName)}|tool_connected={IsConnected}|ring_connected={IsRingConnected}|ring_port_open={_ringPort.IsOpen}|local_air_set={IsLocalAirSet()}|loop_parameters={_loopParameters.Count}|phase_reference_sets={_phaseReferences.Count}|resistivity_reference_sets={_resistivityReferences.Count}|channels={_channelCount}");
         if (!IsConnected || !IsRingConnected || !_ringPort.IsOpen)
         {
             AppLogger.Write($"{modeName}: прибор или кольцо не подключены.");
+            AppLogger.WriteDiagnostic(
+                "RING_MEASUREMENT",
+                "PREPARE_BLOCKED",
+                $"correlation={correlation}|reason=connection_state|tool_connected={IsConnected}|ring_connected={IsRingConnected}|ring_port_open={_ringPort.IsOpen}");
             StatusText = $"{modeName}: подключите прибор и кольцо";
             return false;
         }
@@ -1343,6 +1752,10 @@ public partial class MainPageViewModel : ObservableObject
         {
             const string message = "Сначала соберите локальный воздух, затем повторите заполнение таблицы.";
             AppLogger.Write($"{modeName}: запуск заблокирован, локальный воздух не задан.");
+            AppLogger.WriteDiagnostic(
+                "RING_MEASUREMENT",
+                "PREPARE_BLOCKED",
+                $"correlation={correlation}|reason=local_air_not_set");
             StatusText = $"{modeName}: соберите локальный воздух";
             RaiseUserMessage("Локальный воздух не задан", message);
             return false;
@@ -1357,10 +1770,18 @@ public partial class MainPageViewModel : ObservableObject
         if (_channelCount <= 0 || _resistivityReferences.Count <= MeasurementTable.ResistanceCount)
         {
             AppLogger.Write($"{modeName}: нет расчётных эталонов кольца.");
+            AppLogger.WriteDiagnostic(
+                "RING_MEASUREMENT",
+                "PREPARE_BLOCKED",
+                $"correlation={correlation}|reason=reference_data_missing|channels={_channelCount}|phase_reference_sets={_phaseReferences.Count}|resistivity_reference_sets={_resistivityReferences.Count}|required_sets={MeasurementTable.ResistanceCount + 1}");
             StatusText = $"{modeName}: нет расчётных эталонов кольца";
             return false;
         }
 
+        AppLogger.WriteDiagnostic(
+            "RING_MEASUREMENT",
+            "PREPARE_COMPLETED",
+            $"correlation={correlation}|loop_parameters={_loopParameters.Count}|phase_reference_sets={_phaseReferences.Count}|resistivity_reference_sets={_resistivityReferences.Count}|channels={_channelCount}");
         return true;
     }
 
@@ -1374,51 +1795,98 @@ public partial class MainPageViewModel : ObservableObject
 
     private async Task<bool> RunResistanceMeasurementAsync(int resistanceIndex, string modeName, CancellationToken token)
     {
-        var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         ClearResistanceCells(resistanceIndex);
         ClearResistanceBuffer(resistanceIndex);
+        AppLogger.WriteDiagnostic(
+            "RING_MEASUREMENT",
+            "RESISTANCE_BEGIN",
+            $"run={_activeMeasurementRunId}|R={resistanceIndex}|mode={SanitizeDiagnosticValue(modeName)}|channel_count={_channelCount}|express={ExpressMode}|scan_strategy={RingMeasurementSequence.GetStrategyName(ExpressMode, resistanceIndex)}");
 
-        lock (_autoLock)
+        for (var capacitanceIndex = 1;
+             capacitanceIndex <= _channelCount;
+             capacitanceIndex = GetNextCapacitanceIndex(resistanceIndex, capacitanceIndex))
         {
-            _autoMeasurementCompleteTcs = tcs;
-            SetActiveMeasurementPoint(resistanceIndex, 1);
-        }
+            var pointId = AppLogger.NextOperationId("measurement-point");
+            var pointCorrelation = $"{_activeMeasurementRunId}:{pointId}";
+            var pointStopwatch = Stopwatch.StartNew();
+            var activeChannels = GetActiveMeasurementChannels(resistanceIndex, capacitanceIndex, _channelCount).ToArray();
+            var expectedPhysicalCapacitance = RingMeasurementSequence.GetExpectedPhysicalCapacitance(
+                _channelCount,
+                capacitanceIndex);
+            token.ThrowIfCancellationRequested();
+            SetActiveMeasurementPoint(0, 0);
+            AppLogger.WriteDiagnostic(
+                "RING_MEASUREMENT",
+                "POINT_PREPARE",
+                $"run={_activeMeasurementRunId}|point={pointCorrelation}|R={resistanceIndex}|logical_C={capacitanceIndex}|firmware_expected_physical_C={expectedPhysicalCapacitance}|mapping_owner=ring_firmware|scan_strategy={RingMeasurementSequence.GetStrategyName(ExpressMode, resistanceIndex)}|active_channels=[{string.Join(",", activeChannels)}]|skip_frames={MeasurementSkipFrames}|averaging={SelectedAveraging}|delay_before_command_ms=200");
 
-        StatusText = $"{modeName}: R{resistanceIndex}, C1";
-        LogCapMap(resistanceIndex, 1);
-        AppLogger.Write($"{modeName}: задержка 200 мс перед установкой R{resistanceIndex}/C1 (как в R_Click).");
-        await Task.Delay(200, token);
+            StatusText = $"{modeName}: R{resistanceIndex}, C{capacitanceIndex}";
+            LogCapMap(resistanceIndex, capacitanceIndex);
+            AppLogger.Write(
+                $"{modeName}: задержка 200 мс перед установкой R{resistanceIndex}/C{capacitanceIndex} (как в R_Click).");
+            await Task.Delay(200, token);
 
-        AppLogger.Write($"{modeName}: установка R{resistanceIndex}/C1...");
-        var outcome = await Task.Run(
-            () => RingConnection.SetMeasurementPoint(_ringPort, resistanceIndex, 1),
-            token);
-        if (!outcome.IsOk)
-        {
-            var reason = outcome.FailureReason ?? $"Кольцо не ответило ({outcome.Result}).";
-            AppLogger.Write($"{modeName}: ошибка установки R{resistanceIndex}/C1 ({outcome.Result}): {reason}");
-            StatusText = $"{modeName} остановлен: {reason}";
-            lock (_autoLock)
+            AppLogger.Write($"{modeName}: установка R{resistanceIndex}/C{capacitanceIndex}...");
+            var outcome = await Task.Run(
+                () => RingConnection.SetMeasurementPoint(_ringPort, resistanceIndex, capacitanceIndex, pointCorrelation),
+                token);
+            if (!outcome.IsOk)
             {
-                _autoMeasurementCompleteTcs = null;
-                SetActiveMeasurementPoint(0, 0);
+                _diagnosticFailedPoints++;
+                var reason = outcome.FailureReason ?? $"Кольцо не ответило ({outcome.Result}).";
+                AppLogger.Write(
+                    $"{modeName}: ошибка установки R{resistanceIndex}/C{capacitanceIndex} ({outcome.Result}): {reason}");
+                AppLogger.WriteDiagnostic(
+                    "RING_MEASUREMENT",
+                    "POINT_FAILED",
+                    $"run={_activeMeasurementRunId}|point={pointCorrelation}|R={resistanceIndex}|C={capacitanceIndex}|result={outcome.Result}|reason={SanitizeDiagnosticValue(reason)}|elapsed_ms={pointStopwatch.ElapsedMilliseconds}");
+                StatusText = $"{modeName} остановлен: {reason}";
+                lock (_autoLock)
+                {
+                    _autoMeasurementCompleteTcs = null;
+                    SetActiveMeasurementPoint(0, 0);
+                }
+
+                RaiseUserMessage(
+                    "Не удалось установить точку на кольце",
+                    $"{modeName} остановлен на точке R{resistanceIndex}/C{capacitanceIndex}.\n\n" +
+                    $"Причина: {reason}\n\n" +
+                    $"Проверьте питание и подключение кольца (порт {_ringPort.PortName}), затем переподключите кольцо и повторите.");
+                return false;
             }
 
-            RaiseUserMessage(
-                "Не удалось установить точку на кольце",
-                $"{modeName} остановлен на точке R{resistanceIndex}.\n\nПричина: {reason}\n\n" +
-                $"Проверьте питание и подключение кольца (порт {_ringPort.PortName}), затем переподключите кольцо и повторите.");
-            return false;
-        }
+            // Счётчик кадров активируется только после подтверждения RES/CAP.
+            // Поэтому ни один кадр старой позиции не попадёт в новую точку.
+            var pointCompleteTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            lock (_autoLock)
+            {
+                _autoMeasurementCompleteTcs = pointCompleteTcs;
+                SetActiveMeasurementPoint(resistanceIndex, capacitanceIndex, pointCorrelation);
+            }
 
-        AppLogger.Write($"{modeName}: R{resistanceIndex}/C1 установлен, ожидание усреднения кадров...");
-        using (token.Register(() => tcs.TrySetCanceled(token)))
-        {
-            await tcs.Task;
+            AppLogger.Write(
+                $"{modeName}: R{resistanceIndex}/C{capacitanceIndex} подтверждён кольцом, ожидание усреднения кадров...");
+            AppLogger.WriteDiagnostic(
+                "RING_MEASUREMENT",
+                "POINT_ACKNOWLEDGED",
+                $"run={_activeMeasurementRunId}|point={pointCorrelation}|R={resistanceIndex}|C={capacitanceIndex}|active_channels=[{string.Join(",", activeChannels)}]|elapsed_ms={pointStopwatch.ElapsedMilliseconds}");
+            using (token.Register(() => pointCompleteTcs.TrySetCanceled(token)))
+            {
+                await pointCompleteTcs.Task;
+            }
+            _diagnosticCompletedPoints++;
+            AppLogger.WriteDiagnostic(
+                "RING_MEASUREMENT",
+                "POINT_COMPLETED",
+                $"run={_activeMeasurementRunId}|point={pointCorrelation}|R={resistanceIndex}|C={capacitanceIndex}|required_frames={MeasurementSkipFrames + SelectedAveraging}|active_channels=[{string.Join(",", activeChannels)}]|cells=[{FormatResistanceCellsDiagnostic(resistanceIndex, activeChannels)}]|elapsed_ms={pointStopwatch.ElapsedMilliseconds}");
         }
 
         RefreshReportSelectionForResistance(resistanceIndex);
         AppLogger.Write($"{modeName}: R{resistanceIndex} измерено.");
+        AppLogger.WriteDiagnostic(
+            "RING_MEASUREMENT",
+            "RESISTANCE_COMPLETED",
+            $"run={_activeMeasurementRunId}|R={resistanceIndex}|selected_for_report={IsReportResistanceSelected(resistanceIndex)}|cells=[{FormatResistanceColumnDiagnostic(resistanceIndex)}]");
         return true;
     }
 
@@ -1435,6 +1903,8 @@ public partial class MainPageViewModel : ObservableObject
         _autoCts = new CancellationTokenSource();
         var token = _autoCts.Token;
         IsResistanceMeasurementRunning = true;
+        var diagnosticRun = BeginMeasurementDiagnosticRun("auto", null);
+        var diagnosticStatus = "failed";
 
         ClearResistanceCells();
         ClearResistanceBuffers();
@@ -1461,9 +1931,11 @@ public partial class MainPageViewModel : ObservableObject
             }
 
             AppLogger.Write("=== РЕЖИМ АВТО ЗАВЕРШЁН УСПЕШНО ===");
+            diagnosticStatus = "completed";
         }
         catch (OperationCanceledException)
         {
+            diagnosticStatus = "cancelled";
             AppLogger.Write("Режим АВТО: отменён пользователем.");
             StatusText = "Режим АВТО остановлен";
         }
@@ -1478,7 +1950,9 @@ public partial class MainPageViewModel : ObservableObject
             if (_ringPort.IsOpen)
             {
                 AppLogger.Write("Режим АВТО: сброс кольца в 0/0.");
-                await Task.Run(() => RingConnection.SetMeasurementPoint(_ringPort, 0, 0), CancellationToken.None);
+                await Task.Run(
+                    () => RingConnection.SetMeasurementPoint(_ringPort, 0, 0, diagnosticRun),
+                    CancellationToken.None);
             }
 
             if (IsAutoMode)
@@ -1487,15 +1961,15 @@ public partial class MainPageViewModel : ObservableObject
             }
 
             IsResistanceMeasurementRunning = false;
+            EndMeasurementDiagnosticRun(diagnosticRun, diagnosticStatus);
         }
     }
 
-    // Метод переводит автоцикл к следующей ёмкости или завершает измерение текущего R.
+    // Завершает сбор текущей подтверждённой точки. Следующая команда кольцу
+    // отправляется только ожидающим async-циклом RunResistanceMeasurementAsync.
     private void AdvanceAutoMeasurement()
     {
         TaskCompletionSource<bool>? tcsToComplete = null;
-        int nextR = 0;
-        int nextC = 0;
 
         lock (_autoLock)
         {
@@ -1513,46 +1987,30 @@ public partial class MainPageViewModel : ObservableObject
 
                 var requiredFrames = MeasurementSkipFrames + SelectedAveraging;
                 AppLogger.Write($"АВТО: R={_activeResistanceIndex}, C={_activeCapacitanceIndex}, кадр={_activeMeasurementFrameCount}/{requiredFrames}");
+                AppLogger.WriteDiagnostic(
+                    "RING_MEASUREMENT",
+                    "POINT_FRAME_PROGRESS",
+                    $"run={_activeMeasurementRunId}|R={_activeResistanceIndex}|C={_activeCapacitanceIndex}|frame={_activeMeasurementFrameCount}|required_frames={requiredFrames}|stage={(_activeMeasurementFrameCount <= MeasurementSkipFrames ? "settling" : "averaging")}");
 
                 if (_activeMeasurementFrameCount < requiredFrames)
                 {
                     return;
                 }
 
-                nextC = GetNextCapacitanceIndex(_activeResistanceIndex, _activeCapacitanceIndex);
-                if (nextC > _channelCount)
-                {
-                    AppLogger.Write($"АВТО: измерение R={_activeResistanceIndex} завершено (пройдены C=1..{_channelCount}).");
-                    tcsToComplete = _autoMeasurementCompleteTcs;
-                    _autoMeasurementCompleteTcs = null;
-                    SetActiveMeasurementPoint(0, 0);
-                }
-                else
-                {
-                    nextR = _activeResistanceIndex;
-                    AppLogger.Write($"АВТО: переход к C={nextC} внутри R={nextR}.");
-                    StatusText = $"Режим АВТО: R{nextR}, C{nextC}";
-                    SetActiveMeasurementPoint(nextR, nextC);
-                }
+                AppLogger.Write(
+                    $"АВТО: сбор R={_activeResistanceIndex}, C={_activeCapacitanceIndex} завершён; " +
+                    "ожидается подтверждённое переключение следующей точки.");
+                AppLogger.WriteDiagnostic(
+                    "RING_MEASUREMENT",
+                    "POINT_FRAME_TARGET_REACHED",
+                    $"run={_activeMeasurementRunId}|R={_activeResistanceIndex}|C={_activeCapacitanceIndex}|frames={_activeMeasurementFrameCount}|required_frames={requiredFrames}");
+                tcsToComplete = _autoMeasurementCompleteTcs;
+                _autoMeasurementCompleteTcs = null;
+                SetActiveMeasurementPoint(0, 0);
             }
         }
 
-        if (tcsToComplete is not null)
-        {
-            tcsToComplete.TrySetResult(true);
-            return;
-        }
-
-        if (nextR > 0 && nextC > 0)
-        {
-            LogCapMap(nextR, nextC);
-            _ = Task.Run(() =>
-            {
-                AppLogger.Write($"AUTO_SWITCH_SEND: R={nextR}, C={nextC}, command_RES={nextR}, command_CAP={nextC}");
-                var outcome = RingConnection.SetMeasurementPoint(_ringPort, nextR, nextC);
-                AppLogger.Write($"AUTO_SWITCH_RESULT: R={nextR}, C={nextC}, result={outcome.Result}, reason={outcome.FailureReason}");
-            });
-        }
+        tcsToComplete?.TrySetResult(true);
     }
 
     private void StartPolling()
@@ -1618,6 +2076,7 @@ public partial class MainPageViewModel : ObservableObject
 
                     var resistivity = LoopResistivity.RoDfi(_sondeParameters, corrected);
                     AppLogger.Write("Вычислены УЭС по скорректированным фазам.");
+                    LogRingFramePipeline(frame.RawPhases, frame.Phases, air, corrected, resistivity, _frameCounter + 1, frame.Temperature);
 
                     _frameCounter++;
                     DispatchFrame(frame.Phases, air, corrected, resistivity, _frameCounter, frame.Temperature);
@@ -1646,6 +2105,43 @@ public partial class MainPageViewModel : ObservableObject
         var count = Math.Min(channelCount, V10.ChannelCount);
         var values = string.Join(", ", Enumerable.Range(0, count).Select(i => $"[{i}]={(phases.GetValue(i) * PhysicalConstants.Milligrad):F1}"));
         AppLogger.Write($"{header} (мГ): {values}");
+    }
+
+    private void LogRingFramePipeline(
+        V10 raw,
+        V10 oriented,
+        V10 air,
+        V10 corrected,
+        V10 resistivity,
+        int globalFrame,
+        float temperature)
+    {
+        var active = GetActiveMeasurementSnapshot();
+        var pointFrame = active.ResistanceIndex > 0 && active.CapacitanceIndex > 0
+            ? active.FrameIndex + 1
+            : 0;
+        var workflow = CurrentRingWorkflowId;
+        var run = _activeMeasurementRunId;
+        AppLogger.WriteDiagnostic(
+            "RING_FRAME",
+            "RAW_DELTA_NORMALIZED",
+            $"workflow={workflow}|run={run}|point={active.PointId}|global_frame={globalFrame}|point_frame={pointFrame}|R={active.ResistanceIndex}|C={active.CapacitanceIndex}|temperature_C={temperature:F3}|values_mG=[{FormatV10Diagnostic(raw, _channelCount, (float)PhysicalConstants.Milligrad, "F3")}]");
+        AppLogger.WriteDiagnostic(
+            "RING_FRAME",
+            "ORIENTED_BEFORE_AIR",
+            $"workflow={workflow}|run={run}|point={active.PointId}|global_frame={globalFrame}|point_frame={pointFrame}|R={active.ResistanceIndex}|C={active.CapacitanceIndex}|rx_position={_rxPosition}|values_mG=[{FormatV10Diagnostic(oriented, _channelCount, (float)PhysicalConstants.Milligrad, "F3")}]");
+        AppLogger.WriteDiagnostic(
+            "RING_FRAME",
+            "LOCAL_AIR",
+            $"workflow={workflow}|run={run}|point={active.PointId}|global_frame={globalFrame}|point_frame={pointFrame}|R={active.ResistanceIndex}|C={active.CapacitanceIndex}|is_set={IsLocalAirSet()}|values_mG=[{FormatV10Diagnostic(air, _channelCount, (float)PhysicalConstants.Milligrad, "F3")}]");
+        AppLogger.WriteDiagnostic(
+            "RING_FRAME",
+            "CORRECTED_AFTER_AIR",
+            $"workflow={workflow}|run={run}|point={active.PointId}|global_frame={globalFrame}|point_frame={pointFrame}|R={active.ResistanceIndex}|C={active.CapacitanceIndex}|values_mG=[{FormatV10Diagnostic(corrected, _channelCount, (float)PhysicalConstants.Milligrad, "F3")}]");
+        AppLogger.WriteDiagnostic(
+            "RING_FRAME",
+            "RESISTIVITY",
+            $"workflow={workflow}|run={run}|point={active.PointId}|global_frame={globalFrame}|point_frame={pointFrame}|R={active.ResistanceIndex}|C={active.CapacitanceIndex}|values_ohm_m=[{FormatV10Diagnostic(resistivity, _channelCount, 1f, "F3")}]");
     }
 
     private void DispatchFrame(V10 oriented, V10 air, V10 corrected, V10 resistivity, int frameNumber, float temperature)
@@ -1861,6 +2357,10 @@ public partial class MainPageViewModel : ObservableObject
             $"top_abs_phase=[{string.Join("; ", topChannels)}], " +
             $"low_group={FormatPhaseGroupDiagnostic("low", lowChannels, resistivity, corrected)}, " +
             $"high_group={FormatPhaseGroupDiagnostic("high", highChannels, resistivity, corrected)}");
+        AppLogger.WriteDiagnostic(
+            "RING_FRAME",
+            "MEASUREMENT_DIAGNOSTIC",
+            $"workflow={CurrentRingWorkflowId}|run={_activeMeasurementRunId}|global_frame={_frameCounter}|R={resistanceIndex}|C={capacitanceIndex}|point_frame={frameIndex}|skip_frames={MeasurementSkipFrames}|averaging={SelectedAveraging}|expected_channel={expectedChannel}|active_channels=[{string.Join(",", activeChannels)}]|expected={FormatChannelRuntimeDiagnostic(resistivity, corrected, resistanceIndex, expectedChannel)}|top_abs_phase=[{string.Join("; ", topChannels)}]|low_group={FormatPhaseGroupDiagnostic("low", lowChannels, resistivity, corrected)}|high_group={FormatPhaseGroupDiagnostic("high", highChannels, resistivity, corrected)}");
     }
 
     private string FormatPhaseGroupDiagnostic(
@@ -1914,40 +2414,25 @@ public partial class MainPageViewModel : ObservableObject
 
     private int GetNextCapacitanceIndex(int resistanceIndex, int capacitanceIndex)
     {
-        if (ExpressMode)
-        {
-            return capacitanceIndex + GetExpressGroupSize(_channelCount);
-        }
-
-        return capacitanceIndex + 1;
+        return RingMeasurementSequence.GetNextLogicalCapacitance(
+            ExpressMode,
+            resistanceIndex,
+            capacitanceIndex,
+            _channelCount);
     }
 
     private IEnumerable<int> GetActiveMeasurementChannels(int resistanceIndex, int capacitanceIndex, int channelCount)
     {
-        var start = capacitanceIndex - 1;
-        if (start < 0 || start >= channelCount)
-        {
-            yield break;
-        }
-
-        if (ExpressMode)
-        {
-            var groupSize = GetExpressGroupSize(channelCount);
-            var end = Math.Min(channelCount, start + groupSize);
-            for (var channel = start; channel < end; channel++)
-            {
-                yield return channel;
-            }
-
-            yield break;
-        }
-
-        yield return start;
+        return RingMeasurementSequence.GetActiveChannels(
+            ExpressMode,
+            resistanceIndex,
+            capacitanceIndex,
+            channelCount);
     }
 
     private static int GetExpressGroupSize(int channelCount)
     {
-        return Math.Max(1, channelCount / 2);
+        return RingMeasurementSequence.GetExpressGroupSize(channelCount);
     }
 
     private void UpdateReferenceResistanceCellForChannel(
@@ -1990,6 +2475,10 @@ public partial class MainPageViewModel : ObservableObject
             $"buffer_count={bufferCount}, averaging_limit={Math.Clamp(SelectedAveraging, 1, 20)}, " +
             $"value_percent={percent:F1}, averaged_percent={averaged:F1}, " +
             $"cell={FormatChannelRuntimeDiagnostic(resistivity, corrected, resistanceIndex, channelIndex)}");
+        AppLogger.WriteDiagnostic(
+            "RING_CELL",
+            "SAMPLE_WRITTEN",
+            $"workflow={CurrentRingWorkflowId}|run={_activeMeasurementRunId}|R={resistanceIndex}|C={capacitanceIndex}|channel={channelIndex}|point_frame={frameIndex}|buffer_count={bufferCount}|averaging_limit={Math.Clamp(SelectedAveraging, 1, 20)}|phase_reference_mG={referencePhase * PhysicalConstants.Milligrad:F3}|phase_measured_mG={measuredPhase * PhysicalConstants.Milligrad:F3}|sample_percent={percent:F3}|averaged_percent={averaged:F3}|reference_resistivity={referenceValue:F3}|measured_resistivity={measuredValue:F3}|quality={MeasurementCell.Create(averaged, ThresholdPercent).Quality}");
         ResistanceRows[channelIndex].SetResistanceCell(
             resistanceIndex,
             MeasurementCell.Create(averaged, ThresholdPercent));
@@ -2078,14 +2567,24 @@ public partial class MainPageViewModel : ObservableObject
         SetReportResistanceSelected(resistanceIndex, false);
     }
 
-    private void SetActiveMeasurementPoint(int resistanceIndex, int capacitanceIndex)
+    private void SetActiveMeasurementPoint(
+        int resistanceIndex,
+        int capacitanceIndex,
+        string? diagnosticPointId = null)
     {
         lock (_measurementLock)
         {
             _activeResistanceIndex = resistanceIndex;
             _activeCapacitanceIndex = capacitanceIndex;
             _activeMeasurementFrameCount = 0;
+            _activeMeasurementPointId = resistanceIndex > 0 && capacitanceIndex > 0
+                ? diagnosticPointId ?? "unassigned"
+                : "none";
             AppLogger.Write($"ACTIVE_POINT: R={resistanceIndex}, C={capacitanceIndex}, frameCounter сброшен.");
+            AppLogger.WriteDiagnostic(
+                "RING_MEASUREMENT",
+                "ACTIVE_POINT_CHANGED",
+                $"workflow={CurrentRingWorkflowId}|run={_activeMeasurementRunId}|point={_activeMeasurementPointId}|R={resistanceIndex}|C={capacitanceIndex}|frame_counter=0");
         }
     }
 
@@ -2105,6 +2604,10 @@ public partial class MainPageViewModel : ObservableObject
 
     private void NotifyReportBlocked(string message)
     {
+        AppLogger.WriteDiagnostic(
+            "RING_REPORT",
+            "BLOCKED",
+            $"workflow={CurrentRingWorkflowId}|measurement_run={_activeMeasurementRunId}|reason={SanitizeDiagnosticValue(message)}");
         StatusText = "Рапорт не сформирован";
         RaiseUserMessage("Рапорт не сформирован", message);
     }
@@ -2312,10 +2815,10 @@ public partial class MainPageViewModel : ObservableObject
         return (ushort)scaled;
     }
 
-    private static (string FrequencyLabel, int TxIndex) GetChannelFrequencyAndTx(int channelIndex)
+    private (string FrequencyLabel, int TxIndex) GetChannelFrequencyAndTx(int channelIndex)
     {
-        const int transmitterCount = 5;
-        var halfCount = (V10.ChannelCount + 1) / 2;
+        var transmitterCount = Math.Max(1, _channelCount / MetrologyConverter.FrequencyCount);
+        var halfCount = transmitterCount;
         var freqLabel = channelIndex < halfCount ? "400kHz" : "2000kHz";
         var txIndex = channelIndex % halfCount;
         if (txIndex >= transmitterCount)
@@ -2347,7 +2850,108 @@ public partial class MainPageViewModel : ObservableObject
             $"CAP_MAP_DIAG: R={resistanceIndex}, C={capacitanceIndex}, command_RES={resistanceIndex}, command_CAP={capacitanceIndex}, " +
             $"expected_channel={channelIndex}, expected={FormatChannelReferenceDiagnostic(resistanceIndex, channelIndex)}, " +
             $"all_reference_phase_mG=[{FormatAllReferencePhases(resistanceIndex)}]");
+        AppLogger.WriteDiagnostic(
+            "RING_MEASUREMENT",
+            "CAP_MAPPING",
+            $"workflow={CurrentRingWorkflowId}|run={_activeMeasurementRunId}|R={resistanceIndex}|logical_C={capacitanceIndex}|firmware_expected_physical_C={RingMeasurementSequence.GetExpectedPhysicalCapacitance(_channelCount, capacitanceIndex)}|mapping_owner=ring_firmware|channel={channelIndex}|frequency={freqLabel}|tx={txIndex}|reactance={reactance:F6}|reference_phase_mG={referencePhase * PhysicalConstants.Milligrad:F3}|reference_resistivity={referenceResistivity:F3}|all_reference_phase_mG=[{FormatAllReferencePhases(resistanceIndex)}]");
     }
+
+    private string BeginMeasurementDiagnosticRun(string mode, int? resistanceIndex)
+    {
+        var runId = AppLogger.NextOperationId("ring-measurement");
+        var run = BuildDiagnosticCorrelation(runId);
+        _activeMeasurementRunId = run;
+        _activeMeasurementRunStartedTimestamp = Stopwatch.GetTimestamp();
+        _diagnosticCompletedPoints = 0;
+        _diagnosticFailedPoints = 0;
+
+        V10 air;
+        lock (_airLock)
+        {
+            air = _localAir.Air;
+        }
+
+        AppLogger.WriteDiagnostic(
+            "RING_MEASUREMENT",
+            "RUN_BEGIN",
+            $"workflow={CurrentRingWorkflowId}|run={run}|mode={mode}|requested_R={resistanceIndex?.ToString(CultureInfo.InvariantCulture) ?? "all"}|tool_signature=0x{_metrology.Signature:X8}|tool_serial={_metrology.Serial}|tx={_channelCount / MetrologyConverter.FrequencyCount}|channels={_channelCount}|rx_position={_rxPosition}|ring_profile={_ringDeviceInfo.ProtocolVersion}|ring_signature={_ringDeviceInfo.Signature?.ToString(CultureInfo.InvariantCulture) ?? "none"}|ring_memory_cells={_ringDeviceInfo.ImpedanceCellCount}|skip_frames={MeasurementSkipFrames}|averaging={SelectedAveraging}|threshold_percent={ThresholdPercent}|express={ExpressMode}|express_full_scan_R_max={RingMeasurementSequence.ExpressFullScanResistanceLimit}|express_group_size={GetExpressGroupSize(_channelCount)}|poll_interval_ms={PollIntervalMs:F0}|local_air_mG=[{FormatV10Diagnostic(air, _channelCount, (float)PhysicalConstants.Milligrad, "F3")}]");
+        return run;
+    }
+
+    private void EndMeasurementDiagnosticRun(string run, string status)
+    {
+        var elapsed = _activeMeasurementRunStartedTimestamp == 0
+            ? TimeSpan.Zero
+            : Stopwatch.GetElapsedTime(_activeMeasurementRunStartedTimestamp);
+        var selected = GetSelectedReportResistances();
+        AppLogger.WriteDiagnostic(
+            "RING_MEASUREMENT",
+            "RUN_COMPLETED",
+            $"workflow={CurrentRingWorkflowId}|run={run}|status={status}|completed_points={_diagnosticCompletedPoints}|failed_points={_diagnosticFailedPoints}|selected_report_resistances=[{string.Join(",", selected)}]|elapsed_ms={elapsed.TotalMilliseconds:F3}");
+
+        for (var resistanceIndex = 1; resistanceIndex <= MeasurementTable.ResistanceCount; resistanceIndex++)
+        {
+            if (!HasAnyReportData(resistanceIndex))
+            {
+                continue;
+            }
+
+            AppLogger.WriteDiagnostic(
+                "RING_MEASUREMENT",
+                "RUN_RESULT_COLUMN",
+                $"workflow={CurrentRingWorkflowId}|run={run}|R={resistanceIndex}|selected_for_report={IsReportResistanceSelected(resistanceIndex)}|cells=[{FormatResistanceColumnDiagnostic(resistanceIndex)}]");
+        }
+
+        _activeMeasurementRunId = "none";
+        _activeMeasurementRunStartedTimestamp = 0;
+    }
+
+    private (int ResistanceIndex, int CapacitanceIndex, int FrameIndex, string PointId) GetActiveMeasurementSnapshot()
+    {
+        lock (_measurementLock)
+        {
+            return (
+                _activeResistanceIndex,
+                _activeCapacitanceIndex,
+                _activeMeasurementFrameCount,
+                _activeMeasurementPointId);
+        }
+    }
+
+    private string FormatResistanceColumnDiagnostic(int resistanceIndex)
+    {
+        return string.Join(",", ResistanceRows.Take(Math.Min(ResistanceRows.Count, _channelCount)).Select(row =>
+            $"{SanitizeDiagnosticValue(row.SondeLabel)}:{SanitizeDiagnosticValue(row.GetResistanceText(resistanceIndex))}:{row.GetResistanceQuality(resistanceIndex)}"));
+    }
+
+    private string FormatResistanceCellsDiagnostic(int resistanceIndex, IReadOnlyList<int> channelIndexes)
+    {
+        return string.Join(",", channelIndexes.Where(index => index >= 0 && index < ResistanceRows.Count).Select(index =>
+        {
+            var row = ResistanceRows[index];
+            return $"ch{index}:{SanitizeDiagnosticValue(row.GetResistanceText(resistanceIndex))}:{row.GetResistanceQuality(resistanceIndex)}";
+        }));
+    }
+
+    private static string FormatV10Diagnostic(V10 values, int channelCount, float scale, string format)
+    {
+        var count = Math.Min(channelCount, V10.ChannelCount);
+        return string.Join(",", Enumerable.Range(0, count).Select(index =>
+            $"{index}:{(values.GetValue(index) * scale).ToString(format, CultureInfo.InvariantCulture)}"));
+    }
+
+    private string BuildDiagnosticCorrelation(string operationId) =>
+        $"{CurrentRingWorkflowId}:{operationId}";
+
+    private string CurrentRingWorkflowId =>
+        string.IsNullOrWhiteSpace(_ringWorkflowId) ? "none" : _ringWorkflowId;
+
+    private static string SanitizeDiagnosticValue(string value) =>
+        value
+            .Replace("\r", "\\r", StringComparison.Ordinal)
+            .Replace("\n", "\\n", StringComparison.Ordinal)
+            .Replace("|", "/", StringComparison.Ordinal)
+            .Replace(",", ";", StringComparison.Ordinal);
 
     private string FormatChannelReferenceDiagnostic(int resistanceIndex, int channelIndex)
     {
