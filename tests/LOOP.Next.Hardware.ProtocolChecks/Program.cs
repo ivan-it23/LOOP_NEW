@@ -72,6 +72,68 @@ var checks = new List<(string Name, Action Run)>
     {
         Require(CollectLogicalCapacitances(false, 8, 10).SequenceEqual(Enumerable.Range(1, 10)));
         Require(RingMeasurementSequence.GetActiveChannels(false, 8, 6, 10).SequenceEqual(new[] { 5 }));
+    }),
+    ("Firmware monitor detects a retained physical response", () =>
+    {
+        var monitor = new RingFirmwarePointMonitor();
+        monitor.Observe(1, 1000, 50, 1000, false);
+        monitor.Observe(2, 2000, 1050, 1000, false);
+        monitor.Observe(3, 3000, 980, 1000, true);
+        monitor.Observe(4, 4000, 940, 1000, true);
+        var summary = monitor.BuildSummary();
+
+        Require(summary.State == RingFirmwareRetentionState.Held);
+        Require(summary.PeakFrame == 2);
+        Require(summary.RetentionRatio > 0.5);
+    }),
+    ("Firmware monitor detects an acknowledged point that drops before averaging", () =>
+    {
+        var monitor = new RingFirmwarePointMonitor();
+        monitor.Observe(1, 1000, 20, 1000, false);
+        monitor.Observe(2, 2000, 1200, 1000, false);
+        monitor.Observe(3, 3000, 300, 1000, false);
+        monitor.Observe(4, 4000, 25, 1000, true);
+        monitor.Observe(5, 5000, -15, 1000, true);
+        var summary = monitor.BuildSummary();
+
+        Require(summary.State == RingFirmwareRetentionState.Dropped);
+        Require(summary.FirstResponseFrame == 2);
+        Require(summary.RetentionRatio < 0.1);
+    }),
+    ("Firmware monitor distinguishes no physical response from a dropped response", () =>
+    {
+        var monitor = new RingFirmwarePointMonitor();
+        monitor.Observe(1, 1000, 20, 1000, false);
+        monitor.Observe(2, 2000, -30, 1000, true);
+        monitor.Observe(3, 3000, 15, 1000, true);
+        var summary = monitor.BuildSummary();
+
+        Require(summary.State == RingFirmwareRetentionState.NoResponse);
+        Require(summary.FirstResponseFrame == 0);
+    }),
+    ("Firmware monitor classifies the observed R1 C1 hardware trace as dropped", () =>
+    {
+        var monitor = new RingFirmwarePointMonitor();
+        var measuredPhasesMg = new[]
+        {
+            -7.691, 38270.855, 733.620, 17.773, 12.147,
+            10.382, -1.059, -25.661, -2.097, 9.132
+        };
+        for (var index = 0; index < measuredPhasesMg.Length; index++)
+        {
+            monitor.Observe(
+                index + 1,
+                (index + 1) * 1070.0,
+                measuredPhasesMg[index],
+                53578.801,
+                index + 1 > 5);
+        }
+
+        var summary = monitor.BuildSummary();
+        Require(summary.State == RingFirmwareRetentionState.Dropped);
+        Require(summary.PeakFrame == 2);
+        Require(summary.FirstResponseFrame == 2);
+        Require(summary.RetentionRatio < 0.001);
     })
 };
 

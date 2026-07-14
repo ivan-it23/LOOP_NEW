@@ -63,6 +63,9 @@ public partial class MainPageViewModel : ObservableObject
     private long _activeMeasurementRunStartedTimestamp;
     private int _diagnosticCompletedPoints;
     private int _diagnosticFailedPoints;
+    private readonly Dictionary<int, RingFirmwarePointMonitor> _activeFirmwarePointMonitors = new();
+    private long _activeMeasurementPointStartedTimestamp;
+    private bool _activeFirmwarePointSummaryLogged = true;
 
     public MainPageViewModel()
     {
@@ -575,6 +578,10 @@ public partial class MainPageViewModel : ObservableObject
                 "RING_WORKFLOW",
                 "RING_CONNECTED",
                 $"workflow={_ringWorkflowId}|ring_port={portName}|profile={result.DeviceInfo.ProtocolVersion}|signature={result.DeviceInfo.Signature?.ToString(CultureInfo.InvariantCulture) ?? "none"}|memory_cells={result.DeviceInfo.ImpedanceCellCount}|working_cells={RingProtocolConstants.WorkingParameterCellCount}|tx={_channelCount / MetrologyConverter.FrequencyCount}|channels={_channelCount}");
+            AppLogger.WriteDiagnostic(
+                "RING_FIRMWARE_DIAG",
+                "PROTOCOL_CAPABILITIES",
+                $"workflow={_ringWorkflowId}|ring_port={portName}|profile={result.DeviceInfo.ProtocolVersion}|signature={result.DeviceInfo.Signature?.ToString(CultureInfo.InvariantCulture) ?? "none"}|selection_semantics=documented_single_RES_and_single_CAP|state_readback_supported=false|RESREAD_supported=false|CAPREAD_supported=false|keepalive_requirement=undocumented|physical_state_evidence=corrected_tool_phase");
             StatusText = result.DeviceInfo.ProtocolVersion == RingProtocolVersion.Extended
                 ? $"Кольцо подключено, SGN={result.DeviceInfo.Signature}"
                 : "Кольцо подключено (совместимый режим)";
@@ -1870,6 +1877,10 @@ public partial class MainPageViewModel : ObservableObject
                 "RING_MEASUREMENT",
                 "POINT_ACKNOWLEDGED",
                 $"run={_activeMeasurementRunId}|point={pointCorrelation}|R={resistanceIndex}|C={capacitanceIndex}|active_channels=[{string.Join(",", activeChannels)}]|elapsed_ms={pointStopwatch.ElapsedMilliseconds}");
+            AppLogger.WriteDiagnostic(
+                "RING_FIRMWARE_DIAG",
+                "POINT_MONITOR_BEGIN",
+                $"workflow={CurrentRingWorkflowId}|run={_activeMeasurementRunId}|point={pointCorrelation}|R={resistanceIndex}|C={capacitanceIndex}|active_channels=[{string.Join(",", activeChannels)}]|diagnostic_mode=passive_phase_observation|command_ack=true|state_readback_supported=false|protocol_note=no_RESREAD_or_CAPREAD");
             using (token.Register(() => pointCompleteTcs.TrySetCanceled(token)))
             {
                 await pointCompleteTcs.Task;
@@ -2004,6 +2015,7 @@ public partial class MainPageViewModel : ObservableObject
                     "RING_MEASUREMENT",
                     "POINT_FRAME_TARGET_REACHED",
                     $"run={_activeMeasurementRunId}|R={_activeResistanceIndex}|C={_activeCapacitanceIndex}|frames={_activeMeasurementFrameCount}|required_frames={requiredFrames}");
+                LogActiveFirmwarePointSummaryNoLock("frame_target_reached");
                 tcsToComplete = _autoMeasurementCompleteTcs;
                 _autoMeasurementCompleteTcs = null;
                 SetActiveMeasurementPoint(0, 0);
@@ -2267,6 +2279,7 @@ public partial class MainPageViewModel : ObservableObject
         var resistanceIndex = active.ResistanceIndex;
         var channelIndex = active.CapacitanceIndex - 1;
         LogAutoFrameDiagnostics(resistivity, corrected, resistanceIndex, active.CapacitanceIndex, active.FrameIndex, channelCount);
+        ObserveActiveFirmwarePoint(corrected, resistanceIndex, active.CapacitanceIndex, active.FrameIndex, channelCount);
 
         if (active.FrameIndex <= MeasurementSkipFrames)
         {
@@ -2574,12 +2587,25 @@ public partial class MainPageViewModel : ObservableObject
     {
         lock (_measurementLock)
         {
+            if (_activeResistanceIndex > 0 &&
+                _activeCapacitanceIndex > 0 &&
+                !_activeFirmwarePointSummaryLogged &&
+                _activeFirmwarePointMonitors.Count > 0)
+            {
+                LogActiveFirmwarePointSummaryNoLock("interrupted_or_replaced");
+            }
+
             _activeResistanceIndex = resistanceIndex;
             _activeCapacitanceIndex = capacitanceIndex;
             _activeMeasurementFrameCount = 0;
             _activeMeasurementPointId = resistanceIndex > 0 && capacitanceIndex > 0
                 ? diagnosticPointId ?? "unassigned"
                 : "none";
+            _activeMeasurementPointStartedTimestamp = resistanceIndex > 0 && capacitanceIndex > 0
+                ? Stopwatch.GetTimestamp()
+                : 0;
+            _activeFirmwarePointMonitors.Clear();
+            _activeFirmwarePointSummaryLogged = resistanceIndex <= 0 || capacitanceIndex <= 0;
             AppLogger.Write($"ACTIVE_POINT: R={resistanceIndex}, C={capacitanceIndex}, frameCounter сброшен.");
             AppLogger.WriteDiagnostic(
                 "RING_MEASUREMENT",
@@ -2601,6 +2627,115 @@ public partial class MainPageViewModel : ObservableObject
             return (_activeResistanceIndex, _activeCapacitanceIndex, _activeMeasurementFrameCount);
         }
     }
+
+    private void ObserveActiveFirmwarePoint(
+        V10 corrected,
+        int resistanceIndex,
+        int capacitanceIndex,
+        int frameIndex,
+        int channelCount)
+    {
+        var activeChannels = GetActiveMeasurementChannels(resistanceIndex, capacitanceIndex, channelCount).ToArray();
+        if (activeChannels.Length == 0 || _phaseReferences.Count <= resistanceIndex)
+        {
+            return;
+        }
+
+        string pointId;
+        double elapsedMilliseconds;
+        var channelDiagnostics = new List<string>(activeChannels.Length);
+        lock (_measurementLock)
+        {
+            if (_activeResistanceIndex != resistanceIndex ||
+                _activeCapacitanceIndex != capacitanceIndex ||
+                _activeMeasurementPointStartedTimestamp == 0)
+            {
+                return;
+            }
+
+            pointId = _activeMeasurementPointId;
+            elapsedMilliseconds = Stopwatch.GetElapsedTime(_activeMeasurementPointStartedTimestamp).TotalMilliseconds;
+            foreach (var channel in activeChannels)
+            {
+                var measuredPhaseMg = corrected.GetValue(channel) * PhysicalConstants.Milligrad;
+                var referencePhaseMg = _phaseReferences[resistanceIndex].GetValue(channel) * PhysicalConstants.Milligrad;
+                if (!_activeFirmwarePointMonitors.TryGetValue(channel, out var monitor))
+                {
+                    monitor = new RingFirmwarePointMonitor();
+                    _activeFirmwarePointMonitors[channel] = monitor;
+                }
+
+                monitor.Observe(
+                    frameIndex,
+                    elapsedMilliseconds,
+                    measuredPhaseMg,
+                    referencePhaseMg,
+                    frameIndex > MeasurementSkipFrames);
+                channelDiagnostics.Add(
+                    $"ch{channel}:measured_mG={measuredPhaseMg:F3},reference_mG={referencePhaseMg:F3}");
+            }
+        }
+
+        AppLogger.WriteDiagnostic(
+            "RING_FIRMWARE_DIAG",
+            "FRAME_OBSERVED",
+            $"workflow={CurrentRingWorkflowId}|run={_activeMeasurementRunId}|point={pointId}|R={resistanceIndex}|C={capacitanceIndex}|point_frame={frameIndex}|elapsed_since_ack_ms={elapsedMilliseconds:F3}|stage={(frameIndex <= MeasurementSkipFrames ? "settling" : "averaging")}|channels=[{string.Join(";", channelDiagnostics)}]");
+    }
+
+    private void LogActiveFirmwarePointSummaryNoLock(string completionStatus)
+    {
+        if (_activeFirmwarePointSummaryLogged)
+        {
+            return;
+        }
+
+        _activeFirmwarePointSummaryLogged = true;
+        var pointId = _activeMeasurementPointId;
+        var resistanceIndex = _activeResistanceIndex;
+        var capacitanceIndex = _activeCapacitanceIndex;
+        var summaries = _activeFirmwarePointMonitors
+            .OrderBy(pair => pair.Key)
+            .Select(pair => (Channel: pair.Key, Summary: pair.Value.BuildSummary()))
+            .ToArray();
+
+        foreach (var item in summaries)
+        {
+            var summary = item.Summary;
+            AppLogger.WriteDiagnostic(
+                "RING_FIRMWARE_DIAG",
+                "CHANNEL_SUMMARY",
+                $"workflow={CurrentRingWorkflowId}|run={_activeMeasurementRunId}|point={pointId}|R={resistanceIndex}|C={capacitanceIndex}|channel={item.Channel}|completion={completionStatus}|state={FormatFirmwareRetentionState(summary.State)}|observations={summary.ObservationCount}|averaging_observations={summary.AveragingObservationCount}|response_threshold_mG={summary.ResponseThresholdMg:F3}|first_response_frame={summary.FirstResponseFrame}|first_response_elapsed_ms={summary.FirstResponseElapsedMilliseconds:F3}|peak_frame={summary.PeakFrame}|peak_elapsed_ms={summary.PeakElapsedMilliseconds:F3}|peak_phase_mG={summary.PeakPhaseMg:F3}|late_mean_abs_phase_mG={summary.LateMeanAbsPhaseMg:F3}|last_phase_mG={summary.LastPhaseMg:F3}|retention_ratio={summary.RetentionRatio:F6}|reference_phase_mG={summary.ReferencePhaseMg:F3}");
+        }
+
+        var pointState = summaries.Length == 0
+            ? "inconclusive"
+            : summaries.Any(item => item.Summary.State == RingFirmwareRetentionState.Dropped)
+                ? "selection_dropped"
+                : summaries.Any(item => item.Summary.State == RingFirmwareRetentionState.NoResponse)
+                    ? "no_physical_response"
+                    : summaries.All(item => item.Summary.State == RingFirmwareRetentionState.Held)
+                        ? "selection_held"
+                        : "inconclusive";
+        var hypothesis = pointState switch
+        {
+            "selection_dropped" => "command_acknowledged_but_physical_response_not_retained_possible_firmware_timeout_or_relay_reset",
+            "no_physical_response" => "command_acknowledged_without_detectable_phase_response_possible_relay_or_mapping_failure",
+            "selection_held" => "physical_response_retained_through_averaging_window",
+            _ => "insufficient_or_unstable_evidence"
+        };
+        AppLogger.WriteDiagnostic(
+            "RING_FIRMWARE_DIAG",
+            "POINT_CLASSIFICATION",
+            $"workflow={CurrentRingWorkflowId}|run={_activeMeasurementRunId}|point={pointId}|R={resistanceIndex}|C={capacitanceIndex}|completion={completionStatus}|state={pointState}|channels={summaries.Length}|hypothesis={hypothesis}|command_ack=true|state_readback_supported=false|evidence=corrected_tool_phase");
+    }
+
+    private static string FormatFirmwareRetentionState(RingFirmwareRetentionState state) => state switch
+    {
+        RingFirmwareRetentionState.Held => "held",
+        RingFirmwareRetentionState.Dropped => "dropped",
+        RingFirmwareRetentionState.NoResponse => "no_response",
+        _ => "inconclusive"
+    };
 
     private void NotifyReportBlocked(string message)
     {
