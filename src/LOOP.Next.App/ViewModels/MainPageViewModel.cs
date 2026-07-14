@@ -993,13 +993,7 @@ public partial class MainPageViewModel : ObservableObject
             $"correlation={correlation}|profile={_ringDeviceInfo.ProtocolVersion}|signature={_ringDeviceInfo.Signature?.ToString(CultureInfo.InvariantCulture) ?? "none"}|memory_cells={_ringDeviceInfo.ImpedanceCellCount}|working_cells={RingProtocolConstants.WorkingParameterCellCount}|channel_count={_channelCount}");
         var result = await Task.Run(() => RingConnection.ReadLoopParameters(_ringPort, _ringDeviceInfo, correlation));
 
-        var count = Math.Min(RingCalibrationRows.Count, result.Cells.Count);
-        for (var i = 0; i < count; i++)
-        {
-            var cell = result.Cells[i];
-            RingCalibrationRows[i].ResistanceText = cell.HasValue ? cell.Resistance.ToString("F0") : string.Empty;
-            RingCalibrationRows[i].ReactanceMeasuredText = cell.HasValue ? cell.Reactance.ToString("F4") : string.Empty;
-        }
+        ApplyRingCells(result.Cells);
 
         var requiredParameterCount = Math.Max(
             MeasurementTable.ResistanceCount,
@@ -1022,7 +1016,7 @@ public partial class MainPageViewModel : ObservableObject
                 AppLogger.WriteDiagnostic(
                     "RING_CALIBRATION",
                     "PARAMETER_CELL",
-                    $"correlation={correlation}|index={cell.Index}|role={(cell.Index < RingProtocolConstants.WorkingParameterCellCount ? "working" : "extended_ignored_by_math")}|valid={cell.HasValue}|resistance={cell.Resistance:G9}|reactance={cell.Reactance:G9}|displayed_in_ui={cell.Index < RingCalibrationRows.Count}|used_in_math={cell.Index < RingProtocolConstants.WorkingParameterCellCount && cell.HasValue && cell.Reactance > 0.000001f}");
+                    $"correlation={correlation}|index={cell.Index}|role={(cell.Index < RingProtocolConstants.WorkingParameterCellCount ? "working" : "extended_ignored_by_math")}|valid={cell.HasValue}|resistance={cell.Resistance:G9}|reactance={cell.Reactance:G9}|displayed_resistance={cell.Index < RingResistanceRows.Count}|displayed_reactance={cell.Index < RingCalibrationRows.Count}|used_in_math={cell.Index < RingProtocolConstants.WorkingParameterCellCount && cell.HasValue && cell.Reactance > 0.000001f}");
             }
             AppLogger.WriteDiagnostic(
                 "RING_CALIBRATION",
@@ -1525,17 +1519,35 @@ public partial class MainPageViewModel : ObservableObject
 
     private void RefreshRingResistanceRows()
     {
+        var existingValues = RingResistanceRows
+            .GroupBy(row => row.Index)
+            .ToDictionary(group => group.Key, group => group.Last().ResistanceText);
+
         RingResistanceRows.Clear();
 
-        foreach (var row in RingCalibrationRows.Take(8))
+        for (var index = 0; index < MeasurementTable.ResistanceCount; index++)
         {
-            RingResistanceRows.Add(row);
+            var resistanceText = existingValues.TryGetValue(index, out var existingValue)
+                ? existingValue
+                : index < RingCalibrationRows.Count
+                    ? RingCalibrationRows[index].ResistanceText
+                    : string.Empty;
+            RingResistanceRows.Add(new RingCalibrationRowViewModel(index, $"R{index + 1}")
+            {
+                ResistanceText = resistanceText,
+                IsRingValueReadOnly = !IsRingEditMode
+            });
         }
     }
 
     private void ApplyRingEditModes()
     {
         foreach (var row in RingCalibrationRows)
+        {
+            row.IsRingValueReadOnly = !IsRingEditMode;
+        }
+
+        foreach (var row in RingResistanceRows)
         {
             row.IsRingValueReadOnly = !IsRingEditMode;
         }
@@ -1548,17 +1560,22 @@ public partial class MainPageViewModel : ObservableObject
 
     private IReadOnlyList<RingLoopParameterCell> BuildRingWriteCells()
     {
-        var cells = new List<RingLoopParameterCell>(RingProtocolConstants.WorkingParameterCellCount);
-        for (var index = 0; index < RingProtocolConstants.WorkingParameterCellCount; index++)
+        var cellCount = RingProtocolConstants.WorkingParameterCellCount;
+        var cells = new List<RingLoopParameterCell>(cellCount);
+        for (var index = 0; index < cellCount; index++)
         {
-            var row = index < RingCalibrationRows.Count ? RingCalibrationRows[index] : null;
-            var defaultResistance = index == 0 ? 1f : 0f;
-            var resistance = defaultResistance;
-            var reactance = 0f;
+            var resistanceRow = index < RingResistanceRows.Count ? RingResistanceRows[index] : null;
+            var calibrationRow = index < RingCalibrationRows.Count ? RingCalibrationRows[index] : null;
+            var resistance = index < _loopParameters.Count
+                ? _loopParameters[index].Resistance
+                : index == 0 ? 1f : 0f;
+            var reactance = index < _loopParameters.Count
+                ? _loopParameters[index].Reactance
+                : 0f;
 
-            if (row is not null && !string.IsNullOrWhiteSpace(row.ResistanceText))
+            if (resistanceRow is not null && !string.IsNullOrWhiteSpace(resistanceRow.ResistanceText))
             {
-                if (!TryParseDouble(row.ResistanceText, out var parsedResistance))
+                if (!TryParseDouble(resistanceRow.ResistanceText, out var parsedResistance))
                 {
                     throw new FormatException($"Некорректное R в Z{index}");
                 }
@@ -1566,9 +1583,9 @@ public partial class MainPageViewModel : ObservableObject
                 resistance = (float)parsedResistance;
             }
 
-            if (row is not null &&
-                !string.IsNullOrWhiteSpace(row.ReactanceMeasuredText) &&
-                !TryParseDouble(row.ReactanceMeasuredText, out _))
+            if (calibrationRow is not null &&
+                !string.IsNullOrWhiteSpace(calibrationRow.ReactanceMeasuredText) &&
+                !TryParseDouble(calibrationRow.ReactanceMeasuredText, out _))
             {
                 throw new FormatException($"Некорректное Re meas в Z{index}");
             }
@@ -1576,12 +1593,12 @@ public partial class MainPageViewModel : ObservableObject
             var measuredReactance = 0d;
             var calculatedReactance = 0d;
             var hasMeasuredReactance =
-                row is not null &&
-                TryParseDouble(row.ReactanceMeasuredText, out measuredReactance) &&
+                calibrationRow is not null &&
+                TryParseDouble(calibrationRow.ReactanceMeasuredText, out measuredReactance) &&
                 measuredReactance > 0.000001;
             var hasCalculatedReactance =
-                row is not null &&
-                TryParseDouble(row.ReactanceCalculatedText, out calculatedReactance) &&
+                calibrationRow is not null &&
+                TryParseDouble(calibrationRow.ReactanceCalculatedText, out calculatedReactance) &&
                 calculatedReactance > 0.000001;
             if (hasMeasuredReactance)
             {
@@ -1591,10 +1608,15 @@ public partial class MainPageViewModel : ObservableObject
             {
                 reactance = (float)calculatedReactance;
             }
-            else
+            else if (calibrationRow is not null)
             {
                 throw new InvalidOperationException(
                     $"Для Z{index} не задано Re meas и нет расчётного RE_calc. Нажмите «Рассчитать».");
+            }
+            else if (reactance <= 0.000001f)
+            {
+                throw new InvalidOperationException(
+                    $"Для скрытой ячейки Z{index} нет сохранённого Re meas. Сначала прочитайте параметры из кольца.");
             }
 
             cells.Add(new RingLoopParameterCell(index, resistance, reactance, true));
@@ -1631,25 +1653,50 @@ public partial class MainPageViewModel : ObservableObject
 
     private void ApplyRingCells(IReadOnlyList<RingLoopParameterCell> cells)
     {
-        var count = Math.Min(RingCalibrationRows.Count, cells.Count);
-        for (var i = 0; i < count; i++)
+        foreach (var cell in cells)
         {
-            var cell = cells[i];
-            RingCalibrationRows[i].ResistanceText = cell.Resistance.ToString("F0");
-            RingCalibrationRows[i].ReactanceMeasuredText = cell.Reactance.ToString("F4");
+            if (cell.Index >= 0 && cell.Index < RingResistanceRows.Count)
+            {
+                RingResistanceRows[cell.Index].ResistanceText = cell.HasValue
+                    ? cell.Resistance.ToString("F0")
+                    : string.Empty;
+            }
+
+            if (cell.Index >= 0 && cell.Index < RingCalibrationRows.Count)
+            {
+                RingCalibrationRows[cell.Index].ReactanceMeasuredText = cell.HasValue
+                    ? cell.Reactance.ToString("F4")
+                    : string.Empty;
+            }
         }
     }
 
     private void RebuildLoopParametersFromRingRows()
     {
-        var parameters = new List<LoopParameter>();
-        foreach (var row in RingCalibrationRows)
+        var parameterCount = RingProtocolConstants.WorkingParameterCellCount;
+        var parameters = new List<LoopParameter>(parameterCount);
+        for (var index = 0; index < parameterCount; index++)
         {
-            if (!TryParseDouble(row.ResistanceText, out var resistance) ||
-                !TryParseDouble(row.ReactanceMeasuredText, out var reactance) ||
-                reactance <= 0.000001)
+            double resistance = index < _loopParameters.Count ? _loopParameters[index].Resistance : 0f;
+            if (index < RingResistanceRows.Count &&
+                !TryParseDouble(RingResistanceRows[index].ResistanceText, out resistance))
             {
-                continue;
+                _loopParameters = Array.Empty<LoopParameter>();
+                return;
+            }
+
+            double reactance = index < _loopParameters.Count ? _loopParameters[index].Reactance : 0f;
+            if (index < RingCalibrationRows.Count)
+            {
+                var row = RingCalibrationRows[index];
+                if (!TryParseDouble(row.ReactanceMeasuredText, out reactance) || reactance <= 0.000001)
+                {
+                    if (!TryParseDouble(row.ReactanceCalculatedText, out reactance) || reactance <= 0.000001)
+                    {
+                        _loopParameters = Array.Empty<LoopParameter>();
+                        return;
+                    }
+                }
             }
 
             parameters.Add(new LoopParameter

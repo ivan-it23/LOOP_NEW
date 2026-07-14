@@ -1012,7 +1012,7 @@
                                 <TextBlock Grid.Column="0" Text="C_req, Pf" Style="{StaticResource RingTableLabelTextStyle}" />
                                 <ItemsRepeater Grid.Column="1" ItemsSource="{x:Bind ViewModel.RingCalibrationRows}">
                                     <ItemsRepeater.Layout>
-                                        <UniformGridLayout Orientation="Horizontal" ItemsStretch="Fill" MinItemWidth="60" MinItemHeight="38" MinColumnSpacing="4" MinRowSpacing="4" MaximumRowsOrColumns="{x:Bind ViewModel.RingCalibrationRows.Count, Mode=OneWay}" />
+                                        <UniformGridLayout Orientation="Horizontal" ItemsStretch="Fill" MinItemWidth="60" MinItemHeight="38" MinColumnSpacing="4" MinRowSpacing="4" MaximumRowsOrColumns="10" />
                                     </ItemsRepeater.Layout>
                                     <ItemsRepeater.ItemTemplate>
                                         <DataTemplate x:DataType="vm:RingCalibrationRowViewModel">
@@ -1033,7 +1033,7 @@
                                 <TextBlock Grid.Column="0" Text="RE_calk, ohm" Style="{StaticResource RingTableLabelTextStyle}" />
                                 <ItemsRepeater Grid.Column="1" ItemsSource="{x:Bind ViewModel.RingCalibrationRows}">
                                     <ItemsRepeater.Layout>
-                                        <UniformGridLayout Orientation="Horizontal" ItemsStretch="Fill" MinItemWidth="60" MinItemHeight="38" MinColumnSpacing="4" MinRowSpacing="4" MaximumRowsOrColumns="{x:Bind ViewModel.RingCalibrationRows.Count, Mode=OneWay}" />
+                                        <UniformGridLayout Orientation="Horizontal" ItemsStretch="Fill" MinItemWidth="60" MinItemHeight="38" MinColumnSpacing="4" MinRowSpacing="4" MaximumRowsOrColumns="10" />
                                     </ItemsRepeater.Layout>
                                     <ItemsRepeater.ItemTemplate>
                                         <DataTemplate x:DataType="vm:RingCalibrationRowViewModel">
@@ -1054,7 +1054,7 @@
                                 <TextBlock Grid.Column="0" Text="R, ohm" Style="{StaticResource RingTableLabelTextStyle}" />
                                 <ItemsRepeater Grid.Column="1" ItemsSource="{x:Bind ViewModel.RingResistanceRows}">
                                     <ItemsRepeater.Layout>
-                                        <UniformGridLayout Orientation="Horizontal" ItemsStretch="Fill" MinItemWidth="60" MinItemHeight="38" MinColumnSpacing="4" MinRowSpacing="4" MaximumRowsOrColumns="{x:Bind ViewModel.RingCalibrationRows.Count, Mode=OneWay}" />
+                                        <UniformGridLayout Orientation="Horizontal" ItemsStretch="Fill" MinItemWidth="60" MinItemHeight="38" MinColumnSpacing="4" MinRowSpacing="4" MaximumRowsOrColumns="10" />
                                     </ItemsRepeater.Layout>
                                     <ItemsRepeater.ItemTemplate>
                                         <DataTemplate x:DataType="vm:RingCalibrationRowViewModel">
@@ -1075,7 +1075,7 @@
                                 <TextBlock Grid.Column="0" Text="Re meas" Style="{StaticResource RingTableLabelTextStyle}" />
                                 <ItemsRepeater Grid.Column="1" ItemsSource="{x:Bind ViewModel.RingCalibrationRows}">
                                     <ItemsRepeater.Layout>
-                                        <UniformGridLayout Orientation="Horizontal" ItemsStretch="Fill" MinItemWidth="60" MinItemHeight="38" MinColumnSpacing="4" MinRowSpacing="4" MaximumRowsOrColumns="{x:Bind ViewModel.RingCalibrationRows.Count, Mode=OneWay}" />
+                                        <UniformGridLayout Orientation="Horizontal" ItemsStretch="Fill" MinItemWidth="60" MinItemHeight="38" MinColumnSpacing="4" MinRowSpacing="4" MaximumRowsOrColumns="10" />
                                     </ItemsRepeater.Layout>
                                     <ItemsRepeater.ItemTemplate>
                                         <DataTemplate x:DataType="vm:RingCalibrationRowViewModel">
