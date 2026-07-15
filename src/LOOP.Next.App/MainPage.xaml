@@ -1460,8 +1460,8 @@
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="180" />
-                    <ColumnDefinition Width="180" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="160" />
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
@@ -1471,16 +1471,18 @@
                     Grid.Row="0"
                     Grid.Column="1"
                     Width="160"
+                    HorizontalAlignment="Left"
                     Minimum="700"
                     SmallChange="100"
                     LargeChange="500"
                     SpinButtonPlacementMode="Inline"
                     Value="{x:Bind ViewModel.PollIntervalMs, Mode=TwoWay}" />
 
-                <TextBlock Grid.Row="1" Grid.Column="0" Text="Экспресс" VerticalAlignment="Center" />
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="Экспресс-режим" VerticalAlignment="Center" />
                 <ToggleSwitch
                     Grid.Row="1"
                     Grid.Column="1"
+                    HorizontalAlignment="Left"
                     IsOn="{x:Bind ViewModel.ExpressMode, Mode=TwoWay}" />
             </Grid>
         </Grid>
