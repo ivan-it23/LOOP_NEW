@@ -358,21 +358,34 @@
                         <TextBlock Text="Воздух" Foreground="{x:Bind ViewModel.AirColumnForeground, Mode=OneWay}" Style="{StaticResource OldTableHeaderTextStyle}" />
                     </Border>
                     <Border Grid.Row="0" Grid.Column="2" Style="{StaticResource OldTableCellBorderStyle}">
-                        <Grid Margin="4,0">
+                        <Grid Margin="4,2,4,0">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="6" />
+                            </Grid.RowDefinitions>
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" /><ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" /><ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" /><ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" /><ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" /><ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" /><ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="{x:Bind ViewModel.ScaleMinus3PercentLabel, Mode=OneWay}" Style="{StaticResource OldTableHeaderTextStyle}" FontSize="14" />
-                            <TextBlock Grid.Column="1" Text="{x:Bind ViewModel.ScaleMinus2PercentLabel, Mode=OneWay}" Style="{StaticResource OldTableHeaderTextStyle}" FontSize="14" />
-                            <TextBlock Grid.Column="2" Text="{x:Bind ViewModel.ScaleMinus1PercentLabel, Mode=OneWay}" Style="{StaticResource OldTableHeaderTextStyle}" FontSize="14" />
-                            <TextBlock Grid.Column="3" Text="{x:Bind ViewModel.ScalePlus1PercentLabel, Mode=OneWay}" Style="{StaticResource OldTableHeaderTextStyle}" FontSize="14" />
-                            <TextBlock Grid.Column="4" Text="{x:Bind ViewModel.ScalePlus2PercentLabel, Mode=OneWay}" Style="{StaticResource OldTableHeaderTextStyle}" FontSize="14" />
-                            <TextBlock Grid.Column="5" Text="{x:Bind ViewModel.ScalePlus3PercentLabel, Mode=OneWay}" Style="{StaticResource OldTableHeaderTextStyle}" FontSize="14" />
+                            <TextBlock Grid.Column="0" Text="{x:Bind ViewModel.ScaleMinus3PercentLabel, Mode=OneWay}" HorizontalAlignment="Left" Style="{StaticResource OldTableHeaderTextStyle}" FontSize="13" />
+                            <TextBlock Grid.Column="1" Grid.ColumnSpan="2" Text="{x:Bind ViewModel.ScaleMinus2PercentLabel, Mode=OneWay}" Style="{StaticResource OldTableHeaderTextStyle}" FontSize="13" />
+                            <TextBlock Grid.Column="3" Grid.ColumnSpan="2" Text="{x:Bind ViewModel.ScaleMinus1PercentLabel, Mode=OneWay}" Style="{StaticResource OldTableHeaderTextStyle}" FontSize="13" />
+                            <TextBlock Grid.Column="5" Grid.ColumnSpan="2" Text="0%" Style="{StaticResource OldTableHeaderTextStyle}" FontSize="13" FontWeight="SemiBold" />
+                            <TextBlock Grid.Column="7" Grid.ColumnSpan="2" Text="{x:Bind ViewModel.ScalePlus1PercentLabel, Mode=OneWay}" Style="{StaticResource OldTableHeaderTextStyle}" FontSize="13" />
+                            <TextBlock Grid.Column="9" Grid.ColumnSpan="2" Text="{x:Bind ViewModel.ScalePlus2PercentLabel, Mode=OneWay}" Style="{StaticResource OldTableHeaderTextStyle}" FontSize="13" />
+                            <TextBlock Grid.Column="11" Text="{x:Bind ViewModel.ScalePlus3PercentLabel, Mode=OneWay}" HorizontalAlignment="Right" Style="{StaticResource OldTableHeaderTextStyle}" FontSize="13" />
+
+                            <Rectangle Grid.Row="1" Grid.Column="0" Width="1" Height="4" HorizontalAlignment="Left" VerticalAlignment="Bottom" Fill="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <Rectangle Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Width="1" Height="4" HorizontalAlignment="Center" VerticalAlignment="Bottom" Fill="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <Rectangle Grid.Row="1" Grid.Column="3" Grid.ColumnSpan="2" Width="1" Height="4" HorizontalAlignment="Center" VerticalAlignment="Bottom" Fill="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <Rectangle Grid.Row="1" Grid.Column="5" Grid.ColumnSpan="2" Width="2" Height="6" HorizontalAlignment="Center" VerticalAlignment="Bottom" Fill="{ThemeResource TextFillColorPrimaryBrush}" />
+                            <Rectangle Grid.Row="1" Grid.Column="7" Grid.ColumnSpan="2" Width="1" Height="4" HorizontalAlignment="Center" VerticalAlignment="Bottom" Fill="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <Rectangle Grid.Row="1" Grid.Column="9" Grid.ColumnSpan="2" Width="1" Height="4" HorizontalAlignment="Center" VerticalAlignment="Bottom" Fill="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <Rectangle Grid.Row="1" Grid.Column="11" Width="1" Height="4" HorizontalAlignment="Right" VerticalAlignment="Bottom" Fill="{ThemeResource TextFillColorSecondaryBrush}" />
                         </Grid>
                     </Border>
                     <Border Grid.Row="0" Grid.Column="3" Style="{StaticResource OldTableCellBorderStyle}">

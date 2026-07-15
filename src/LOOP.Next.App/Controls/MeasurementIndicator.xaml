@@ -7,16 +7,102 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <Grid>
-        <Canvas x:Name="IndicatorCanvas" SizeChanged="OnCanvasSizeChanged">
-            <Rectangle x:Name="ZoneRed1" Fill="Red" />
-            <Rectangle x:Name="ZoneYellow1" Fill="Yellow" />
-            <Rectangle x:Name="ZoneGreen1" Fill="LimeGreen" />
-            <Rectangle x:Name="ZoneGreen2" Fill="LimeGreen" />
-            <Rectangle x:Name="ZoneYellow2" Fill="Yellow" />
-            <Rectangle x:Name="ZoneRed2" Fill="Red" />
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Light">
+                    <SolidColorBrush x:Key="MutedWarningZoneBrush" Color="#E87522" />
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="Dark">
+                    <SolidColorBrush x:Key="MutedWarningZoneBrush" Color="#F2A04B" />
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="HighContrast">
+                    <SolidColorBrush x:Key="MutedWarningZoneBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
 
-            <Rectangle x:Name="AverageCursor" Fill="Black" Width="5" />
-        </Canvas>
+    <Grid>
+        <Border
+            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+            BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+            BorderThickness="1"
+            CornerRadius="4"
+            Padding="1">
+            <Canvas
+                x:Name="IndicatorCanvas"
+                SizeChanged="OnCanvasSizeChanged">
+                <Rectangle x:Name="ZoneRed1" Fill="{ThemeResource SystemFillColorCriticalBrush}" Opacity="0.80" />
+                <Rectangle x:Name="ZoneWarning1" Fill="{ThemeResource MutedWarningZoneBrush}" Opacity="0.84" />
+                <Rectangle x:Name="ZoneGreen1" Fill="{ThemeResource SystemFillColorSuccessBrush}" Opacity="0.78" />
+                <Rectangle x:Name="ZoneGreen2" Fill="{ThemeResource SystemFillColorSuccessBrush}" Opacity="0.78" />
+                <Rectangle x:Name="ZoneWarning2" Fill="{ThemeResource MutedWarningZoneBrush}" Opacity="0.84" />
+                <Rectangle x:Name="ZoneRed2" Fill="{ThemeResource SystemFillColorCriticalBrush}" Opacity="0.80" />
+
+                <Rectangle
+                    x:Name="ZeroLine"
+                    Canvas.ZIndex="1"
+                    Width="1"
+                    Fill="{ThemeResource TextFillColorSecondaryBrush}"
+                    Opacity="0.78" />
+
+                <Grid
+                    x:Name="CurrentMarker"
+                    Canvas.ZIndex="2"
+                    Width="10"
+                    Height="10">
+                    <Grid.Transitions>
+                        <TransitionCollection>
+                            <RepositionThemeTransition IsStaggeringEnabled="False" />
+                        </TransitionCollection>
+                    </Grid.Transitions>
+                    <Ellipse
+                        Fill="{ThemeResource AccentFillColorDefaultBrush}"
+                        Stroke="{ThemeResource ApplicationPageBackgroundThemeBrush}"
+                        StrokeThickness="1.5" />
+                </Grid>
+
+                <Grid
+                    x:Name="AverageMarker"
+                    Canvas.ZIndex="3"
+                    Width="9">
+                    <Grid.Transitions>
+                        <TransitionCollection>
+                            <RepositionThemeTransition IsStaggeringEnabled="False" />
+                        </TransitionCollection>
+                    </Grid.Transitions>
+                    <Rectangle
+                        Width="3"
+                        Margin="0,4,0,0"
+                        HorizontalAlignment="Center"
+                        Fill="{ThemeResource TextFillColorPrimaryBrush}"
+                        RadiusX="1.5"
+                        RadiusY="1.5" />
+                    <Polygon
+                        Points="0,0 9,0 4.5,5"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Top"
+                        Fill="{ThemeResource TextFillColorPrimaryBrush}" />
+                </Grid>
+
+                <Polygon
+                    x:Name="OverflowLeft"
+                    Canvas.ZIndex="4"
+                    Points="8,0 0,5 8,10"
+                    Fill="{ThemeResource TextFillColorPrimaryBrush}"
+                    Visibility="Collapsed" />
+                <Polygon
+                    x:Name="OverflowRight"
+                    Canvas.ZIndex="4"
+                    Points="0,0 8,5 0,10"
+                    Fill="{ThemeResource TextFillColorPrimaryBrush}"
+                    Visibility="Collapsed" />
+            </Canvas>
+        </Border>
+
+        <ToolTipService.ToolTip>
+            <ToolTip x:Name="IndicatorToolTip" />
+        </ToolTipService.ToolTip>
     </Grid>
 </UserControl>
