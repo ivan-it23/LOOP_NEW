@@ -13,6 +13,7 @@ using LoopNext.Metrology;
 using LOOP.Next.Reporting;
 using LOOP_Next_App.Services;
 using Microsoft.UI;
+using Microsoft.UI.Text;
 using Microsoft.UI.Xaml.Media;
 
 namespace LOOP_Next_App.ViewModels;
@@ -24,6 +25,19 @@ public partial class MainPageViewModel : ObservableObject
     private static readonly SolidColorBrush LocalAirSetBrush = new(Colors.Red);
     private static readonly SolidColorBrush AirColumnDefaultForegroundBrush = new(Colors.Black);
     private static readonly SolidColorBrush AirColumnSetForegroundBrush = new(Colors.White);
+    private static readonly string[] DefaultRingCalibrationLabels =
+    {
+        "T1 401",
+        "T2 401",
+        "T3 401",
+        "T4 401",
+        "T5 401",
+        "T1 2001",
+        "T2 2001",
+        "T3 2001",
+        "T4 2001",
+        "T5 2001"
+    };
 
     private const int MeasurementSkipFrames = 5;
     private const double CompactIdentificationPanelWidth = 470;
@@ -359,6 +373,9 @@ public partial class MainPageViewModel : ObservableObject
 
     [ObservableProperty]
     public partial string LocalAirButtonText { get; set; } = "Локальный воздух";
+
+    [ObservableProperty]
+    public partial Windows.UI.Text.FontWeight LocalAirButtonFontWeight { get; set; } = FontWeights.Normal;
 
     [ObservableProperty]
     public partial Brush AirColumnBackground { get; set; } = AirColumnDefaultBrush;
@@ -908,6 +925,7 @@ public partial class MainPageViewModel : ObservableObject
         }
 
         var count = Math.Min(RingCalibrationRows.Count, parameters.Count);
+        ClearInactiveRingCalculationRows(count);
         var populatedMeasuredValues = 0;
         var preservedMeasuredValues = 0;
         for (var i = 0; i < count; i++)
@@ -1403,15 +1421,21 @@ public partial class MainPageViewModel : ObservableObject
         RingCalibrationRows.Clear();
         RingGeometryRows.Clear();
         RingFrequencyRows.Clear();
-        foreach (var header in table.Headers)
+        for (var index = 0; index < RingProtocolConstants.WorkingParameterCellCount; index++)
         {
-            var parameter = sondeParameters[header.ChannelIndex];
-            RingCalibrationRows.Add(new RingCalibrationRowViewModel(header.ChannelIndex, header.Label)
+            var label = index < table.Headers.Count
+                ? table.Headers[index].Label
+                : DefaultRingCalibrationLabels[index];
+            var row = new RingCalibrationRowViewModel(index, label);
+            if (index < table.Headers.Count)
             {
-                L1Text = parameter.L1.ToString("F3"),
-                L2Text = parameter.L2.ToString("F3"),
-                FrequencyText = (parameter.Frequency / 1000f).ToString("F0")
-            });
+                var parameter = sondeParameters[table.Headers[index].ChannelIndex];
+                row.L1Text = parameter.L1.ToString("F3");
+                row.L2Text = parameter.L2.ToString("F3");
+                row.FrequencyText = (parameter.Frequency / 1000f).ToString("F0");
+            }
+
+            RingCalibrationRows.Add(row);
         }
 
         var transmitterCount = Math.Min(sondeParameters.Count / MetrologyConverter.FrequencyCount, GpToolMetrology.MaxTransmitterCount);
@@ -1484,23 +1508,9 @@ public partial class MainPageViewModel : ObservableObject
         RingGeometryRows.Clear();
         RingFrequencyRows.Clear();
 
-        string[] labels =
+        for (var i = 0; i < DefaultRingCalibrationLabels.Length; i++)
         {
-            "T1 401",
-            "T2 401",
-            "T3 401",
-            "T4 401",
-            "T5 401",
-            "T1 2001",
-            "T2 2001",
-            "T3 2001",
-            "T4 2001",
-            "T5 2001"
-        };
-
-        for (var i = 0; i < labels.Length; i++)
-        {
-            RingCalibrationRows.Add(new RingCalibrationRowViewModel(i, labels[i]));
+            RingCalibrationRows.Add(new RingCalibrationRowViewModel(i, DefaultRingCalibrationLabels[i]));
         }
 
         for (var i = 0; i < GpToolMetrology.MaxTransmitterCount; i++)
@@ -1542,9 +1552,10 @@ public partial class MainPageViewModel : ObservableObject
 
     private void ApplyRingEditModes()
     {
+        var activeCalculationCellCount = GetActiveRingCalculationCellCount();
         foreach (var row in RingCalibrationRows)
         {
-            row.IsRingValueReadOnly = !IsRingEditMode;
+            row.IsRingValueReadOnly = !IsRingEditMode || row.Index >= activeCalculationCellCount;
         }
 
         foreach (var row in RingResistanceRows)
@@ -1558,14 +1569,38 @@ public partial class MainPageViewModel : ObservableObject
         return _sondeParameters;
     }
 
+    private int GetActiveRingCalculationCellCount()
+    {
+        return _sondeParameters.Count > 0
+            ? Math.Min(_sondeParameters.Count, RingProtocolConstants.WorkingParameterCellCount)
+            : RingCalibrationRows.Count;
+    }
+
+    private void ClearInactiveRingCalculationRows(int activeCellCount)
+    {
+        for (var index = Math.Max(activeCellCount, 0); index < RingCalibrationRows.Count; index++)
+        {
+            var row = RingCalibrationRows[index];
+            row.L1Text = string.Empty;
+            row.L2Text = string.Empty;
+            row.FrequencyText = string.Empty;
+            row.CapacitanceText = string.Empty;
+            row.ReactanceCalculatedText = string.Empty;
+            row.ReactanceMeasuredText = string.Empty;
+        }
+    }
+
     private IReadOnlyList<RingLoopParameterCell> BuildRingWriteCells()
     {
         var cellCount = RingProtocolConstants.WorkingParameterCellCount;
+        var activeCalculationCellCount = GetActiveRingCalculationCellCount();
         var cells = new List<RingLoopParameterCell>(cellCount);
         for (var index = 0; index < cellCount; index++)
         {
             var resistanceRow = index < RingResistanceRows.Count ? RingResistanceRows[index] : null;
-            var calibrationRow = index < RingCalibrationRows.Count ? RingCalibrationRows[index] : null;
+            var calibrationRow = index < activeCalculationCellCount && index < RingCalibrationRows.Count
+                ? RingCalibrationRows[index]
+                : null;
             var resistance = index < _loopParameters.Count
                 ? _loopParameters[index].Resistance
                 : index == 0 ? 1f : 0f;
@@ -1653,6 +1688,8 @@ public partial class MainPageViewModel : ObservableObject
 
     private void ApplyRingCells(IReadOnlyList<RingLoopParameterCell> cells)
     {
+        var activeCalculationCellCount = GetActiveRingCalculationCellCount();
+        ClearInactiveRingCalculationRows(activeCalculationCellCount);
         foreach (var cell in cells)
         {
             if (cell.Index >= 0 && cell.Index < RingResistanceRows.Count)
@@ -1662,7 +1699,9 @@ public partial class MainPageViewModel : ObservableObject
                     : string.Empty;
             }
 
-            if (cell.Index >= 0 && cell.Index < RingCalibrationRows.Count)
+            if (cell.Index >= 0 &&
+                cell.Index < activeCalculationCellCount &&
+                cell.Index < RingCalibrationRows.Count)
             {
                 RingCalibrationRows[cell.Index].ReactanceMeasuredText = cell.HasValue
                     ? cell.Reactance.ToString("F4")
@@ -1674,6 +1713,7 @@ public partial class MainPageViewModel : ObservableObject
     private void RebuildLoopParametersFromRingRows()
     {
         var parameterCount = RingProtocolConstants.WorkingParameterCellCount;
+        var activeCalculationCellCount = GetActiveRingCalculationCellCount();
         var parameters = new List<LoopParameter>(parameterCount);
         for (var index = 0; index < parameterCount; index++)
         {
@@ -1686,7 +1726,7 @@ public partial class MainPageViewModel : ObservableObject
             }
 
             double reactance = index < _loopParameters.Count ? _loopParameters[index].Reactance : 0f;
-            if (index < RingCalibrationRows.Count)
+            if (index < activeCalculationCellCount && index < RingCalibrationRows.Count)
             {
                 var row = RingCalibrationRows[index];
                 if (!TryParseDouble(row.ReactanceMeasuredText, out reactance) || reactance <= 0.000001)
@@ -2251,12 +2291,16 @@ public partial class MainPageViewModel : ObservableObject
                 : isCollecting
                     ? $"Сбор: {collectedSampleCount} кадров"
                     : "Не задан";
+        var showAirAsSet = isSet && !resetRequested;
         LocalAirButtonText = isCollecting
             ? $"Сбор: {collectedSampleCount} кадров"
-            : "Локальный воздух";
+            : showAirAsSet
+                ? "Воздух: задан"
+                : "Локальный воздух";
+        LocalAirButtonFontWeight = showAirAsSet ? FontWeights.SemiBold : FontWeights.Normal;
 
-        var airBackground = isSet ? LocalAirSetBrush : AirColumnDefaultBrush;
-        var airForeground = isSet ? AirColumnSetForegroundBrush : AirColumnDefaultForegroundBrush;
+        var airBackground = showAirAsSet ? LocalAirSetBrush : AirColumnDefaultBrush;
+        var airForeground = showAirAsSet ? AirColumnSetForegroundBrush : AirColumnDefaultForegroundBrush;
         AirColumnBackground = airBackground;
         AirColumnForeground = airForeground;
     }
