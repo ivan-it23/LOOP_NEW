@@ -41,6 +41,67 @@ var checks = new List<(string Name, Action Run)>
         Require(RingDeviceInfo.Legacy.ImpedanceCellCount == 10);
         Require(RingDeviceInfo.Extended(42).ImpedanceCellCount == 32);
     }),
+    ("Ring parameter layout writes eight cells for 3 Tx and 4 Tx", () =>
+    {
+        Require(RingParameterLayout.GetActiveReactanceCellCount(6) == 6);
+        Require(RingParameterLayout.GetRequiredWorkingCellCount(6) == 8);
+        Require(RingParameterLayout.GetRequiredWorkingCellCount(8) == 8);
+        Require(RingParameterLayout.GetRequiredWorkingCellCount(10) == 10);
+    }),
+    ("Fresh 4 Tx ring accepts eight resistances and eight reactances", () =>
+    {
+        var cells = CreateRingCells(
+            resistanceCount: 8,
+            reactanceCount: 8,
+            returnedCellCount: 10);
+        var layout = RingParameterLayout.BuildParameterSet(cells, 8);
+
+        Require(layout.IsComplete);
+        Require(layout.RequiredCellCount == 8);
+        Require(layout.CompleteCellCount == 8);
+        Require(layout.Parameters.Count == 8);
+    }),
+    ("Fresh 3 Tx ring accepts R7 and R8 with inactive zero reactance", () =>
+    {
+        var cells = CreateRingCells(
+            resistanceCount: 8,
+            reactanceCount: 6,
+            returnedCellCount: 10);
+        var layout = RingParameterLayout.BuildParameterSet(cells, 6);
+
+        Require(layout.IsComplete);
+        Require(layout.RequiredCellCount == 8);
+        Require(layout.CompleteCellCount == 8);
+        Require(layout.Parameters.Count == 8);
+        Require(NearlyEqual(layout.Parameters[6].Reactance, 0f));
+        Require(NearlyEqual(layout.Parameters[7].Reactance, 0f));
+    }),
+    ("Fresh 5 Tx ring requires ten reactances but only eight resistances", () =>
+    {
+        var cells = CreateRingCells(
+            resistanceCount: 8,
+            reactanceCount: 10,
+            returnedCellCount: 10);
+        var layout = RingParameterLayout.BuildParameterSet(cells, 10);
+
+        Require(layout.IsComplete);
+        Require(layout.RequiredCellCount == 10);
+        Require(layout.CompleteCellCount == 10);
+        Require(layout.Parameters.Count == 10);
+    }),
+    ("Empty 4 Tx ring remains incomplete", () =>
+    {
+        var cells = CreateRingCells(
+            resistanceCount: 0,
+            reactanceCount: 0,
+            returnedCellCount: 10);
+        var layout = RingParameterLayout.BuildParameterSet(cells, 8);
+
+        Require(!layout.IsComplete);
+        Require(layout.CompleteCellCount == 0);
+        Require(layout.InvalidResistanceIndexes.SequenceEqual(Enumerable.Range(0, 8)));
+        Require(layout.InvalidReactanceIndexes.SequenceEqual(Enumerable.Range(0, 8)));
+    }),
     ("Memory writes use bounded retries", () =>
     {
         Require(RingProtocolConstants.MemoryCommandMaxAttempts == 3);
@@ -58,15 +119,28 @@ var checks = new List<(string Name, Action Run)>
         Require(RingMeasurementSequence.GetActiveChannels(true, 3, 1, 10).SequenceEqual(new[] { 0, 1, 2, 3, 4 }));
         Require(RingMeasurementSequence.GetActiveChannels(true, 3, 6, 10).SequenceEqual(new[] { 5, 6, 7, 8, 9 }));
     }),
-    ("4 Tx scan sends logical CAP and leaves physical shift to firmware", () =>
+    ("3 Tx scan maps its high-frequency group to physical CAP 6 through 8", () =>
+    {
+        Require(CollectLogicalCapacitances(true, 1, 6).SequenceEqual(Enumerable.Range(1, 6)));
+        Require(CollectLogicalCapacitances(true, 3, 6).SequenceEqual(new[] { 1, 4 }));
+        Require(RingMeasurementSequence.GetActiveChannels(true, 3, 4, 6).SequenceEqual(new[] { 3, 4, 5 }));
+        Require(RingMeasurementSequence.GetCommandCapacitance(6, 3) == 3);
+        Require(RingMeasurementSequence.GetCommandCapacitance(6, 4) == 6);
+        Require(RingMeasurementSequence.GetCommandCapacitance(6, 6) == 8);
+    }),
+    ("4 Tx scan maps its high-frequency group to physical CAP 6 through 9", () =>
     {
         Require(CollectLogicalCapacitances(true, 1, 8).SequenceEqual(Enumerable.Range(1, 8)));
         Require(CollectLogicalCapacitances(true, 3, 8).SequenceEqual(new[] { 1, 5 }));
         Require(RingMeasurementSequence.GetActiveChannels(true, 3, 5, 8).SequenceEqual(new[] { 4, 5, 6, 7 }));
-        Require(RingMeasurementSequence.GetExpectedPhysicalCapacitance(8, 4) == 4);
-        Require(RingMeasurementSequence.GetExpectedPhysicalCapacitance(8, 5) == 6);
-        Require(RingMeasurementSequence.GetExpectedPhysicalCapacitance(8, 8) == 9);
-        Require(RingMeasurementSequence.GetExpectedPhysicalCapacitance(10, 5) == 5);
+        Require(RingMeasurementSequence.GetCommandCapacitance(8, 4) == 4);
+        Require(RingMeasurementSequence.GetCommandCapacitance(8, 5) == 6);
+        Require(RingMeasurementSequence.GetCommandCapacitance(8, 8) == 9);
+    }),
+    ("5 Tx CAP commands remain unchanged", () =>
+    {
+        Require(Enumerable.Range(0, 11).All(capacitanceIndex =>
+            RingMeasurementSequence.GetCommandCapacitance(10, capacitanceIndex) == capacitanceIndex));
     }),
     ("Disabled express mode always scans channels point-by-point", () =>
     {
@@ -156,6 +230,20 @@ Console.WriteLine($"Protocol checks: {checks.Count - failures.Count}/{checks.Cou
 return failures.Count == 0 ? 0 : 1;
 
 static bool NearlyEqual(float left, float right) => MathF.Abs(left - right) < 0.000001f;
+
+static IReadOnlyList<RingLoopParameterCell> CreateRingCells(
+    int resistanceCount,
+    int reactanceCount,
+    int returnedCellCount)
+{
+    return Enumerable.Range(0, returnedCellCount)
+        .Select(index => new RingLoopParameterCell(
+            index,
+            index < resistanceCount ? index + 1f : 0f,
+            index < reactanceCount ? index + 0.5f : 0f,
+            true))
+        .ToArray();
+}
 
 static IReadOnlyList<int> CollectLogicalCapacitances(bool expressMode, int resistanceIndex, int channelCount)
 {
