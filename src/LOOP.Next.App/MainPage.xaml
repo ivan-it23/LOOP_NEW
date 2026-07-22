@@ -1181,6 +1181,12 @@
                                 <Button Content="Рассчитать" Command="{x:Bind ViewModel.CalculateRingCalibrationCommand}" />
                                 <Button Content="Прочитать из кольца" Command="{x:Bind ViewModel.ReadRingParametersCommand}" />
                                 <Button Content="Записать в кольцо" Command="{x:Bind ViewModel.WriteRingParametersCommand}" />
+                                <Button
+                                    Content="Стереть все ячейки кольца"
+                                    IsEnabled="{x:Bind ViewModel.CanEraseRingCells, Mode=OneWay}"
+                                    Click="EraseRingCells_Click"
+                                    AutomationProperties.Name="Стереть все ячейки кольца"
+                                    ToolTipService.ToolTip="Отправить в кольцо команду ZERASE и заполнить нулями все Z-ячейки" />
                             </StackPanel>
 
                             <Grid Grid.Row="6" ColumnSpacing="8" Margin="0,2,0,0">

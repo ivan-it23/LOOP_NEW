@@ -242,6 +242,7 @@ public partial class MainPageViewModel : ObservableObject
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanStartSingleResistance))]
     [NotifyPropertyChangedFor(nameof(CanToggleAutoMode))]
+    [NotifyPropertyChangedFor(nameof(CanEraseRingCells))]
     [NotifyCanExecuteChangedFor(nameof(RunResistanceCommand))]
     [NotifyCanExecuteChangedFor(nameof(WriteRingSignatureCommand))]
     public partial bool IsResistanceMeasurementRunning { get; set; }
@@ -311,6 +312,7 @@ public partial class MainPageViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(CanToggleAutoMode))]
     [NotifyCanExecuteChangedFor(nameof(RunResistanceCommand))]
     [NotifyCanExecuteChangedFor(nameof(WriteRingSignatureCommand))]
+    [NotifyPropertyChangedFor(nameof(CanEraseRingCells))]
     public partial bool IsRingConnected { get; set; }
 
     [ObservableProperty]
@@ -413,6 +415,7 @@ public partial class MainPageViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsRingSignatureReadOnly))]
+    [NotifyPropertyChangedFor(nameof(CanEraseRingCells))]
     [NotifyCanExecuteChangedFor(nameof(WriteRingSignatureCommand))]
     public partial bool IsRingSignatureBusy { get; set; }
 
@@ -422,8 +425,17 @@ public partial class MainPageViewModel : ObservableObject
         IsRingConnected &&
         IsRingEditMode &&
         !IsRingSignatureBusy &&
-        !IsResistanceMeasurementRunning &&
-        _ringDeviceInfo.SignatureCommandSet != RingSignatureCommandSet.None;
+        !IsResistanceMeasurementRunning;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanEraseRingCells))]
+    public partial bool IsRingMemoryBusy { get; set; }
+
+    public bool CanEraseRingCells =>
+        IsRingConnected &&
+        !IsRingMemoryBusy &&
+        !IsRingSignatureBusy &&
+        !IsResistanceMeasurementRunning;
 
     [ObservableProperty]
     public partial string LocalAirState { get; set; } = "Не задан";
@@ -731,15 +743,11 @@ public partial class MainPageViewModel : ObservableObject
             return;
         }
 
-        var commandSet = _ringDeviceInfo.SignatureCommandSet;
-        if (commandSet == RingSignatureCommandSet.None)
-        {
-            StatusText = "Прошивка кольца не поддерживает сигнатуру";
-            RaiseUserMessage(
-                "Запись не выполнена",
-                "Подключённая прошивка кольца не поддерживает команды чтения и записи сигнатуры.");
-            return;
-        }
+        var detectedCommandSet = _ringDeviceInfo.SignatureCommandSet;
+        RingSignatureCommandSet[] commandSets = detectedCommandSet == RingSignatureCommandSet.None
+            ? [RingSignatureCommandSet.Sg, RingSignatureCommandSet.Sgn]
+            : [detectedCommandSet];
+        var commandSetsText = string.Join(",", commandSets);
 
         IsRingSignatureBusy = true;
         var writeId = AppLogger.NextOperationId("ring-signature-write");
@@ -748,54 +756,73 @@ public partial class MainPageViewModel : ObservableObject
         AppLogger.WriteDiagnostic(
             "RING_SIGNATURE",
             "WRITE_BEGIN",
-            $"correlation={correlation}|old_signature={_ringDeviceInfo.Signature?.ToString(CultureInfo.InvariantCulture) ?? "none"}|new_signature={signature}|commands={commandSet}|port={_ringPort.PortName}");
+            $"correlation={correlation}|old_signature={_ringDeviceInfo.Signature?.ToString(CultureInfo.InvariantCulture) ?? "none"}|new_signature={signature}|detected_commands={detectedCommandSet}|attempt_commands={commandSetsText}|port={_ringPort.PortName}");
 
         try
         {
-            StatusText = $"Запись сигнатуры кольца {signature}...";
-            var writeResult = await Task.Run(() =>
-                RingConnection.WriteSignature(_ringPort, signature, commandSet, correlation));
-            if (!writeResult.IsOk)
+            string? lastFailureReason = null;
+            foreach (var commandSet in commandSets)
             {
+                StatusText = $"Запись сигнатуры {signature} ({commandSet})...";
                 AppLogger.WriteDiagnostic(
                     "RING_SIGNATURE",
-                    "WRITE_FAILED",
-                    $"correlation={correlation}|signature={signature}|commands={commandSet}|reason={SanitizeDiagnosticValue(writeResult.FailureReason ?? "unknown")}|elapsed_ms={stopwatch.ElapsedMilliseconds}");
-                StatusText = "Сигнатура кольца не записана";
+                    "WRITE_ATTEMPT",
+                    $"correlation={correlation}|signature={signature}|commands={commandSet}|detected_commands={detectedCommandSet}");
+                var writeResult = await Task.Run(() =>
+                    RingConnection.WriteSignature(_ringPort, signature, commandSet, correlation));
+                if (!writeResult.IsOk)
+                {
+                    lastFailureReason = writeResult.FailureReason ?? "Кольцо не подтвердило запись сигнатуры.";
+                    AppLogger.WriteDiagnostic(
+                        "RING_SIGNATURE",
+                        "WRITE_ATTEMPT_FAILED",
+                        $"correlation={correlation}|signature={signature}|commands={commandSet}|reason={SanitizeDiagnosticValue(lastFailureReason)}|elapsed_ms={stopwatch.ElapsedMilliseconds}");
+                    continue;
+                }
+
+                var readResult = await Task.Run(() =>
+                    RingConnection.ReadSignature(_ringPort, commandSet, correlation));
+                if (!readResult.Success || readResult.Signature != signature)
+                {
+                    var actualSignature = readResult.Signature?.ToString(CultureInfo.InvariantCulture) ?? "не считана";
+                    AppLogger.WriteDiagnostic(
+                        "RING_SIGNATURE",
+                        "VERIFY_FAILED",
+                        $"correlation={correlation}|expected_signature={signature}|actual_signature={actualSignature}|commands={commandSet}|reason={SanitizeDiagnosticValue(readResult.ErrorMessage ?? "readback_mismatch")}|elapsed_ms={stopwatch.ElapsedMilliseconds}");
+                    StatusText = "Запись сигнатуры не подтверждена";
+                    RaiseUserMessage(
+                        "Сигнатура не подтверждена",
+                        $"Кольцо подтвердило команду записи, но контрольное чтение не вернуло ожидаемое значение {signature}. " +
+                        $"Считано: {actualSignature}.");
+                    return;
+                }
+
+                _ringDeviceInfo = RingDeviceInfo.Extended(signature, readResult.CommandSet);
+                ApplyRingDeviceInfo(_ringDeviceInfo);
+                AppLogger.WriteDiagnostic(
+                    "RING_SIGNATURE",
+                    "WRITE_VERIFIED",
+                    $"correlation={correlation}|signature={signature}|commands={readResult.CommandSet}|supported_types={SanitizeDiagnosticValue(RingSupportedToolTypesText)}|elapsed_ms={stopwatch.ElapsedMilliseconds}");
+                StatusText = $"Сигнатура кольца {signature} записана и проверена";
                 RaiseUserMessage(
-                    "Запись не выполнена",
-                    writeResult.FailureReason ?? "Кольцо не подтвердило запись сигнатуры.");
+                    "Сигнатура записана",
+                    $"В кольцо записана и контрольным чтением подтверждена сигнатура {signature}.\n\n" +
+                    $"Поддерживаемые типы приборов: {RingSupportedToolTypesText}");
                 return;
             }
 
-            var readResult = await Task.Run(() =>
-                RingConnection.ReadSignature(_ringPort, commandSet, correlation));
-            if (!readResult.Success || readResult.Signature != signature)
-            {
-                var actualSignature = readResult.Signature?.ToString(CultureInfo.InvariantCulture) ?? "не считана";
-                AppLogger.WriteDiagnostic(
-                    "RING_SIGNATURE",
-                    "VERIFY_FAILED",
-                    $"correlation={correlation}|expected_signature={signature}|actual_signature={actualSignature}|commands={commandSet}|reason={SanitizeDiagnosticValue(readResult.ErrorMessage ?? "readback_mismatch")}|elapsed_ms={stopwatch.ElapsedMilliseconds}");
-                StatusText = "Запись сигнатуры не подтверждена";
-                RaiseUserMessage(
-                    "Сигнатура не подтверждена",
-                    $"Кольцо подтвердило команду записи, но контрольное чтение не вернуло ожидаемое значение {signature}. " +
-                    $"Считано: {actualSignature}.");
-                return;
-            }
-
-            _ringDeviceInfo = RingDeviceInfo.Extended(signature, readResult.CommandSet);
-            ApplyRingDeviceInfo(_ringDeviceInfo);
             AppLogger.WriteDiagnostic(
                 "RING_SIGNATURE",
-                "WRITE_VERIFIED",
-                $"correlation={correlation}|signature={signature}|commands={readResult.CommandSet}|supported_types={SanitizeDiagnosticValue(RingSupportedToolTypesText)}|elapsed_ms={stopwatch.ElapsedMilliseconds}");
-            StatusText = $"Сигнатура кольца {signature} записана и проверена";
+                "WRITE_FAILED",
+                $"correlation={correlation}|signature={signature}|attempt_commands={commandSetsText}|reason={SanitizeDiagnosticValue(lastFailureReason ?? "no_supported_command")}|elapsed_ms={stopwatch.ElapsedMilliseconds}");
+            StatusText = "Сигнатура кольца не записана";
             RaiseUserMessage(
-                "Сигнатура записана",
-                $"В кольцо записана и контрольным чтением подтверждена сигнатура {signature}.\n\n" +
-                $"Поддерживаемые типы приборов: {RingSupportedToolTypesText}");
+                "Запись не выполнена",
+                detectedCommandSet == RingSignatureCommandSet.None
+                    ? "Кольцо не поддержало ни команду SGWRITE, ни SGNWRITE. " +
+                      "Для записи сигнатуры требуется прошивка с поддержкой команд сигнатуры.\n\n" +
+                      $"Последний ответ: {lastFailureReason ?? "команда не поддерживается"}"
+                    : lastFailureReason ?? "Кольцо не подтвердило запись сигнатуры.");
         }
         catch (Exception ex)
         {
@@ -804,7 +831,7 @@ public partial class MainPageViewModel : ObservableObject
                 "RING_SIGNATURE",
                 "WRITE_FAILED",
                 ex,
-                $"correlation={correlation}|signature={signature}|commands={commandSet}|elapsed_ms={stopwatch.ElapsedMilliseconds}");
+                $"correlation={correlation}|signature={signature}|attempt_commands={commandSetsText}|elapsed_ms={stopwatch.ElapsedMilliseconds}");
             StatusText = "Сигнатура кольца не записана";
             RaiseUserMessage("Запись не выполнена", $"Не удалось записать сигнатуру кольца.\n\nПричина: {ex.Message}");
         }
@@ -1193,6 +1220,103 @@ public partial class MainPageViewModel : ObservableObject
         }
 
         await LoadRingParametersAsync(showUserMessage: true);
+    }
+
+    public async Task EraseRingCellsAsync()
+    {
+        if (!IsRingConnected || !_ringPort.IsOpen)
+        {
+            StatusText = "Подключите кольцо";
+            RaiseUserMessage(
+                "Стирание не выполнено",
+                "Кольцо не подключено. Подключите кольцо и повторите команду ZERASE.");
+            return;
+        }
+
+        if (!CanEraseRingCells)
+        {
+            StatusText = "Кольцо занято другой операцией";
+            return;
+        }
+
+        IsRingMemoryBusy = true;
+        StatusText = "Стирание Z-ячеек кольца...";
+        var eraseId = AppLogger.NextOperationId("ring-parameters-erase");
+        var correlation = BuildDiagnosticCorrelation(eraseId);
+        var stopwatch = Stopwatch.StartNew();
+        AppLogger.WriteDiagnostic(
+            "RING_MEMORY",
+            "ERASE_BEGIN",
+            $"correlation={correlation}|port={_ringPort.PortName}|command=ZERASE|profile={_ringDeviceInfo.ProtocolVersion}|signature={_ringDeviceInfo.Signature?.ToString(CultureInfo.InvariantCulture) ?? "none"}|signature_preserved=true");
+
+        try
+        {
+            var outcome = await Task.Run(() => RingConnection.EraseLoopParameters(_ringPort, correlation));
+            if (!outcome.IsOk)
+            {
+                var reason = outcome.FailureReason ?? "Кольцо не подтвердило команду ZERASE.";
+                AppLogger.WriteDiagnostic(
+                    "RING_MEMORY",
+                    "ERASE_FAILED",
+                    $"correlation={correlation}|port={_ringPort.PortName}|reason={SanitizeDiagnosticValue(reason)}|elapsed_ms={stopwatch.ElapsedMilliseconds}");
+                StatusText = "Z-ячейки кольца не стёрты";
+                RaiseUserMessage(
+                    "Стирание не выполнено",
+                    $"Кольцо не подтвердило команду ZERASE.\n\nПричина: {reason}");
+                return;
+            }
+
+            var displayedCellCount = Math.Max(
+                RingProtocolConstants.WorkingParameterCellCount,
+                _ringDeviceInfo.ImpedanceCellCount);
+            var erasedCells = Enumerable.Range(0, displayedCellCount)
+                .Select(index => new RingLoopParameterCell(index, 0f, 0f, true))
+                .ToArray();
+            ApplyRingCells(erasedCells);
+            _loopParameters = Array.Empty<LoopParameter>();
+            _phaseReferences = Array.Empty<V10>();
+            _resistivityReferences = Array.Empty<V10>();
+            AreRingCapacitancesCalculated = false;
+            ClearResistanceBuffers();
+            ClearResistanceCells();
+            SetActiveMeasurementPoint(0, 0);
+
+            AppLogger.WriteDiagnostic(
+                "RING_MEMORY",
+                "ERASE_COMPLETED",
+                $"correlation={correlation}|port={_ringPort.PortName}|command=ZERASE|displayed_cells_reset={displayedCellCount}|signature={_ringDeviceInfo.Signature?.ToString(CultureInfo.InvariantCulture) ?? "none"}|signature_preserved=true|elapsed_ms={stopwatch.ElapsedMilliseconds}");
+            StatusText = "Все Z-ячейки кольца стёрты";
+            RaiseUserMessage(
+                "Ячейки кольца стёрты",
+                "Кольцо подтвердило команду ZERASE: Z-ячейки заполнены нулями. Сигнатура этой командой не изменяется.\n\n" +
+                "Теперь можно заново рассчитать и записать параметры кольца, а затем повторить запись сигнатуры. " +
+                "Если SGWRITE и SGNWRITE снова вернут Unknown command!, этой прошивке требуется поддержка команд сигнатуры.");
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Write(ex, "Ошибка стирания Z-ячеек кольца");
+            AppLogger.WriteDiagnostic(
+                "RING_MEMORY",
+                "ERASE_FAILED",
+                ex,
+                $"correlation={correlation}|port={_ringPort.PortName}|elapsed_ms={stopwatch.ElapsedMilliseconds}");
+            StatusText = "Z-ячейки кольца не стёрты";
+            RaiseUserMessage(
+                "Стирание не выполнено",
+                $"Не удалось выполнить команду ZERASE.\n\nПричина: {ex.Message}");
+        }
+        finally
+        {
+            IsRingMemoryBusy = false;
+        }
+    }
+
+    public void NotifyRingEraseDialogError(string message)
+    {
+        StatusText = "Не удалось открыть подтверждение стирания";
+        RaiseUserMessage(
+            "Стирание не выполнено",
+            $"Не удалось открыть окно подтверждения команды ZERASE.\n\nПричина: {message}");
     }
 
     private async Task LoadRingParametersAsync(bool showUserMessage = false)

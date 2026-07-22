@@ -210,6 +210,46 @@ public sealed partial class MainPage : Page
         }
     }
 
+    private async void EraseRingCells_Click(object sender, RoutedEventArgs e)
+    {
+        if (!ViewModel.CanEraseRingCells)
+        {
+            return;
+        }
+
+        var xamlRoot = XamlRoot ?? Content?.XamlRoot;
+        if (xamlRoot is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var dialog = new ContentDialog
+            {
+                XamlRoot = xamlRoot,
+                Title = "Стереть все ячейки кольца?",
+                Content =
+                    "Команда ZERASE заполнит нулями все Z-ячейки кольца. " +
+                    "Записанные сопротивления и реактивные сопротивления будут потеряны. " +
+                    "Сигнатура хранится отдельно и этой командой не стирается.",
+                PrimaryButtonText = "Стереть",
+                CloseButtonText = "Отмена",
+                DefaultButton = ContentDialogButton.Close
+            };
+
+            if (await dialog.ShowAsync() == ContentDialogResult.Primary)
+            {
+                await ViewModel.EraseRingCellsAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Write(ex, "Ошибка выполнения команды ZERASE");
+            ViewModel.NotifyRingEraseDialogError(ex.Message);
+        }
+    }
+
     private async void Report_Click(object sender, RoutedEventArgs e)
     {
         if (!ViewModel.TryBuildReportRtf(out var rtf))

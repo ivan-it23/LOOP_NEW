@@ -89,6 +89,7 @@ var checks = new List<(string Name, Action Run)>
     }),
     ("ZWRITE, ZERASE and SGNWRITE replies parse", () =>
     {
+        Require(RingProtocolConstants.EraseLoopParametersCommand == "ZERASE\r\n");
         Require(RingProtocolParser.IsWriteLoopParameterReply(9, "WRITE Z9 OK!"));
         Require(RingProtocolParser.IsEraseReply("ERASE OK!"));
         Require(RingProtocolParser.IsWriteSignatureReply(42, "WRITE SGN=42 OK!"));
