@@ -51,7 +51,20 @@ public static class RingMeasurementSequence
         Math.Max(1, channelCount / 2);
 
     public static int GetCommandCapacitance(int channelCount, int logicalCapacitance)
+        => GetCommandCapacitance(
+            channelCount,
+            logicalCapacitance,
+            RingCapacitanceMappingProfile.CompatibilityFallback);
+
+    public static int GetCommandCapacitance(
+        int channelCount,
+        int logicalCapacitance,
+        RingCapacitanceMappingProfile mappingProfile)
     {
+        // Оба текущих профиля используют физические банки универсального
+        // 5-TX кольца. Раздельные значения профиля оставлены намеренно:
+        // сигнатура 151 выбирает подтверждённую ветку, fallback сохраняет
+        // поведение ещё не промаркированных колец в период миграции.
         var transmitterCount = channelCount / 2;
         var hasTwoCompleteFrequencyGroups =
             channelCount > 0 &&

@@ -31,6 +31,11 @@ public static class RingProtocolConstants
 
     public const string ReadSignatureCommand = "SGNREAD\r\n";
     public const string WriteSignatureCommandFormat = "SGNWRITE {0}\r\n";
+    // Прошивка из каталога zbox4 использует более раннее написание SGREAD/SGWRITE.
+    // Приложение поддерживает оба варианта, чтобы сигнатуру можно было обслуживать
+    // у всех выпущенных колец без перепрошивки только ради имени команды.
+    public const string ReadCompatibleSignatureCommand = "SGREAD\r\n";
+    public const string WriteCompatibleSignatureCommandFormat = "SGWRITE {0}\r\n";
     public const string EraseLoopParametersCommand = "ZERASE\r\n";
 
     public const string SetResistanceCommandFormat = "RES {0}\r\n";

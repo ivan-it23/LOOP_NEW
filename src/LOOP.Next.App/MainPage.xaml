@@ -160,16 +160,6 @@
             <Setter Property="Padding" Value="6,2" />
         </Style>
 
-        <!-- Статусный бейдж карточки состояния: фиксированная подпись и выровненное значение. -->
-        <Style x:Key="IdentificationStatusBadgeBorderStyle" TargetType="Border">
-            <Setter Property="Background" Value="{ThemeResource LayerFillColorDefaultBrush}" />
-            <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="3" />
-            <Setter Property="MinHeight" Value="26" />
-            <Setter Property="HorizontalAlignment" Value="Stretch" />
-            <Setter Property="Padding" Value="8,3" />
-        </Style>
     </Page.Resources>
 
     <Grid RowSpacing="0">
@@ -696,26 +686,21 @@
                 x:Name="MainIdentificationPanel"
                 Grid.Row="1"
                 Margin="6,0,6,0"
-                ColumnSpacing="0"
+                ColumnSpacing="12"
                 VerticalAlignment="Top">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="104*" />
-                    <ColumnDefinition Width="130*" />
-                    <ColumnDefinition Width="424*" />
-                    <ColumnDefinition Width="88*" />
-                    <ColumnDefinition Width="81*" />
-                    <ColumnDefinition Width="81*" />
-                    <ColumnDefinition Width="81*" />
-                    <ColumnDefinition Width="81*" />
-                    <ColumnDefinition Width="81*" />
-                    <ColumnDefinition Width="81*" />
-                    <ColumnDefinition Width="81*" />
-                    <ColumnDefinition Width="81*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
                 <StackPanel
+                    Grid.Row="0"
                     Grid.Column="0"
-                    Grid.ColumnSpan="10"
                     Orientation="Horizontal"
                     Spacing="12"
                     HorizontalAlignment="Left">
@@ -810,6 +795,7 @@
 
                     <!-- Карточка состояния: локальный воздух, счётчик кадров и температура прибора. -->
                     <Border
+                        x:Name="MainSondeStatePanel"
                         Width="200"
                         Style="{StaticResource IdentificationPanelBorderStyle}">
                     <Grid RowSpacing="8">
@@ -820,42 +806,130 @@
 
                         <TextBlock
                             Grid.Row="0"
-                            Text="Состояние"
+                            Text="Состояние зонда"
                             Style="{StaticResource IdentificationSectionHeaderTextStyle}" />
 
-                        <StackPanel Grid.Row="1" Spacing="6">
-                            <Border Style="{StaticResource IdentificationStatusBadgeBorderStyle}">
-                                <TextBlock Style="{StaticResource IdentificationValueTextStyle}" FontSize="12">
-                                    <Run Text="Воздух: " />
-                                    <Run Text="{x:Bind ViewModel.LocalAirState, Mode=OneWay}" />
-                                </TextBlock>
+                        <Grid Grid.Row="1" RowSpacing="6" ColumnSpacing="10">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Воздух:" Style="{StaticResource IdentificationLabelTextStyle}" />
+                            <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource IdentificationCompactValueBorderStyle}">
+                                <TextBlock
+                                    Text="{x:Bind ViewModel.LocalAirState, Mode=OneWay}"
+                                    Style="{StaticResource IdentificationValueTextStyle}"
+                                    AutomationProperties.Name="Состояние локального воздуха" />
                             </Border>
-                            <Border Style="{StaticResource IdentificationStatusBadgeBorderStyle}">
-                                <TextBlock Style="{StaticResource IdentificationValueTextStyle}" FontSize="12">
-                                    <Run Text="Кадров: " />
-                                    <Run Text="{x:Bind ViewModel.FrameCount, Mode=OneWay}" />
-                                </TextBlock>
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Кадров:" Style="{StaticResource IdentificationLabelTextStyle}" />
+                            <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource IdentificationCompactValueBorderStyle}">
+                                <TextBlock
+                                    Text="{x:Bind ViewModel.FrameCount, Mode=OneWay}"
+                                    Style="{StaticResource IdentificationValueTextStyle}"
+                                    AutomationProperties.Name="Количество кадров" />
                             </Border>
-                            <Border Style="{StaticResource IdentificationStatusBadgeBorderStyle}">
-                                <TextBlock Style="{StaticResource IdentificationValueTextStyle}" FontSize="12">
-                                    <Run Text="Температура: " />
-                                    <Run Text="{x:Bind ViewModel.TemperatureText, Mode=OneWay}" />
-                                </TextBlock>
+
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Температура:" Style="{StaticResource IdentificationLabelTextStyle}" />
+                            <Border Grid.Row="2" Grid.Column="1" Style="{StaticResource IdentificationCompactValueBorderStyle}">
+                                <TextBlock
+                                    Text="{x:Bind ViewModel.TemperatureText, Mode=OneWay}"
+                                    Style="{StaticResource IdentificationValueTextStyle}"
+                                    AutomationProperties.Name="Температура зонда" />
                             </Border>
-                        </StackPanel>
+                        </Grid>
                     </Grid>
                     </Border>
                 </StackPanel>
 
+                <Border
+                    Grid.Row="0"
+                    Grid.Column="2"
+                    Height="{Binding ActualHeight, ElementName=MainSondeStatePanel}"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Top"
+                    Style="{StaticResource IdentificationPanelBorderStyle}">
+                        <Grid ColumnSpacing="8" RowSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+
+                            <Border
+                                Grid.RowSpan="2"
+                                Grid.Column="0"
+                                Width="3"
+                                Background="{ThemeResource SystemControlForegroundAccentBrush}"
+                                CornerRadius="2"
+                                Opacity="0.72" />
+
+                            <TextBlock
+                                Grid.Row="0"
+                                Grid.Column="1"
+                                Text="Состояние кольца"
+                                Style="{StaticResource IdentificationSectionHeaderTextStyle}" />
+
+                            <Grid Grid.Row="1" Grid.Column="1" RowSpacing="6" ColumnSpacing="10">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Сигнатура:" Style="{StaticResource IdentificationLabelTextStyle}" />
+                                <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource IdentificationCompactValueBorderStyle}">
+                                    <TextBlock
+                                        Text="{x:Bind ViewModel.RingSignatureText, Mode=OneWay}"
+                                        Style="{StaticResource IdentificationValueTextStyle}"
+                                        FontFamily="Consolas"
+                                        AutomationProperties.Name="Значение сигнатуры кольца" />
+                                </Border>
+
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Ёмкости:" Style="{StaticResource IdentificationLabelTextStyle}" />
+                                <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource IdentificationCompactValueBorderStyle}">
+                                    <TextBlock
+                                        Text="{x:Bind ViewModel.RingCapacitanceStateText, Mode=OneWay}"
+                                        Style="{StaticResource IdentificationValueTextStyle}"
+                                        AutomationProperties.Name="Состояние расчёта ёмкостей кольца" />
+                                </Border>
+
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="Поддержка типов:" Style="{StaticResource IdentificationLabelTextStyle}" />
+                                <Border Grid.Row="2" Grid.Column="1" Style="{StaticResource IdentificationCompactValueBorderStyle}">
+                                    <TextBlock
+                                        Text="{x:Bind ViewModel.RingSupportedToolTypesText, Mode=OneWay}"
+                                        Style="{StaticResource IdentificationValueTextStyle}"
+                                        TextWrapping="NoWrap"
+                                        TextTrimming="None"
+                                        AutomationProperties.Name="Поддерживаемые типы приборов кольца" />
+                                </Border>
+                            </Grid>
+                        </Grid>
+                </Border>
+
                 <Button
-                    Grid.Column="11"
+                    Grid.Row="1"
+                    Grid.Column="2"
+                    Width="108"
                     Height="35"
+                    Margin="0,8,0,0"
                     Content="Рапорт"
                     Click="Report_Click"
-                    HorizontalAlignment="Stretch"
+                    HorizontalAlignment="Right"
                     VerticalAlignment="Top"
-                    MinWidth="0"
-                    Padding="0"
                     FontWeight="Bold"
                     ToolTipService.ToolTip="Сформировать рапорт" />
             </Grid>
@@ -1003,6 +1077,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
 
                             <StackPanel Orientation="Horizontal" Spacing="8">
@@ -1108,7 +1183,37 @@
                                 <Button Content="Записать в кольцо" Command="{x:Bind ViewModel.WriteRingParametersCommand}" />
                             </StackPanel>
 
-                            <StackPanel Grid.Row="6" Orientation="Horizontal" Spacing="6" Margin="0,2,0,0">
+                            <Grid Grid.Row="6" ColumnSpacing="8" Margin="0,2,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="120" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock
+                                    Grid.Column="0"
+                                    Text="Сигнатура кольца:"
+                                    Style="{StaticResource RingFieldLabelTextStyle}" />
+                                <TextBox
+                                    Grid.Column="1"
+                                    Height="32"
+                                    MinHeight="32"
+                                    Padding="8,0"
+                                    InputScope="Number"
+                                    IsReadOnly="{x:Bind ViewModel.IsRingSignatureReadOnly, Mode=OneWay}"
+                                    Text="{x:Bind ViewModel.RingSignatureEditorText, Mode=TwoWay}"
+                                    TextAlignment="Center"
+                                    VerticalContentAlignment="Center"
+                                    AutomationProperties.Name="Сигнатура кольца"
+                                    ToolTipService.ToolTip="Три цифры: тип прибора, максимальное число TX и модификация. Например: 151." />
+                                <Button
+                                    Grid.Column="2"
+                                    Content="Изменить сигнатуру"
+                                    Command="{x:Bind ViewModel.WriteRingSignatureCommand}"
+                                    AutomationProperties.Name="Изменить сигнатуру кольца" />
+                            </Grid>
+
+                            <StackPanel Grid.Row="7" Orientation="Horizontal" Spacing="6" Margin="0,2,0,0">
                                 <TextBlock Text="Редактировать" Style="{StaticResource RingFieldLabelTextStyle}" />
                                 <CheckBox IsChecked="{x:Bind ViewModel.IsRingEditMode, Mode=TwoWay}" />
                             </StackPanel>
@@ -1116,7 +1221,14 @@
                     </Border>
 
                     <!-- Дублирование карточек "Идентификация зонда" и "Состояние" с вкладки "Главная". -->
-                    <StackPanel Grid.Row="1" Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="12">
+                    <Grid Grid.Row="1" Grid.ColumnSpan="2" ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12">
                         <Border
                             Width="{x:Bind ViewModel.IdentificationPanelWidth, Mode=OneWay}"
                             Style="{StaticResource IdentificationPanelBorderStyle}">
@@ -1205,6 +1317,7 @@
                         </Border>
 
                         <Border
+                            x:Name="VerificationSondeStatePanel"
                             Width="200"
                             Style="{StaticResource IdentificationPanelBorderStyle}">
                             <Grid RowSpacing="8">
@@ -1215,32 +1328,119 @@
 
                                 <TextBlock
                                     Grid.Row="0"
-                                    Text="Состояние"
+                                    Text="Состояние зонда"
                                     Style="{StaticResource IdentificationSectionHeaderTextStyle}" />
 
-                                <StackPanel Grid.Row="1" Spacing="6">
-                                    <Border Style="{StaticResource IdentificationStatusBadgeBorderStyle}">
-                                        <TextBlock Style="{StaticResource IdentificationValueTextStyle}" FontSize="12">
-                                            <Run Text="Воздух: " />
-                                            <Run Text="{x:Bind ViewModel.LocalAirState, Mode=OneWay}" />
-                                        </TextBlock>
+                                <Grid Grid.Row="1" RowSpacing="6" ColumnSpacing="10">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Воздух:" Style="{StaticResource IdentificationLabelTextStyle}" />
+                                    <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource IdentificationCompactValueBorderStyle}">
+                                        <TextBlock
+                                            Text="{x:Bind ViewModel.LocalAirState, Mode=OneWay}"
+                                            Style="{StaticResource IdentificationValueTextStyle}"
+                                            AutomationProperties.Name="Состояние локального воздуха" />
                                     </Border>
-                                    <Border Style="{StaticResource IdentificationStatusBadgeBorderStyle}">
-                                        <TextBlock Style="{StaticResource IdentificationValueTextStyle}" FontSize="12">
-                                            <Run Text="Кадров: " />
-                                            <Run Text="{x:Bind ViewModel.FrameCount, Mode=OneWay}" />
-                                        </TextBlock>
+
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Кадров:" Style="{StaticResource IdentificationLabelTextStyle}" />
+                                    <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource IdentificationCompactValueBorderStyle}">
+                                        <TextBlock
+                                            Text="{x:Bind ViewModel.FrameCount, Mode=OneWay}"
+                                            Style="{StaticResource IdentificationValueTextStyle}"
+                                            AutomationProperties.Name="Количество кадров" />
                                     </Border>
-                                    <Border Style="{StaticResource IdentificationStatusBadgeBorderStyle}">
-                                        <TextBlock Style="{StaticResource IdentificationValueTextStyle}" FontSize="12">
-                                            <Run Text="Температура: " />
-                                            <Run Text="{x:Bind ViewModel.TemperatureText, Mode=OneWay}" />
-                                        </TextBlock>
+
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Температура:" Style="{StaticResource IdentificationLabelTextStyle}" />
+                                    <Border Grid.Row="2" Grid.Column="1" Style="{StaticResource IdentificationCompactValueBorderStyle}">
+                                        <TextBlock
+                                            Text="{x:Bind ViewModel.TemperatureText, Mode=OneWay}"
+                                            Style="{StaticResource IdentificationValueTextStyle}"
+                                            AutomationProperties.Name="Температура зонда" />
                                     </Border>
-                                </StackPanel>
+                                </Grid>
                             </Grid>
                         </Border>
-                    </StackPanel>
+                        </StackPanel>
+
+                        <Border
+                            Grid.Column="2"
+                            Height="{Binding ActualHeight, ElementName=VerificationSondeStatePanel}"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Top"
+                            Style="{StaticResource IdentificationPanelBorderStyle}">
+                            <Grid ColumnSpacing="8" RowSpacing="8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+
+                                <Border
+                                    Grid.RowSpan="2"
+                                    Grid.Column="0"
+                                    Width="3"
+                                    Background="{ThemeResource SystemControlForegroundAccentBrush}"
+                                    CornerRadius="2"
+                                    Opacity="0.72" />
+
+                                <TextBlock
+                                    Grid.Row="0"
+                                    Grid.Column="1"
+                                    Text="Состояние кольца"
+                                    Style="{StaticResource IdentificationSectionHeaderTextStyle}" />
+
+                                <Grid Grid.Row="1" Grid.Column="1" RowSpacing="6" ColumnSpacing="10">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Сигнатура:" Style="{StaticResource IdentificationLabelTextStyle}" />
+                                    <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource IdentificationCompactValueBorderStyle}">
+                                        <TextBlock
+                                            Text="{x:Bind ViewModel.RingSignatureText, Mode=OneWay}"
+                                            Style="{StaticResource IdentificationValueTextStyle}"
+                                            FontFamily="Consolas"
+                                            AutomationProperties.Name="Значение сигнатуры кольца" />
+                                    </Border>
+
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Ёмкости:" Style="{StaticResource IdentificationLabelTextStyle}" />
+                                    <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource IdentificationCompactValueBorderStyle}">
+                                        <TextBlock
+                                            Text="{x:Bind ViewModel.RingCapacitanceStateText, Mode=OneWay}"
+                                            Style="{StaticResource IdentificationValueTextStyle}"
+                                            AutomationProperties.Name="Состояние расчёта ёмкостей кольца" />
+                                    </Border>
+
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Поддержка типов:" Style="{StaticResource IdentificationLabelTextStyle}" />
+                                    <Border Grid.Row="2" Grid.Column="1" Style="{StaticResource IdentificationCompactValueBorderStyle}">
+                                        <TextBlock
+                                            Text="{x:Bind ViewModel.RingSupportedToolTypesText, Mode=OneWay}"
+                                            Style="{StaticResource IdentificationValueTextStyle}"
+                                            TextWrapping="NoWrap"
+                                            TextTrimming="None"
+                                            AutomationProperties.Name="Поддерживаемые типы приборов кольца" />
+                                    </Border>
+                                </Grid>
+                            </Grid>
+                        </Border>
+                    </Grid>
                 </Grid>
             </ScrollViewer>
 

@@ -64,37 +64,46 @@ public static class RingConnection
             }
 
             Exception? signatureError = null;
-            if (TryExchangeNoLock(
-                    port,
-                    RingProtocolConstants.ReadSignatureCommand,
-                    out var signatureResponse,
-                    out signatureError,
-                    correlation,
-                    operationId,
-                    "SGNREAD"))
+            foreach (var signatureProbe in GetSignatureProbes())
             {
-                AppLogger.Write($"SGNREAD: ответ '{signatureResponse.Trim()}'");
+                if (!TryExchangeNoLock(
+                        port,
+                        signatureProbe.Command,
+                        out var signatureResponse,
+                        out var currentSignatureError,
+                        correlation,
+                        operationId,
+                        signatureProbe.CommandName))
+                {
+                    signatureError ??= currentSignatureError;
+                    AppLogger.Write(currentSignatureError!, $"{signatureProbe.CommandName}: нет корректного ответа, пробуем совместимый вариант");
+                    continue;
+                }
+
+                AppLogger.Write($"{signatureProbe.CommandName}: ответ '{signatureResponse.Trim()}'");
                 if (RingProtocolParser.TryParseSignature(signatureResponse, out var signature))
                 {
-                    var device = RingDeviceInfo.Extended(signature);
-                    AppLogger.Write($"=== КОЛЬЦО ПОДКЛЮЧЕНО: новая прошивка, SGN={signature}, ячеек={device.ImpedanceCellCount} ===");
-                    LogConnectCompleted(correlation, operationId, port, device, "sgnread", operationStopwatch.ElapsedMilliseconds);
+                    var device = RingDeviceInfo.Extended(signature, signatureProbe.CommandSet);
+                    AppLogger.Write(
+                        $"=== КОЛЬЦО ПОДКЛЮЧЕНО: прошивка с сигнатурой, SGN={signature}, " +
+                        $"команды={signatureProbe.CommandSet}, ячеек={device.ImpedanceCellCount} ===");
+                    LogConnectCompleted(
+                        correlation,
+                        operationId,
+                        port,
+                        device,
+                        signatureProbe.CommandName.ToLowerInvariant(),
+                        operationStopwatch.ElapsedMilliseconds);
                     return new RingConnectResult(RingConnectStatus.Connected, device);
                 }
 
                 if (RingProtocolParser.IsUnknownCommand(signatureResponse))
                 {
-                    var device = RingDeviceInfo.Legacy;
-                    AppLogger.Write("=== КОЛЬЦО ПОДКЛЮЧЕНО: старая прошивка без SGNREAD ===");
-                    LogConnectCompleted(correlation, operationId, port, device, "sgnread_unknown", operationStopwatch.ElapsedMilliseconds);
-                    return new RingConnectResult(RingConnectStatus.Connected, device);
+                    AppLogger.Write($"{signatureProbe.CommandName}: команда не поддерживается, пробуем совместимый вариант.");
+                    continue;
                 }
 
-                AppLogger.Write("SGNREAD: получен неизвестный формат ответа, выполняется совместимая проверка '$'.");
-            }
-            else
-            {
-                AppLogger.Write(signatureError!, "SGNREAD: нет корректного ответа, выполняется совместимая проверка '$'");
+                AppLogger.Write($"{signatureProbe.CommandName}: неизвестный формат ответа, пробуем совместимый вариант.");
             }
 
             Exception? legacyError = null;
@@ -163,37 +172,63 @@ public static class RingConnection
     }
 
     public static RingSignatureReadResult ReadSignature(SerialPort port, string? correlationId = null)
+        => ReadSignature(port, RingSignatureCommandSet.Sgn, correlationId);
+
+    public static RingSignatureReadResult ReadSignature(
+        SerialPort port,
+        RingSignatureCommandSet commandSet,
+        string? correlationId = null)
     {
         var correlation = NormalizeCorrelation(correlationId);
         var operationId = AppLogger.NextOperationId("ring-sgnread");
+        var command = GetReadSignatureCommand(commandSet);
+        var commandName = GetReadSignatureCommandName(commandSet);
         lock (GetPortLock(port))
         {
             if (!port.IsOpen)
             {
-                return new RingSignatureReadResult(false, null, $"Порт кольца {port.PortName} не открыт.");
+                return new RingSignatureReadResult(false, null, commandSet, $"Порт кольца {port.PortName} не открыт.");
+            }
+
+            if (command is null)
+            {
+                return new RingSignatureReadResult(false, null, commandSet, "Прошивка кольца не поддерживает чтение сигнатуры.");
             }
 
             if (!TryExchangeNoLock(
                     port,
-                    RingProtocolConstants.ReadSignatureCommand,
+                    command,
                     out var response,
                     out var error,
                     correlation,
                     operationId,
-                    "SGNREAD"))
+                    commandName))
             {
-                return new RingSignatureReadResult(false, null, DescribeRingError(error!, port.PortName));
+                return new RingSignatureReadResult(false, null, commandSet, DescribeRingError(error!, port.PortName));
             }
 
             return RingProtocolParser.TryParseSignature(response, out var signature)
-                ? new RingSignatureReadResult(true, signature, null)
-                : new RingSignatureReadResult(false, null, $"Неожиданный ответ SGNREAD: '{response.Trim()}'.");
+                ? new RingSignatureReadResult(true, signature, commandSet, null)
+                : new RingSignatureReadResult(false, null, commandSet, $"Неожиданный ответ {commandName}: '{response.Trim()}'.");
         }
     }
 
     public static RingWorkOutcome WriteSignature(SerialPort port, uint signature, string? correlationId = null)
+        => WriteSignature(port, signature, RingSignatureCommandSet.Sgn, correlationId);
+
+    public static RingWorkOutcome WriteSignature(
+        SerialPort port,
+        uint signature,
+        RingSignatureCommandSet commandSet,
+        string? correlationId = null)
     {
-        var command = string.Format(CultureInfo.InvariantCulture, RingProtocolConstants.WriteSignatureCommandFormat, signature);
+        var commandFormat = GetWriteSignatureCommandFormat(commandSet);
+        if (commandFormat is null)
+        {
+            return RingWorkOutcome.Failed("Прошивка кольца не поддерживает запись сигнатуры.");
+        }
+
+        var command = string.Format(CultureInfo.InvariantCulture, commandFormat, signature);
         var correlation = NormalizeCorrelation(correlationId);
         var operationId = AppLogger.NextOperationId("ring-sgnwrite");
         lock (GetPortLock(port))
@@ -202,7 +237,7 @@ public static class RingConnection
                 port,
                 command,
                 response => RingProtocolParser.IsWriteSignatureReply(signature, response),
-                "SGNWRITE",
+                GetWriteSignatureCommandName(commandSet),
                 correlation,
                 operationId);
         }
@@ -718,6 +753,38 @@ public static class RingConnection
     private static string NormalizeCorrelation(string? correlationId) =>
         string.IsNullOrWhiteSpace(correlationId) ? "none" : EscapeProtocolText(correlationId);
 
+    private static (RingSignatureCommandSet CommandSet, string Command, string CommandName)[] GetSignatureProbes() =>
+    [
+        (RingSignatureCommandSet.Sgn, RingProtocolConstants.ReadSignatureCommand, "SGNREAD"),
+        (RingSignatureCommandSet.Sg, RingProtocolConstants.ReadCompatibleSignatureCommand, "SGREAD")
+    ];
+
+    private static string? GetReadSignatureCommand(RingSignatureCommandSet commandSet) => commandSet switch
+    {
+        RingSignatureCommandSet.Sgn => RingProtocolConstants.ReadSignatureCommand,
+        RingSignatureCommandSet.Sg => RingProtocolConstants.ReadCompatibleSignatureCommand,
+        _ => null
+    };
+
+    private static string GetReadSignatureCommandName(RingSignatureCommandSet commandSet) => commandSet switch
+    {
+        RingSignatureCommandSet.Sg => "SGREAD",
+        _ => "SGNREAD"
+    };
+
+    private static string? GetWriteSignatureCommandFormat(RingSignatureCommandSet commandSet) => commandSet switch
+    {
+        RingSignatureCommandSet.Sgn => RingProtocolConstants.WriteSignatureCommandFormat,
+        RingSignatureCommandSet.Sg => RingProtocolConstants.WriteCompatibleSignatureCommandFormat,
+        _ => null
+    };
+
+    private static string GetWriteSignatureCommandName(RingSignatureCommandSet commandSet) => commandSet switch
+    {
+        RingSignatureCommandSet.Sg => "SGWRITE",
+        _ => "SGNWRITE"
+    };
+
     private static string EscapeProtocolText(string value) =>
         value
             .Replace("\r", "\\r", StringComparison.Ordinal)
@@ -761,10 +828,18 @@ public enum RingProtocolVersion
     Extended
 }
 
+public enum RingSignatureCommandSet
+{
+    None,
+    Sgn,
+    Sg
+}
+
 public readonly record struct RingDeviceInfo(
     RingProtocolVersion ProtocolVersion,
     uint? Signature,
-    int ImpedanceCellCount)
+    int ImpedanceCellCount,
+    RingSignatureCommandSet SignatureCommandSet = RingSignatureCommandSet.None)
 {
     public static RingDeviceInfo Unknown => new(RingProtocolVersion.Unknown, null, 0);
 
@@ -773,10 +848,13 @@ public readonly record struct RingDeviceInfo(
         null,
         RingProtocolConstants.LegacyMemoryCellCount);
 
-    public static RingDeviceInfo Extended(uint signature) => new(
+    public static RingDeviceInfo Extended(uint signature) => Extended(signature, RingSignatureCommandSet.Sgn);
+
+    public static RingDeviceInfo Extended(uint signature, RingSignatureCommandSet commandSet) => new(
         RingProtocolVersion.Extended,
         signature,
-        RingProtocolConstants.ExtendedMemoryCellCount);
+        RingProtocolConstants.ExtendedMemoryCellCount,
+        commandSet);
 }
 
 public readonly record struct RingConnectResult(
@@ -786,7 +864,11 @@ public readonly record struct RingConnectResult(
     public bool IsConnected => Status == RingConnection.RingConnectStatus.Connected;
 }
 
-public readonly record struct RingSignatureReadResult(bool Success, uint? Signature, string? ErrorMessage);
+public readonly record struct RingSignatureReadResult(
+    bool Success,
+    uint? Signature,
+    RingSignatureCommandSet CommandSet,
+    string? ErrorMessage);
 
 public enum RingWorkResult
 {

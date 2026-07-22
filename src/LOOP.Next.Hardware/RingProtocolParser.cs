@@ -17,10 +17,17 @@ public static class RingProtocolParser
             return false;
         }
 
-        const string prefix = "SGN=";
         var value = response.Trim();
-        return value.StartsWith(prefix, StringComparison.Ordinal) &&
-               uint.TryParse(value[prefix.Length..], NumberStyles.None, CultureInfo.InvariantCulture, out signature);
+        foreach (var prefix in new[] { "SGN=", "SG=" })
+        {
+            if (value.StartsWith(prefix, StringComparison.Ordinal) &&
+                uint.TryParse(value[prefix.Length..], NumberStyles.None, CultureInfo.InvariantCulture, out signature))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public static bool TryParseLoopParameterCell(int index, string? response, out RingLoopParameterCell cell)

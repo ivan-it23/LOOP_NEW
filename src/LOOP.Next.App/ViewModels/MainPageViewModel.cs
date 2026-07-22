@@ -121,10 +121,13 @@ public partial class MainPageViewModel : ObservableObject
     public bool CanStartSingleResistance =>
         IsConnected &&
         IsRingConnected &&
+        IsCurrentToolSupportedByRing &&
         !IsAutoMode &&
         !IsResistanceMeasurementRunning;
 
-    public bool CanToggleAutoMode => !IsResistanceMeasurementRunning || IsAutoMode;
+    public bool CanToggleAutoMode =>
+        IsAutoMode ||
+        (!IsResistanceMeasurementRunning && IsCurrentToolSupportedByRing);
 
     public bool CanReadMetrologyFromFile => !IsConnected;
 
@@ -240,6 +243,7 @@ public partial class MainPageViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(CanStartSingleResistance))]
     [NotifyPropertyChangedFor(nameof(CanToggleAutoMode))]
     [NotifyCanExecuteChangedFor(nameof(RunResistanceCommand))]
+    [NotifyCanExecuteChangedFor(nameof(WriteRingSignatureCommand))]
     public partial bool IsResistanceMeasurementRunning { get; set; }
 
     [ObservableProperty]
@@ -275,9 +279,18 @@ public partial class MainPageViewModel : ObservableObject
     }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsRingSignatureReadOnly))]
+    [NotifyCanExecuteChangedFor(nameof(WriteRingSignatureCommand))]
     public partial bool IsRingEditMode { get; set; }
 
-    partial void OnIsRingEditModeChanged(bool value) => ApplyRingEditModes();
+    partial void OnIsRingEditModeChanged(bool value)
+    {
+        ApplyRingEditModes();
+        if (!value)
+        {
+            RingSignatureEditorText = _ringDeviceInfo.Signature?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
+        }
+    }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanConnect))]
@@ -286,6 +299,7 @@ public partial class MainPageViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(MetrologyFileButtonText))]
     [NotifyPropertyChangedFor(nameof(ToolToggleText))]
     [NotifyPropertyChangedFor(nameof(CanStartSingleResistance))]
+    [NotifyPropertyChangedFor(nameof(CanToggleAutoMode))]
     [NotifyCanExecuteChangedFor(nameof(RunResistanceCommand))]
     public partial bool IsConnected { get; set; }
 
@@ -294,7 +308,9 @@ public partial class MainPageViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(CanToggleRing))]
     [NotifyPropertyChangedFor(nameof(RingToggleText))]
     [NotifyPropertyChangedFor(nameof(CanStartSingleResistance))]
+    [NotifyPropertyChangedFor(nameof(CanToggleAutoMode))]
     [NotifyCanExecuteChangedFor(nameof(RunResistanceCommand))]
+    [NotifyCanExecuteChangedFor(nameof(WriteRingSignatureCommand))]
     public partial bool IsRingConnected { get; set; }
 
     [ObservableProperty]
@@ -367,6 +383,47 @@ public partial class MainPageViewModel : ObservableObject
 
     [ObservableProperty]
     public partial string SignatureBitsText { get; set; } = "—";
+
+    [ObservableProperty]
+    public partial string RingSignatureText { get; set; } = "—";
+
+    [ObservableProperty]
+    public partial string RingSignatureEditorText { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string RingSupportedToolTypesText { get; set; } = "—";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(RingCapacitanceStateText))]
+    public partial bool AreRingCapacitancesCalculated { get; set; }
+
+    public string RingCapacitanceStateText =>
+        AreRingCapacitancesCalculated ? "Рассчитаны" : "Не рассчитаны";
+
+    private RingCapacitanceMappingProfile CurrentRingCapacitanceMappingProfile =>
+        RingSignatureCatalog.GetCapacitanceMappingProfile(_ringDeviceInfo.Signature);
+
+    private RingToolCompatibility CurrentRingToolCompatibility =>
+        RingSignatureCatalog.GetToolCompatibility(
+            _ringDeviceInfo.Signature,
+            ToolIdentity.Decode(_metrology.Signature));
+
+    private bool IsCurrentToolSupportedByRing =>
+        CurrentRingToolCompatibility != RingToolCompatibility.Unsupported;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsRingSignatureReadOnly))]
+    [NotifyCanExecuteChangedFor(nameof(WriteRingSignatureCommand))]
+    public partial bool IsRingSignatureBusy { get; set; }
+
+    public bool IsRingSignatureReadOnly => !IsRingEditMode || IsRingSignatureBusy;
+
+    private bool CanWriteRingSignature() =>
+        IsRingConnected &&
+        IsRingEditMode &&
+        !IsRingSignatureBusy &&
+        !IsResistanceMeasurementRunning &&
+        _ringDeviceInfo.SignatureCommandSet != RingSignatureCommandSet.None;
 
     [ObservableProperty]
     public partial string LocalAirState { get; set; } = "Не задан";
@@ -538,9 +595,11 @@ public partial class MainPageViewModel : ObservableObject
         _frameCounter = 0;
         FrameCount = 0;
 
-        StatusText = result.Metrology.Signature != 0
-            ? "Прибор подключён, метрология считана"
-            : "Порт открыт, метрология не считана";
+        StatusText = CurrentRingToolCompatibility == RingToolCompatibility.Unsupported
+            ? $"Прибор {ToolTypeName} не поддерживается кольцом {_ringDeviceInfo.Signature}"
+            : result.Metrology.Signature != 0
+                ? "Прибор подключён, метрология считана"
+                : "Порт открыт, метрология не считана";
 
         StartPolling();
     }
@@ -590,18 +649,21 @@ public partial class MainPageViewModel : ObservableObject
         if (result.IsConnected)
         {
             _ringDeviceInfo = result.DeviceInfo;
+            ApplyRingDeviceInfo(result.DeviceInfo);
             IsRingConnected = true;
             AppLogger.WriteDiagnostic(
                 "RING_WORKFLOW",
                 "RING_CONNECTED",
-                $"workflow={_ringWorkflowId}|ring_port={portName}|profile={result.DeviceInfo.ProtocolVersion}|signature={result.DeviceInfo.Signature?.ToString(CultureInfo.InvariantCulture) ?? "none"}|memory_cells={result.DeviceInfo.ImpedanceCellCount}|working_cells={RingProtocolConstants.WorkingParameterCellCount}|tx={_channelCount / MetrologyConverter.FrequencyCount}|channels={_channelCount}");
+                $"workflow={_ringWorkflowId}|ring_port={portName}|profile={result.DeviceInfo.ProtocolVersion}|signature={result.DeviceInfo.Signature?.ToString(CultureInfo.InvariantCulture) ?? "none"}|signature_commands={result.DeviceInfo.SignatureCommandSet}|memory_cells={result.DeviceInfo.ImpedanceCellCount}|working_cells={RingProtocolConstants.WorkingParameterCellCount}|tx={_channelCount / MetrologyConverter.FrequencyCount}|channels={_channelCount}");
             AppLogger.WriteDiagnostic(
                 "RING_FIRMWARE_DIAG",
                 "PROTOCOL_CAPABILITIES",
                 $"workflow={_ringWorkflowId}|ring_port={portName}|profile={result.DeviceInfo.ProtocolVersion}|signature={result.DeviceInfo.Signature?.ToString(CultureInfo.InvariantCulture) ?? "none"}|selection_semantics=documented_single_RES_and_single_CAP|state_readback_supported=false|RESREAD_supported=false|CAPREAD_supported=false|keepalive_requirement=undocumented|physical_state_evidence=corrected_tool_phase");
-            StatusText = result.DeviceInfo.ProtocolVersion == RingProtocolVersion.Extended
-                ? $"Кольцо подключено, SGN={result.DeviceInfo.Signature}"
-                : "Кольцо подключено (совместимый режим)";
+            StatusText = CurrentRingToolCompatibility == RingToolCompatibility.Unsupported
+                ? $"Кольцо {result.DeviceInfo.Signature} не поддерживает прибор {ToolTypeName}"
+                : result.DeviceInfo.ProtocolVersion == RingProtocolVersion.Extended
+                    ? $"Кольцо подключено, SGN={result.DeviceInfo.Signature}"
+                    : "Кольцо подключено (совместимый режим)";
             if (IsConnected)
             {
                 await LoadRingParametersAsync();
@@ -610,6 +672,7 @@ public partial class MainPageViewModel : ObservableObject
         else
         {
             _ringDeviceInfo = RingDeviceInfo.Unknown;
+            ApplyRingDeviceInfo(_ringDeviceInfo);
             IsRingConnected = false;
             AppLogger.WriteDiagnostic(
                 "RING_WORKFLOW",
@@ -638,6 +701,7 @@ public partial class MainPageViewModel : ObservableObject
         SetActiveMeasurementPoint(0, 0);
         await Task.Run(() => RingConnection.Disconnect(_ringPort, workflow));
         _ringDeviceInfo = RingDeviceInfo.Unknown;
+        ApplyRingDeviceInfo(_ringDeviceInfo);
         IsRingConnected = false;
         StatusText = "Кольцо отключено";
         AppLogger.WriteDiagnostic(
@@ -645,6 +709,141 @@ public partial class MainPageViewModel : ObservableObject
             "RING_DISCONNECTED",
             $"workflow={workflow}|ring_port={_ringPort.PortName}");
         _ringWorkflowId = "none";
+    }
+
+    [RelayCommand(CanExecute = nameof(CanWriteRingSignature))]
+    private async Task WriteRingSignatureAsync()
+    {
+        if (!RingSignatureCatalog.TryParseEditableSignature(
+                RingSignatureEditorText,
+                out var signature,
+                out var validationError))
+        {
+            StatusText = "Сигнатура кольца не записана";
+            RaiseUserMessage("Некорректная сигнатура", validationError!);
+            return;
+        }
+
+        if (!IsRingConnected || !_ringPort.IsOpen)
+        {
+            StatusText = "Подключите кольцо";
+            RaiseUserMessage("Запись не выполнена", "Кольцо не подключено. Подключите кольцо и повторите запись сигнатуры.");
+            return;
+        }
+
+        var commandSet = _ringDeviceInfo.SignatureCommandSet;
+        if (commandSet == RingSignatureCommandSet.None)
+        {
+            StatusText = "Прошивка кольца не поддерживает сигнатуру";
+            RaiseUserMessage(
+                "Запись не выполнена",
+                "Подключённая прошивка кольца не поддерживает команды чтения и записи сигнатуры.");
+            return;
+        }
+
+        IsRingSignatureBusy = true;
+        var writeId = AppLogger.NextOperationId("ring-signature-write");
+        var correlation = BuildDiagnosticCorrelation(writeId);
+        var stopwatch = Stopwatch.StartNew();
+        AppLogger.WriteDiagnostic(
+            "RING_SIGNATURE",
+            "WRITE_BEGIN",
+            $"correlation={correlation}|old_signature={_ringDeviceInfo.Signature?.ToString(CultureInfo.InvariantCulture) ?? "none"}|new_signature={signature}|commands={commandSet}|port={_ringPort.PortName}");
+
+        try
+        {
+            StatusText = $"Запись сигнатуры кольца {signature}...";
+            var writeResult = await Task.Run(() =>
+                RingConnection.WriteSignature(_ringPort, signature, commandSet, correlation));
+            if (!writeResult.IsOk)
+            {
+                AppLogger.WriteDiagnostic(
+                    "RING_SIGNATURE",
+                    "WRITE_FAILED",
+                    $"correlation={correlation}|signature={signature}|commands={commandSet}|reason={SanitizeDiagnosticValue(writeResult.FailureReason ?? "unknown")}|elapsed_ms={stopwatch.ElapsedMilliseconds}");
+                StatusText = "Сигнатура кольца не записана";
+                RaiseUserMessage(
+                    "Запись не выполнена",
+                    writeResult.FailureReason ?? "Кольцо не подтвердило запись сигнатуры.");
+                return;
+            }
+
+            var readResult = await Task.Run(() =>
+                RingConnection.ReadSignature(_ringPort, commandSet, correlation));
+            if (!readResult.Success || readResult.Signature != signature)
+            {
+                var actualSignature = readResult.Signature?.ToString(CultureInfo.InvariantCulture) ?? "не считана";
+                AppLogger.WriteDiagnostic(
+                    "RING_SIGNATURE",
+                    "VERIFY_FAILED",
+                    $"correlation={correlation}|expected_signature={signature}|actual_signature={actualSignature}|commands={commandSet}|reason={SanitizeDiagnosticValue(readResult.ErrorMessage ?? "readback_mismatch")}|elapsed_ms={stopwatch.ElapsedMilliseconds}");
+                StatusText = "Запись сигнатуры не подтверждена";
+                RaiseUserMessage(
+                    "Сигнатура не подтверждена",
+                    $"Кольцо подтвердило команду записи, но контрольное чтение не вернуло ожидаемое значение {signature}. " +
+                    $"Считано: {actualSignature}.");
+                return;
+            }
+
+            _ringDeviceInfo = RingDeviceInfo.Extended(signature, readResult.CommandSet);
+            ApplyRingDeviceInfo(_ringDeviceInfo);
+            AppLogger.WriteDiagnostic(
+                "RING_SIGNATURE",
+                "WRITE_VERIFIED",
+                $"correlation={correlation}|signature={signature}|commands={readResult.CommandSet}|supported_types={SanitizeDiagnosticValue(RingSupportedToolTypesText)}|elapsed_ms={stopwatch.ElapsedMilliseconds}");
+            StatusText = $"Сигнатура кольца {signature} записана и проверена";
+            RaiseUserMessage(
+                "Сигнатура записана",
+                $"В кольцо записана и контрольным чтением подтверждена сигнатура {signature}.\n\n" +
+                $"Поддерживаемые типы приборов: {RingSupportedToolTypesText}");
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Write(ex, "Ошибка записи сигнатуры кольца");
+            AppLogger.WriteDiagnostic(
+                "RING_SIGNATURE",
+                "WRITE_FAILED",
+                ex,
+                $"correlation={correlation}|signature={signature}|commands={commandSet}|elapsed_ms={stopwatch.ElapsedMilliseconds}");
+            StatusText = "Сигнатура кольца не записана";
+            RaiseUserMessage("Запись не выполнена", $"Не удалось записать сигнатуру кольца.\n\nПричина: {ex.Message}");
+        }
+        finally
+        {
+            IsRingSignatureBusy = false;
+        }
+    }
+
+    private void ApplyRingDeviceInfo(RingDeviceInfo deviceInfo)
+    {
+        if (deviceInfo.Signature is uint signature)
+        {
+            var signatureText = signature.ToString(CultureInfo.InvariantCulture);
+            RingSignatureText = signatureText;
+            RingSignatureEditorText = signatureText;
+            RingSupportedToolTypesText = RingSignatureCatalog.GetSupportedToolTypes(signature);
+        }
+        else if (deviceInfo.ProtocolVersion == RingProtocolVersion.Legacy)
+        {
+            RingSignatureText = "Не поддерживается";
+            RingSignatureEditorText = string.Empty;
+            RingSupportedToolTypesText = "Не определены";
+        }
+        else
+        {
+            RingSignatureText = "—";
+            RingSignatureEditorText = string.Empty;
+            RingSupportedToolTypesText = "—";
+        }
+
+        OnPropertyChanged(nameof(CanStartSingleResistance));
+        OnPropertyChanged(nameof(CanToggleAutoMode));
+        RunResistanceCommand.NotifyCanExecuteChanged();
+        WriteRingSignatureCommand.NotifyCanExecuteChanged();
+        AppLogger.WriteDiagnostic(
+            "RING_SIGNATURE",
+            "PROFILE_SELECTED",
+            $"workflow={CurrentRingWorkflowId}|signature={deviceInfo.Signature?.ToString(CultureInfo.InvariantCulture) ?? "none"}|mapping_profile={CurrentRingCapacitanceMappingProfile}|tool_compatibility={CurrentRingToolCompatibility}|supported_types={SanitizeDiagnosticValue(RingSupportedToolTypesText)}");
     }
 
     public string CreateSuggestedReportFileName() =>
@@ -899,6 +1098,7 @@ public partial class MainPageViewModel : ObservableObject
 
     private bool CalculateRingCalibrationCore(bool showUserMessage, bool populateMissingMeasuredValues)
     {
+        AreRingCapacitancesCalculated = false;
         var calculationId = AppLogger.NextOperationId("ring-capacitance-calc");
         var correlation = BuildDiagnosticCorrelation(calculationId);
         var stopwatch = Stopwatch.StartNew();
@@ -962,6 +1162,7 @@ public partial class MainPageViewModel : ObservableObject
         }
 
         RecalculateLoopReferences();
+        AreRingCapacitancesCalculated = true;
         AppLogger.WriteDiagnostic(
             "RING_CALC",
             "CAPACITANCE_COMPLETED",
@@ -1335,6 +1536,9 @@ public partial class MainPageViewModel : ObservableObject
         NumberText = identity.Number.ToString();
         PaletteText = identity.PaletteSignature.ToString();
         SignatureBitsText = identity.SignatureBits;
+        OnPropertyChanged(nameof(CanStartSingleResistance));
+        OnPropertyChanged(nameof(CanToggleAutoMode));
+        RunResistanceCommand.NotifyCanExecuteChanged();
     }
 
     private void ApplyMetrology(in GpToolMetrology metrology)
@@ -1416,6 +1620,7 @@ public partial class MainPageViewModel : ObservableObject
 
     private void BuildRingCalibrationRows(IReadOnlyList<SondeParameter> sondeParameters)
     {
+        AreRingCapacitancesCalculated = false;
         var table = new MeasurementTable();
         table.SetHeaders(sondeParameters);
 
@@ -1505,6 +1710,7 @@ public partial class MainPageViewModel : ObservableObject
 
     private void BuildDefaultRingCalibrationRows()
     {
+        AreRingCapacitancesCalculated = false;
         RingCalibrationRows.Clear();
         RingGeometryRows.Clear();
         RingFrequencyRows.Clear();
@@ -1843,6 +2049,22 @@ public partial class MainPageViewModel : ObservableObject
             return false;
         }
 
+        if (CurrentRingToolCompatibility == RingToolCompatibility.Unsupported)
+        {
+            var supportedTypes = RingSignatureCatalog.GetSupportedToolTypes(_ringDeviceInfo.Signature);
+            AppLogger.Write($"{modeName}: прибор {ToolTypeName} не поддерживается кольцом {_ringDeviceInfo.Signature}.");
+            AppLogger.WriteDiagnostic(
+                "RING_MEASUREMENT",
+                "PREPARE_BLOCKED",
+                $"correlation={correlation}|reason=tool_not_supported_by_ring_signature|ring_signature={_ringDeviceInfo.Signature}|tool_signature=0x{_metrology.Signature:X8}|tool_type={SanitizeDiagnosticValue(ToolTypeName)}|supported_types={SanitizeDiagnosticValue(supportedTypes)}");
+            StatusText = $"{modeName}: прибор не поддерживается кольцом";
+            RaiseUserMessage(
+                "Несовместимое кольцо",
+                $"Сигнатура кольца {_ringDeviceInfo.Signature} не поддерживает прибор {ToolTypeName}.\n\n" +
+                $"Поддерживаемые типы приборов: {supportedTypes}");
+            return false;
+        }
+
         if (!IsLocalAirSet())
         {
             const string message = "Сначала соберите локальный воздух, затем повторите заполнение таблицы.";
@@ -1905,16 +2127,18 @@ public partial class MainPageViewModel : ObservableObject
             var pointCorrelation = $"{_activeMeasurementRunId}:{pointId}";
             var pointStopwatch = Stopwatch.StartNew();
             var activeChannels = GetActiveMeasurementChannels(resistanceIndex, capacitanceIndex, _channelCount).ToArray();
+            var mappingProfile = CurrentRingCapacitanceMappingProfile;
             var commandCapacitance = RingMeasurementSequence.GetCommandCapacitance(
                 _channelCount,
-                capacitanceIndex);
+                capacitanceIndex,
+                mappingProfile);
             var capacitanceShiftApplied = commandCapacitance != capacitanceIndex;
             token.ThrowIfCancellationRequested();
             SetActiveMeasurementPoint(0, 0);
             AppLogger.WriteDiagnostic(
                 "RING_MEASUREMENT",
                 "POINT_PREPARE",
-                $"run={_activeMeasurementRunId}|point={pointCorrelation}|R={resistanceIndex}|logical_C={capacitanceIndex}|command_C={commandCapacitance}|expected_physical_C={commandCapacitance}|mapping_owner=application|shift_applied={capacitanceShiftApplied}|scan_strategy={RingMeasurementSequence.GetStrategyName(ExpressMode, resistanceIndex)}|active_channels=[{string.Join(",", activeChannels)}]|skip_frames={MeasurementSkipFrames}|averaging={SelectedAveraging}|delay_before_command_ms=200");
+                $"run={_activeMeasurementRunId}|point={pointCorrelation}|R={resistanceIndex}|logical_C={capacitanceIndex}|command_C={commandCapacitance}|expected_physical_C={commandCapacitance}|mapping_owner=application|mapping_profile={mappingProfile}|ring_signature={_ringDeviceInfo.Signature?.ToString(CultureInfo.InvariantCulture) ?? "none"}|shift_applied={capacitanceShiftApplied}|scan_strategy={RingMeasurementSequence.GetStrategyName(ExpressMode, resistanceIndex)}|active_channels=[{string.Join(",", activeChannels)}]|skip_frames={MeasurementSkipFrames}|averaging={SelectedAveraging}|delay_before_command_ms=200");
 
             StatusText = $"{modeName}: R{resistanceIndex}, C{capacitanceIndex}";
             LogCapMap(resistanceIndex, capacitanceIndex, commandCapacitance);
@@ -3085,7 +3309,7 @@ public partial class MainPageViewModel : ObservableObject
         AppLogger.WriteDiagnostic(
             "RING_MEASUREMENT",
             "CAP_MAPPING",
-            $"workflow={CurrentRingWorkflowId}|run={_activeMeasurementRunId}|R={resistanceIndex}|logical_C={capacitanceIndex}|command_C={commandCapacitance}|expected_physical_C={commandCapacitance}|mapping_owner=application|shift_applied={commandCapacitance != capacitanceIndex}|channel={channelIndex}|frequency={freqLabel}|tx={txIndex}|reactance={reactance:F6}|reference_phase_mG={referencePhase * PhysicalConstants.Milligrad:F3}|reference_resistivity={referenceResistivity:F3}|all_reference_phase_mG=[{FormatAllReferencePhases(resistanceIndex)}]");
+            $"workflow={CurrentRingWorkflowId}|run={_activeMeasurementRunId}|R={resistanceIndex}|logical_C={capacitanceIndex}|command_C={commandCapacitance}|expected_physical_C={commandCapacitance}|mapping_owner=application|mapping_profile={CurrentRingCapacitanceMappingProfile}|ring_signature={_ringDeviceInfo.Signature?.ToString(CultureInfo.InvariantCulture) ?? "none"}|shift_applied={commandCapacitance != capacitanceIndex}|channel={channelIndex}|frequency={freqLabel}|tx={txIndex}|reactance={reactance:F6}|reference_phase_mG={referencePhase * PhysicalConstants.Milligrad:F3}|reference_resistivity={referenceResistivity:F3}|all_reference_phase_mG=[{FormatAllReferencePhases(resistanceIndex)}]");
     }
 
     private string BeginMeasurementDiagnosticRun(string mode, int? resistanceIndex)
@@ -3106,7 +3330,7 @@ public partial class MainPageViewModel : ObservableObject
         AppLogger.WriteDiagnostic(
             "RING_MEASUREMENT",
             "RUN_BEGIN",
-            $"workflow={CurrentRingWorkflowId}|run={run}|mode={mode}|requested_R={resistanceIndex?.ToString(CultureInfo.InvariantCulture) ?? "all"}|tool_signature=0x{_metrology.Signature:X8}|tool_serial={_metrology.Serial}|tx={_channelCount / MetrologyConverter.FrequencyCount}|channels={_channelCount}|rx_position={_rxPosition}|ring_profile={_ringDeviceInfo.ProtocolVersion}|ring_signature={_ringDeviceInfo.Signature?.ToString(CultureInfo.InvariantCulture) ?? "none"}|ring_memory_cells={_ringDeviceInfo.ImpedanceCellCount}|cap_mapping_owner=application|ring_physical_group_size={RingMeasurementSequence.RingPhysicalGroupSize}|skip_frames={MeasurementSkipFrames}|averaging={SelectedAveraging}|threshold_percent={ThresholdPercent}|express={ExpressMode}|express_full_scan_R_max={RingMeasurementSequence.ExpressFullScanResistanceLimit}|express_group_size={GetExpressGroupSize(_channelCount)}|poll_interval_ms={PollIntervalMs:F0}|local_air_mG=[{FormatV10Diagnostic(air, _channelCount, (float)PhysicalConstants.Milligrad, "F3")}]");
+            $"workflow={CurrentRingWorkflowId}|run={run}|mode={mode}|requested_R={resistanceIndex?.ToString(CultureInfo.InvariantCulture) ?? "all"}|tool_signature=0x{_metrology.Signature:X8}|tool_serial={_metrology.Serial}|tx={_channelCount / MetrologyConverter.FrequencyCount}|channels={_channelCount}|rx_position={_rxPosition}|ring_profile={_ringDeviceInfo.ProtocolVersion}|ring_signature={_ringDeviceInfo.Signature?.ToString(CultureInfo.InvariantCulture) ?? "none"}|ring_signature_commands={_ringDeviceInfo.SignatureCommandSet}|cap_mapping_profile={CurrentRingCapacitanceMappingProfile}|tool_compatibility={CurrentRingToolCompatibility}|ring_memory_cells={_ringDeviceInfo.ImpedanceCellCount}|cap_mapping_owner=application|ring_physical_group_size={RingMeasurementSequence.RingPhysicalGroupSize}|skip_frames={MeasurementSkipFrames}|averaging={SelectedAveraging}|threshold_percent={ThresholdPercent}|express={ExpressMode}|express_full_scan_R_max={RingMeasurementSequence.ExpressFullScanResistanceLimit}|express_group_size={GetExpressGroupSize(_channelCount)}|poll_interval_ms={PollIntervalMs:F0}|local_air_mG=[{FormatV10Diagnostic(air, _channelCount, (float)PhysicalConstants.Milligrad, "F3")}]");
         return run;
     }
 

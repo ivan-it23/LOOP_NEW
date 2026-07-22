@@ -1,3 +1,4 @@
+using LoopNext.Core.Models;
 using LoopNext.Hardware;
 
 var checks = new List<(string Name, Action Run)>
@@ -6,6 +7,63 @@ var checks = new List<(string Name, Action Run)>
     {
         Require(RingProtocolParser.TryParseSignature("SGN=4294967295\r\n", out var signature));
         Require(signature == uint.MaxValue);
+    }),
+    ("SGREAD compatibility response parses uint32", () =>
+    {
+        Require(RingProtocolParser.TryParseSignature("SG=151\r\n", out var signature));
+        Require(signature == RingSignatureCatalog.UniversalAutonomousSignature);
+        Require(RingProtocolConstants.ReadCompatibleSignatureCommand == "SGREAD\r\n");
+        Require(RingProtocolConstants.WriteCompatibleSignatureCommandFormat == "SGWRITE {0}\r\n");
+    }),
+    ("Signature 151 exposes the documented universal compatibility", () =>
+    {
+        Require(
+            RingSignatureCatalog.GetSupportedToolTypes(151) ==
+            "Автономный 4-5 TX, LWD 3-4 TX, Картограф->LWD-4TX");
+        Require(RingSignatureCatalog.TryParseEditableSignature("151", out var signature, out var error));
+        Require(signature == 151 && error is null);
+    }),
+    ("Signature 151 selects the universal five-transmitter capacitance profile", () =>
+    {
+        Require(
+            RingSignatureCatalog.GetCapacitanceMappingProfile(151) ==
+            RingCapacitanceMappingProfile.UniversalFiveTransmitter);
+        Require(
+            RingSignatureCatalog.GetCapacitanceMappingProfile(123) ==
+            RingCapacitanceMappingProfile.CompatibilityFallback);
+        Require(
+            RingMeasurementSequence.GetCommandCapacitance(
+                8,
+                5,
+                RingCapacitanceMappingProfile.UniversalFiveTransmitter) == 6);
+    }),
+    ("Signature 151 accepts only its documented tool families", () =>
+    {
+        var autonomous4 = ToolIdentity.Decode(140000);
+        var autonomous5 = ToolIdentity.Decode(150000);
+        var lwd3 = ToolIdentity.Decode(230000);
+        var lwd4 = ToolIdentity.Decode(240000);
+        var cartographLwd4 = ToolIdentity.Decode(349000);
+        var autonomous3 = ToolIdentity.Decode(130000);
+        var lwd5 = ToolIdentity.Decode(250000);
+
+        Require(RingSignatureCatalog.GetToolCompatibility(151, in autonomous4) == RingToolCompatibility.Supported);
+        Require(RingSignatureCatalog.GetToolCompatibility(151, in autonomous5) == RingToolCompatibility.Supported);
+        Require(RingSignatureCatalog.GetToolCompatibility(151, in lwd3) == RingToolCompatibility.Supported);
+        Require(RingSignatureCatalog.GetToolCompatibility(151, in lwd4) == RingToolCompatibility.Supported);
+        Require(RingSignatureCatalog.GetToolCompatibility(151, in cartographLwd4) == RingToolCompatibility.Supported);
+        Require(RingSignatureCatalog.GetToolCompatibility(151, in autonomous3) == RingToolCompatibility.Unsupported);
+        Require(RingSignatureCatalog.GetToolCompatibility(151, in lwd5) == RingToolCompatibility.Unsupported);
+        Require(RingSignatureCatalog.GetToolCompatibility(123, in lwd5) == RingToolCompatibility.Unverified);
+    }),
+    ("Editable signature rejects values outside the three-digit schema", () =>
+    {
+        Require(!RingSignatureCatalog.TryParseEditableSignature("15", out _, out var shortError));
+        Require(!string.IsNullOrWhiteSpace(shortError));
+        Require(!RingSignatureCatalog.TryParseEditableSignature("1234", out _, out var longError));
+        Require(!string.IsNullOrWhiteSpace(longError));
+        Require(!RingSignatureCatalog.TryParseEditableSignature("1A1", out _, out var letterError));
+        Require(!string.IsNullOrWhiteSpace(letterError));
     }),
     ("Unknown command identifies legacy firmware", () =>
         Require(RingProtocolParser.IsUnknownCommand("Unknown command!\r\n"))),
@@ -40,6 +98,7 @@ var checks = new List<(string Name, Action Run)>
         Require(RingProtocolConstants.WorkingParameterCellCount == 10);
         Require(RingDeviceInfo.Legacy.ImpedanceCellCount == 10);
         Require(RingDeviceInfo.Extended(42).ImpedanceCellCount == 32);
+        Require(RingDeviceInfo.Extended(151, RingSignatureCommandSet.Sg).SignatureCommandSet == RingSignatureCommandSet.Sg);
     }),
     ("Ring parameter layout writes eight cells for 3 Tx and 4 Tx", () =>
     {
