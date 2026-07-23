@@ -14,6 +14,7 @@ using LOOP.Next.Reporting;
 using LOOP_Next_App.Services;
 using Microsoft.UI;
 using Microsoft.UI.Text;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 
 namespace LOOP_Next_App.ViewModels;
@@ -313,7 +314,13 @@ public partial class MainPageViewModel : ObservableObject
     [NotifyCanExecuteChangedFor(nameof(RunResistanceCommand))]
     [NotifyCanExecuteChangedFor(nameof(WriteRingSignatureCommand))]
     [NotifyPropertyChangedFor(nameof(CanEraseRingCells))]
+    [NotifyPropertyChangedFor(nameof(RingResistanceSummaryVisibility))]
     public partial bool IsRingConnected { get; set; }
+
+    partial void OnIsRingConnectedChanged(bool value)
+    {
+        ResetRingResistanceSummary();
+    }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(PollingGlyph))]
@@ -394,6 +401,33 @@ public partial class MainPageViewModel : ObservableObject
 
     [ObservableProperty]
     public partial string RingSupportedToolTypesText { get; set; } = "—";
+
+    [ObservableProperty]
+    public partial string RingResistanceR1Text { get; set; } = "—";
+
+    [ObservableProperty]
+    public partial string RingResistanceR2Text { get; set; } = "—";
+
+    [ObservableProperty]
+    public partial string RingResistanceR3Text { get; set; } = "—";
+
+    [ObservableProperty]
+    public partial string RingResistanceR4Text { get; set; } = "—";
+
+    [ObservableProperty]
+    public partial string RingResistanceR5Text { get; set; } = "—";
+
+    [ObservableProperty]
+    public partial string RingResistanceR6Text { get; set; } = "—";
+
+    [ObservableProperty]
+    public partial string RingResistanceR7Text { get; set; } = "—";
+
+    [ObservableProperty]
+    public partial string RingResistanceR8Text { get; set; } = "—";
+
+    public Visibility RingResistanceSummaryVisibility =>
+        IsRingConnected ? Visibility.Visible : Visibility.Collapsed;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(RingCapacitanceStateText))]
@@ -676,10 +710,7 @@ public partial class MainPageViewModel : ObservableObject
                 : result.DeviceInfo.ProtocolVersion == RingProtocolVersion.Extended
                     ? $"Кольцо подключено, SGN={result.DeviceInfo.Signature}"
                     : "Кольцо подключено (совместимый режим)";
-            if (IsConnected)
-            {
-                await LoadRingParametersAsync();
-            }
+            await LoadRingParametersAsync();
         }
         else
         {
@@ -2048,6 +2079,8 @@ public partial class MainPageViewModel : ObservableObject
 
     private void ApplyRingCells(IReadOnlyList<RingLoopParameterCell> cells)
     {
+        ApplyRingResistanceSummary(cells);
+
         var activeCalculationCellCount = GetActiveRingCalculationCellCount();
         ClearInactiveRingCalculationRows(activeCalculationCellCount);
         foreach (var cell in cells)
@@ -2068,6 +2101,41 @@ public partial class MainPageViewModel : ObservableObject
                     : string.Empty;
             }
         }
+    }
+
+    private void ApplyRingResistanceSummary(IReadOnlyList<RingLoopParameterCell> cells)
+    {
+        var values = Enumerable.Repeat("—", MeasurementTable.ResistanceCount).ToArray();
+        foreach (var cell in cells)
+        {
+            if (cell.Index is >= 0 and < MeasurementTable.ResistanceCount)
+            {
+                values[cell.Index] = cell.HasValue && float.IsFinite(cell.Resistance)
+                    ? cell.Resistance.ToString("F0")
+                    : "—";
+            }
+        }
+
+        RingResistanceR1Text = values[0];
+        RingResistanceR2Text = values[1];
+        RingResistanceR3Text = values[2];
+        RingResistanceR4Text = values[3];
+        RingResistanceR5Text = values[4];
+        RingResistanceR6Text = values[5];
+        RingResistanceR7Text = values[6];
+        RingResistanceR8Text = values[7];
+    }
+
+    private void ResetRingResistanceSummary()
+    {
+        RingResistanceR1Text = "—";
+        RingResistanceR2Text = "—";
+        RingResistanceR3Text = "—";
+        RingResistanceR4Text = "—";
+        RingResistanceR5Text = "—";
+        RingResistanceR6Text = "—";
+        RingResistanceR7Text = "—";
+        RingResistanceR8Text = "—";
     }
 
     private void RebuildLoopParametersFromRingRows()
