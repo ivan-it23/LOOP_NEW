@@ -252,7 +252,7 @@ public sealed partial class MainPage : Page
 
     private async void Report_Click(object sender, RoutedEventArgs e)
     {
-        if (!ViewModel.TryBuildReportRtf(out var rtf))
+        if (!ViewModel.TryBuildReportExcel(out var workbookBytes))
         {
             return;
         }
@@ -263,10 +263,10 @@ public sealed partial class MainPage : Page
             {
                 SuggestedFileName = ViewModel.CreateSuggestedReportFileName(),
                 SuggestedStartLocation = PickerLocationId.DocumentsLibrary,
-                DefaultFileExtension = ".rtf"
+                DefaultFileExtension = ".xlsx"
             };
             WinRT.Interop.InitializeWithWindow.Initialize(picker, App.WindowHandle);
-            picker.FileTypeChoices.Add("RTF-рапорт", new List<string> { ".rtf" });
+            picker.FileTypeChoices.Add("Excel-рапорт", new List<string> { ".xlsx" });
 
             var file = await picker.PickSaveFileAsync();
             if (file is null)
@@ -275,7 +275,7 @@ public sealed partial class MainPage : Page
                 return;
             }
 
-            await ViewModel.SaveReportRtfAsync(file.Path, rtf);
+            await ViewModel.SaveReportExcelAsync(file.Path, workbookBytes);
         }
         catch (Exception ex)
         {

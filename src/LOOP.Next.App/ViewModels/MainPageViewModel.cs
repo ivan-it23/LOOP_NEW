@@ -874,13 +874,13 @@ public partial class MainPageViewModel : ObservableObject
     }
 
     public string CreateSuggestedReportFileName() =>
-        $"LOOP_report_{DateTime.Now:yyyyMMdd_HHmmss}";
+        $"Koltsa_report_{DateTime.Now:yyyyMMdd_HHmmss}";
 
-    public bool TryBuildReportRtf(out string rtf)
+    public bool TryBuildReportExcel(out byte[] workbookBytes)
     {
         var reportId = AppLogger.NextOperationId("ring-report");
         var correlation = BuildDiagnosticCorrelation(reportId);
-        rtf = string.Empty;
+        workbookBytes = Array.Empty<byte>();
         AppLogger.WriteDiagnostic(
             "RING_REPORT",
             "BUILD_REQUESTED",
@@ -913,30 +913,59 @@ public partial class MainPageViewModel : ObservableObject
             return false;
         }
 
-        var report = new LoopReport(
-            SerialText,
-            DateTime.Now,
-            _loopParameters.Take(MeasurementTable.ResistanceCount).Select(parameter => parameter.Resistance).ToArray(),
-            selectedResistances,
-            BuildReportChannels(selectedResistances));
-
-        rtf = LoopReportRtfBuilder.Build(report);
-        AppLogger.WriteDiagnostic(
-            "RING_REPORT",
-            "BUILT",
-            $"correlation={correlation}|serial={SerialText}|selected=[{string.Join(",", selectedResistances)}]|channels={report.Channels.Count}|rtf_characters={rtf.Length}");
-        foreach (var resistanceIndex in selectedResistances)
+        try
         {
+            var report = new LoopReport(
+                ApplicationInfo.Publisher,
+                SerialText,
+                ToolTypeName,
+                SignatureText,
+                TransmitterCountText,
+                ModificationText,
+                NumberText,
+                RxPositionText,
+                RingSignatureText,
+                ThresholdPercent,
+                SelectedAveraging,
+                DateTime.Now,
+                _loopParameters.Take(MeasurementTable.ResistanceCount).Select(parameter => parameter.Resistance).ToArray(),
+                selectedResistances,
+                BuildReportChannels(selectedResistances));
+
+            workbookBytes = LoopReportExcelBuilder.Build(report);
             AppLogger.WriteDiagnostic(
                 "RING_REPORT",
-                "COLUMN_INCLUDED",
-                $"correlation={correlation}|R={resistanceIndex}|cells=[{FormatResistanceColumnDiagnostic(resistanceIndex)}]");
+                "BUILT",
+                $"correlation={correlation}|format=xlsx|serial={SerialText}|selected=[{string.Join(",", selectedResistances)}]|channels={report.Channels.Count}|bytes={workbookBytes.Length}");
+            foreach (var resistanceIndex in selectedResistances)
+            {
+                AppLogger.WriteDiagnostic(
+                    "RING_REPORT",
+                    "COLUMN_INCLUDED",
+                    $"correlation={correlation}|R={resistanceIndex}|cells=[{FormatResistanceColumnDiagnostic(resistanceIndex)}]");
+            }
+
+            StatusText = "Excel-рапорт: выберите место сохранения";
+            return true;
         }
-        StatusText = "Рапорт: выберите место сохранения";
-        return true;
+        catch (Exception ex)
+        {
+            AppLogger.Write(ex, "Ошибка формирования Excel-рапорта");
+            AppLogger.WriteDiagnostic(
+                "RING_REPORT",
+                "BUILD_FAILED",
+                ex,
+                $"correlation={correlation}|format=xlsx|serial={SerialText}|selected=[{string.Join(",", selectedResistances)}]");
+            StatusText = "Excel-рапорт не сформирован";
+            RaiseUserMessage(
+                "Рапорт не сформирован",
+                $"Не удалось сформировать Excel-рапорт.\n\nПричина: {ex.Message}");
+            workbookBytes = Array.Empty<byte>();
+            return false;
+        }
     }
 
-    public async Task SaveReportRtfAsync(string path, string rtf)
+    public async Task SaveReportExcelAsync(string path, byte[] workbookBytes)
     {
         if (string.IsNullOrWhiteSpace(path))
         {
@@ -946,24 +975,24 @@ public partial class MainPageViewModel : ObservableObject
 
         try
         {
-            await Task.Run(() => File.WriteAllText(path, rtf));
+            await File.WriteAllBytesAsync(path, workbookBytes);
             AppLogger.WriteDiagnostic(
                 "RING_REPORT",
                 "SAVED",
-                $"workflow={CurrentRingWorkflowId}|path={SanitizeDiagnosticValue(path)}|characters={rtf.Length}");
+                $"workflow={CurrentRingWorkflowId}|format=xlsx|path={SanitizeDiagnosticValue(path)}|bytes={workbookBytes.Length}");
             StatusText = $"Рапорт сохранён: {path}";
-            RaiseUserMessage("Рапорт сохранён", $"Файл рапорта успешно сохранён:\n{path}");
+            RaiseUserMessage("Рапорт сохранён", $"Excel-рапорт успешно сохранён:\n{path}");
         }
         catch (Exception ex)
         {
-            AppLogger.Write(ex, "Ошибка сохранения рапорта");
+            AppLogger.Write(ex, "Ошибка сохранения Excel-рапорта");
             AppLogger.WriteDiagnostic(
                 "RING_REPORT",
                 "SAVE_FAILED",
                 ex,
-                $"workflow={CurrentRingWorkflowId}|path={SanitizeDiagnosticValue(path)}|characters={rtf.Length}");
+                $"workflow={CurrentRingWorkflowId}|format=xlsx|path={SanitizeDiagnosticValue(path)}|bytes={workbookBytes.Length}");
             StatusText = $"Рапорт не сохранён: {ex.Message}";
-            RaiseUserMessage("Рапорт не сохранён", $"Не удалось записать файл рапорта:\n{path}\n\nПричина: {ex.Message}");
+            RaiseUserMessage("Рапорт не сохранён", $"Не удалось записать Excel-рапорт:\n{path}\n\nПричина: {ex.Message}");
         }
     }
 
@@ -2642,7 +2671,7 @@ public partial class MainPageViewModel : ObservableObject
             : isSet
                 ? "Задан"
                 : isCollecting
-                    ? $"Сбор: {collectedSampleCount} кадров"
+                    ? $"Сбор: {collectedSampleCount}"
                     : "Не задан";
         var showAirAsSet = isSet && !resetRequested;
         LocalAirButtonText = isCollecting
@@ -3328,9 +3357,10 @@ public partial class MainPageViewModel : ObservableObject
             var cells = new List<LoopReportCell>(selectedResistances.Count);
             foreach (var resistanceIndex in selectedResistances)
             {
+                var measurementCell = row.GetResistanceCell(resistanceIndex);
                 cells.Add(new LoopReportCell(
-                    row.GetResistanceText(resistanceIndex),
-                    row.GetResistanceQuality(resistanceIndex)));
+                    measurementCell.HasValue ? measurementCell.Value : null,
+                    measurementCell.Quality));
             }
 
             var frequencyKHz = channelIndex < _sondeParameters.Count

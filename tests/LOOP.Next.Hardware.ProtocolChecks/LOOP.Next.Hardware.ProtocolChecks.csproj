@@ -7,5 +7,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\LOOP.Next.Hardware\LOOP.Next.Hardware.csproj" />
+    <ProjectReference Include="..\..\src\LOOP.Next.Reporting\LOOP.Next.Reporting.csproj" />
   </ItemGroup>
 </Project>

@@ -1,3 +1,6 @@
+using System.IO.Compression;
+using System.Xml.Linq;
+using LOOP.Next.Reporting;
 using LoopNext.Core.Models;
 using LoopNext.Hardware;
 
@@ -268,6 +271,65 @@ var checks = new List<(string Name, Action Run)>
         Require(summary.PeakFrame == 2);
         Require(summary.FirstResponseFrame == 2);
         Require(summary.RetentionRatio < 0.001);
+    }),
+    ("Excel report is a complete Open XML workbook", () =>
+    {
+        var workbookBytes = LoopReportExcelBuilder.Build(CreateSampleReport());
+        using var stream = new MemoryStream(workbookBytes);
+        using var archive = new ZipArchive(stream, ZipArchiveMode.Read);
+
+        Require(workbookBytes.Length > 5_000, $"workbook is unexpectedly small: {workbookBytes.Length} bytes");
+        Require(archive.GetEntry("[Content_Types].xml") is not null, "content types entry is missing");
+        Require(archive.GetEntry("xl/workbook.xml") is not null, "workbook entry is missing");
+        Require(archive.GetEntry("xl/styles.xml") is not null, "styles entry is missing");
+        Require(archive.GetEntry("xl/worksheets/sheet1.xml") is not null, "worksheet entry is missing");
+    }),
+    ("Excel report contains corporate sections, values and formulas", () =>
+    {
+        var workbookBytes = LoopReportExcelBuilder.Build(CreateSampleReport());
+        using var stream = new MemoryStream(workbookBytes);
+        using var archive = new ZipArchive(stream, ZipArchiveMode.Read);
+        using var reader = new StreamReader(
+            archive.GetEntry("xl/worksheets/sheet1.xml")!.Open());
+        var worksheetXml = reader.ReadToEnd();
+        using var stylesReader = new StreamReader(
+            archive.GetEntry("xl/styles.xml")!.Open());
+        var stylesXml = stylesReader.ReadToEnd();
+        XNamespace spreadsheetNs = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+        var worksheetDocument = XDocument.Parse(worksheetXml);
+        var styleFormats = XDocument.Parse(stylesXml)
+            .Root!
+            .Element(spreadsheetNs + "cellXfs")!
+            .Elements(spreadsheetNs + "xf")
+            .ToArray();
+
+        Require(worksheetXml.Contains("ПРОТОКОЛ ПРОВЕРКИ ПРИБОРА", StringComparison.Ordinal), "title is missing");
+        Require(!worksheetXml.Contains("ЭМК-90", StringComparison.Ordinal), "obsolete device name is present in title");
+        Require(!worksheetXml.Contains("Протокол №", StringComparison.Ordinal), "redundant protocol number is present");
+        Require(!worksheetDocument.Descendants(spreadsheetNs + "pane").Any(), "worksheet contains a frozen pane");
+        Require(
+            worksheetDocument.Descendants(spreadsheetNs + "c")
+                .Any(cell => cell.Attribute("r")?.Value == "C9" && cell.Attribute("s")?.Value == "17"),
+            "threshold cell style is incorrect");
+        Require(
+            worksheetDocument.Descendants(spreadsheetNs + "c")
+                .Any(cell => cell.Attribute("r")?.Value == "G9" && cell.Attribute("s")?.Value == "5"),
+            "averaging cell is not left-aligned");
+        Require(
+            worksheetDocument.Descendants(spreadsheetNs + "mergeCell")
+                .Any(merge => merge.Attribute("ref")?.Value == "A28:C28"),
+            "summary labels are not wide enough");
+        Require(worksheetXml.Contains("ИТОГОВАЯ ОЦЕНКА", StringComparison.Ordinal), "summary is missing");
+        Require(worksheetXml.Contains("Каналов без данных", StringComparison.Ordinal), "missing-data control is missing");
+        Require(worksheetXml.Contains("НЕПОЛНЫЕ ДАННЫЕ", StringComparison.Ordinal), "incomplete-data outcome is missing");
+        Require(worksheetXml.Contains("R3", StringComparison.Ordinal), "R3 is missing");
+        Require(worksheetXml.Contains("R4", StringComparison.Ordinal), "R4 is missing");
+        Require(worksheetXml.Contains("R5", StringComparison.Ordinal), "R5 is missing");
+        Require(worksheetXml.Contains("COUNTIF", StringComparison.Ordinal), "COUNTIF formula is missing");
+        Require(worksheetXml.Contains("MAX(MAX(", StringComparison.Ordinal), "status formula is missing");
+        Require(worksheetXml.Contains("$C$9", StringComparison.Ordinal), "threshold reference is incorrect");
+        Require(styleFormats[17].Element(spreadsheetNs + "alignment")?.Attribute("horizontal")?.Value == "left", "threshold value is not left-aligned");
+        Require(styleFormats[18].Attribute("numFmtId")?.Value == "1", "resistance values are not integer-formatted");
     })
 };
 
@@ -287,6 +349,18 @@ foreach (var check in checks)
 }
 
 Console.WriteLine($"Protocol checks: {checks.Count - failures.Count}/{checks.Count} passed.");
+if (failures.Count == 0 && args is ["--sample-report", var sampleReportPath])
+{
+    var sampleReportDirectory = Path.GetDirectoryName(Path.GetFullPath(sampleReportPath));
+    if (!string.IsNullOrEmpty(sampleReportDirectory))
+    {
+        Directory.CreateDirectory(sampleReportDirectory);
+    }
+
+    File.WriteAllBytes(sampleReportPath, LoopReportExcelBuilder.Build(CreateSampleReport()));
+    Console.WriteLine($"Sample Excel report: {Path.GetFullPath(sampleReportPath)}");
+}
+
 return failures.Count == 0 ? 0 : 1;
 
 static bool NearlyEqual(float left, float right) => MathF.Abs(left - right) < 0.000001f;
@@ -322,10 +396,72 @@ static IReadOnlyList<int> CollectLogicalCapacitances(bool expressMode, int resis
     return result;
 }
 
-static void Require(bool condition)
+static LoopReport CreateSampleReport()
+{
+    var selectedResistanceIndexes = new[] { 3, 4, 5 };
+    var channelLabels = new[]
+    {
+        "T1 401", "T2 401", "T3 401", "T4 401",
+        "T1 2000", "T2 2000", "T3 2000", "T4 2000"
+    };
+    var channels = channelLabels
+        .Select((label, index) => new LoopReportChannel(
+            label,
+            index < 4 ? 401f : 2000f,
+            new[]
+            {
+                SampleCell(index, 3),
+                SampleCell(index, 4),
+                SampleCell(index, 5)
+            }))
+        .ToArray();
+
+    return new LoopReport(
+        "ООО НПФ \"АМК ГОРИЗОНТ\"",
+        "52025",
+        "Картограф->LWD-4TX",
+        "0x0005534A",
+        "4",
+        "9",
+        "2",
+        "R1 -> T1",
+        "151",
+        6,
+        5,
+        new DateTime(2026, 7, 23, 11, 9, 0),
+        new[] { 66f, 1234f, 20f, 50f, 100f, 148f, 80f, 66f },
+        selectedResistanceIndexes,
+        channels);
+}
+
+static LoopReportCell SampleCell(int channelIndex, int resistanceIndex)
+{
+    var resistanceOffset = resistanceIndex switch
+    {
+        3 => 0,
+        4 => 1,
+        5 => 2,
+        _ => throw new ArgumentOutOfRangeException(nameof(resistanceIndex))
+    };
+    float[,] deviations =
+    {
+        { -4, -2, 2 },
+        { -7, 1, 5 },
+        { 2, 13, -5 },
+        { 19, -6, -2 },
+        { -5, -3, 1 },
+        { -8, 0, 4 },
+        { 1, 3, -14 },
+        { 4, 20, -3 }
+    };
+    var deviation = deviations[channelIndex, resistanceOffset];
+    return new LoopReportCell(deviation, MeasurementQualityClassifier.Classify(deviation, 6));
+}
+
+static void Require(bool condition, string message = "assertion failed")
 {
     if (!condition)
     {
-        throw new InvalidOperationException("assertion failed");
+        throw new InvalidOperationException(message);
     }
 }

@@ -8,10 +8,18 @@ namespace LOOP_Next_App.ViewModels;
 public partial class ResistanceTableRowViewModel : ObservableObject
 {
     private static readonly SolidColorBrush DefaultForegroundBrush = new(Colors.Black);
-    private static readonly SolidColorBrush InToleranceBrush = new(Colors.LimeGreen);
-    private static readonly SolidColorBrush WarningBrush = new(Colors.Gold);
-    private static readonly SolidColorBrush OutOfToleranceBrush = new(Colors.Red);
-    private static readonly SolidColorBrush CriticalBrush = new(Colors.DarkRed);
+    private static readonly SolidColorBrush InToleranceBrush = new(ColorHelper.FromArgb(255, 55, 130, 65));
+    private static readonly SolidColorBrush WarningBrush = new(ColorHelper.FromArgb(255, 205, 96, 27));
+    private static readonly SolidColorBrush OutOfToleranceBrush = new(ColorHelper.FromArgb(255, 190, 63, 51));
+    private static readonly SolidColorBrush CriticalBrush = new(ColorHelper.FromArgb(255, 139, 35, 28));
+    private MeasurementCell _r1Cell = MeasurementCell.Empty;
+    private MeasurementCell _r2Cell = MeasurementCell.Empty;
+    private MeasurementCell _r3Cell = MeasurementCell.Empty;
+    private MeasurementCell _r4Cell = MeasurementCell.Empty;
+    private MeasurementCell _r5Cell = MeasurementCell.Empty;
+    private MeasurementCell _r6Cell = MeasurementCell.Empty;
+    private MeasurementCell _r7Cell = MeasurementCell.Empty;
+    private MeasurementCell _r8Cell = MeasurementCell.Empty;
 
     public ResistanceTableRowViewModel(int index, string sondeLabel, string airText)
     {
@@ -98,47 +106,55 @@ public partial class ResistanceTableRowViewModel : ObservableObject
 
     public void SetResistanceCell(int resistanceIndex, MeasurementCell cell)
     {
-        var text = cell.HasValue ? cell.Value.ToString("F1") : string.Empty;
+        var text = cell.HasValue ? $"{cell.Value:F1}%" : string.Empty;
         var brush = cell.HasValue ? BrushForQuality(cell.Quality) : DefaultForegroundBrush;
 
         switch (resistanceIndex)
         {
             case 1:
+                _r1Cell = cell;
                 R1Text = text;
                 R1Foreground = brush;
                 R1Quality = cell.Quality;
                 break;
             case 2:
+                _r2Cell = cell;
                 R2Text = text;
                 R2Foreground = brush;
                 R2Quality = cell.Quality;
                 break;
             case 3:
+                _r3Cell = cell;
                 R3Text = text;
                 R3Foreground = brush;
                 R3Quality = cell.Quality;
                 break;
             case 4:
+                _r4Cell = cell;
                 R4Text = text;
                 R4Foreground = brush;
                 R4Quality = cell.Quality;
                 break;
             case 5:
+                _r5Cell = cell;
                 R5Text = text;
                 R5Foreground = brush;
                 R5Quality = cell.Quality;
                 break;
             case 6:
+                _r6Cell = cell;
                 R6Text = text;
                 R6Foreground = brush;
                 R6Quality = cell.Quality;
                 break;
             case 7:
+                _r7Cell = cell;
                 R7Text = text;
                 R7Foreground = brush;
                 R7Quality = cell.Quality;
                 break;
             case 8:
+                _r8Cell = cell;
                 R8Text = text;
                 R8Foreground = brush;
                 R8Quality = cell.Quality;
@@ -186,6 +202,20 @@ public partial class ResistanceTableRowViewModel : ObservableObject
             7 => R7Quality,
             8 => R8Quality,
             _ => MeasurementQuality.InTolerance
+        };
+
+    public MeasurementCell GetResistanceCell(int resistanceIndex) =>
+        resistanceIndex switch
+        {
+            1 => _r1Cell,
+            2 => _r2Cell,
+            3 => _r3Cell,
+            4 => _r4Cell,
+            5 => _r5Cell,
+            6 => _r6Cell,
+            7 => _r7Cell,
+            8 => _r8Cell,
+            _ => MeasurementCell.Empty
         };
 
     private static SolidColorBrush BrushForQuality(MeasurementQuality quality) =>
