@@ -18,7 +18,7 @@
 
 #define MyAppId            "{{9A9B3C77-7E18-4F2D-B7E6-2F77770DA5A8}"
 #define MyAppName          "Кольца"
-#define MyAppVersion       "1.0.6"
+#define MyAppVersion       "1.0.7"
 #define MyAppPublisher     'ООО НПФ "АМК ГОРИЗОНТ"'
 #define MyAppExeName       "Кольца.exe"
 #define MyAppDescription   "Приложение поверки и калибровки зондов с RLC-кольцом"

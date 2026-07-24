@@ -24,6 +24,14 @@
             <Setter Property="MinHeight" Value="32" />
         </Style>
 
+        <!-- Ячейка с той же рамкой, но без белого фона: для строки номиналов сопротивлений R1..R8. -->
+        <Style
+            x:Key="OldTableCellOutlineBorderStyle"
+            TargetType="Border"
+            BasedOn="{StaticResource OldTableCellBorderStyle}">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+
         <Style x:Key="OldTableHeaderTextStyle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="18" />
             <Setter Property="FontWeight" Value="Bold" />
@@ -648,7 +656,7 @@
                 <Grid
                     Grid.Row="2"
                     Grid.ColumnSpan="12"
-                    Height="32"
+                    MinHeight="34"
                     HorizontalAlignment="Stretch"
                     Visibility="{x:Bind ViewModel.RingResistanceSummaryVisibility, Mode=OneWay}">
                     <Grid.ColumnDefinitions>
@@ -676,14 +684,30 @@
                         FontSize="14"
                         FontWeight="SemiBold"
                         Foreground="Black" />
-                    <TextBlock Grid.Column="4" Text="{x:Bind ViewModel.RingResistanceR1Text, Mode=OneWay}" Style="{StaticResource OldTableValueTextStyle}" />
-                    <TextBlock Grid.Column="5" Text="{x:Bind ViewModel.RingResistanceR2Text, Mode=OneWay}" Style="{StaticResource OldTableValueTextStyle}" />
-                    <TextBlock Grid.Column="6" Text="{x:Bind ViewModel.RingResistanceR3Text, Mode=OneWay}" Style="{StaticResource OldTableValueTextStyle}" />
-                    <TextBlock Grid.Column="7" Text="{x:Bind ViewModel.RingResistanceR4Text, Mode=OneWay}" Style="{StaticResource OldTableValueTextStyle}" />
-                    <TextBlock Grid.Column="8" Text="{x:Bind ViewModel.RingResistanceR5Text, Mode=OneWay}" Style="{StaticResource OldTableValueTextStyle}" />
-                    <TextBlock Grid.Column="9" Text="{x:Bind ViewModel.RingResistanceR6Text, Mode=OneWay}" Style="{StaticResource OldTableValueTextStyle}" />
-                    <TextBlock Grid.Column="10" Text="{x:Bind ViewModel.RingResistanceR7Text, Mode=OneWay}" Style="{StaticResource OldTableValueTextStyle}" />
-                    <TextBlock Grid.Column="11" Text="{x:Bind ViewModel.RingResistanceR8Text, Mode=OneWay}" Style="{StaticResource OldTableValueTextStyle}" />
+                    <Border Grid.Column="4" Style="{StaticResource OldTableCellOutlineBorderStyle}">
+                        <TextBlock Text="{x:Bind ViewModel.RingResistanceR1Text, Mode=OneWay}" Style="{StaticResource OldTableValueTextStyle}" />
+                    </Border>
+                    <Border Grid.Column="5" Style="{StaticResource OldTableCellOutlineBorderStyle}">
+                        <TextBlock Text="{x:Bind ViewModel.RingResistanceR2Text, Mode=OneWay}" Style="{StaticResource OldTableValueTextStyle}" />
+                    </Border>
+                    <Border Grid.Column="6" Style="{StaticResource OldTableCellOutlineBorderStyle}">
+                        <TextBlock Text="{x:Bind ViewModel.RingResistanceR3Text, Mode=OneWay}" Style="{StaticResource OldTableValueTextStyle}" />
+                    </Border>
+                    <Border Grid.Column="7" Style="{StaticResource OldTableCellOutlineBorderStyle}">
+                        <TextBlock Text="{x:Bind ViewModel.RingResistanceR4Text, Mode=OneWay}" Style="{StaticResource OldTableValueTextStyle}" />
+                    </Border>
+                    <Border Grid.Column="8" Style="{StaticResource OldTableCellOutlineBorderStyle}">
+                        <TextBlock Text="{x:Bind ViewModel.RingResistanceR5Text, Mode=OneWay}" Style="{StaticResource OldTableValueTextStyle}" />
+                    </Border>
+                    <Border Grid.Column="9" Style="{StaticResource OldTableCellOutlineBorderStyle}">
+                        <TextBlock Text="{x:Bind ViewModel.RingResistanceR6Text, Mode=OneWay}" Style="{StaticResource OldTableValueTextStyle}" />
+                    </Border>
+                    <Border Grid.Column="10" Style="{StaticResource OldTableCellOutlineBorderStyle}">
+                        <TextBlock Text="{x:Bind ViewModel.RingResistanceR7Text, Mode=OneWay}" Style="{StaticResource OldTableValueTextStyle}" />
+                    </Border>
+                    <Border Grid.Column="11" Style="{StaticResource OldTableCellOutlineBorderStyle}">
+                        <TextBlock Text="{x:Bind ViewModel.RingResistanceR8Text, Mode=OneWay}" Style="{StaticResource OldTableValueTextStyle}" />
+                    </Border>
                 </Grid>
 
                 </Grid>
