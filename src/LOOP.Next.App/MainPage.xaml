@@ -79,8 +79,10 @@
             <Setter Property="Padding" Value="0" />
             <Setter Property="HorizontalAlignment" Value="Center" />
             <Setter Property="VerticalAlignment" Value="Center" />
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Background" Value="{StaticResource OldTableCellBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource OldTableBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="4" />
             <Setter Property="FontSize" Value="18" />
             <Setter Property="FontWeight" Value="Bold" />
         </Style>
@@ -197,6 +199,72 @@
             <Setter Property="Padding" Value="6,2" />
         </Style>
 
+        <!--
+            Вкладка "Документация": корпоративный типографский язык руководства.
+            Палитра намеренно повторяет Excel-рапорт (LoopReportExcelBuilder):
+            тёмно-синий #17365D, акцентный синий #2F75B5, светлые подложки
+            #EAF2F8 / #F3F6F9, отбивки #D5DEE8, текст #1F2937 и #64748B.
+        -->
+        <SolidColorBrush x:Key="DocDeepBlueBrush" Color="#17365D" />
+        <SolidColorBrush x:Key="DocAccentBlueBrush" Color="#2F75B5" />
+        <SolidColorBrush x:Key="DocRuleBrush" Color="#D5DEE8" />
+        <SolidColorBrush x:Key="DocBodyTextBrush" Color="#1F2937" />
+        <SolidColorBrush x:Key="DocMutedTextBrush" Color="#64748B" />
+        <SolidColorBrush x:Key="DocSheetBrush" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="DocCanvasBrush" Color="#F3F6F9" />
+        <SolidColorBrush x:Key="DocInfoFillBrush" Color="#EAF2F8" />
+        <SolidColorBrush x:Key="DocCriticalFillBrush" Color="#FBF3F3" />
+        <SolidColorBrush x:Key="DocCriticalAccentBrush" Color="#C00000" />
+
+        <Style x:Key="DocSubHeaderTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{StaticResource DocAccentBlueBrush}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Margin" Value="0,16,0,6" />
+        </Style>
+
+        <Style x:Key="DocTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="LineHeight" Value="22" />
+            <Setter Property="Foreground" Value="{StaticResource DocBodyTextBrush}" />
+            <Setter Property="TextWrapping" Value="WrapWholeWords" />
+            <Setter Property="Margin" Value="0,0,0,6" />
+        </Style>
+
+        <Style x:Key="DocBulletTextStyle" TargetType="TextBlock" BasedOn="{StaticResource DocTextStyle}">
+            <Setter Property="Margin" Value="16,0,0,6" />
+        </Style>
+
+        <Style x:Key="DocNoteTextStyle" TargetType="TextBlock" BasedOn="{StaticResource DocTextStyle}">
+            <Setter Property="Foreground" Value="{StaticResource DocMutedTextBrush}" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontStyle" Value="Italic" />
+            <Setter Property="LineHeight" Value="20" />
+        </Style>
+
+        <!--
+            Выноски оформлены левой акцентной полосой на светлой подложке:
+            строгий приём технической документации без декоративных рамок.
+        -->
+        <Style x:Key="DocCriticalBorderStyle" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource DocCriticalFillBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource DocCriticalAccentBrush}" />
+            <Setter Property="BorderThickness" Value="4,0,0,0" />
+            <Setter Property="CornerRadius" Value="0,3,3,0" />
+            <Setter Property="Padding" Value="18,14" />
+            <Setter Property="Margin" Value="0,6,0,14" />
+        </Style>
+
+        <Style x:Key="DocHintBorderStyle" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource DocInfoFillBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource DocAccentBlueBrush}" />
+            <Setter Property="BorderThickness" Value="4,0,0,0" />
+            <Setter Property="CornerRadius" Value="0,3,3,0" />
+            <Setter Property="Padding" Value="18,14" />
+            <Setter Property="Margin" Value="0,6,0,14" />
+        </Style>
+
     </Page.Resources>
 
     <Grid RowSpacing="0">
@@ -218,6 +286,7 @@
             <TabViewItem Header="Главная" IsClosable="False" />
             <TabViewItem Header="Поверка кольца" IsClosable="False" />
             <TabViewItem Header="Настройки" IsClosable="False" />
+            <TabViewItem Header="Документация" IsClosable="False" />
         </TabView>
 
         <Border
@@ -269,6 +338,8 @@
                     <Button
                         Width="170"
                         Content="{x:Bind ViewModel.ToolToggleText, Mode=OneWay}"
+                        Background="{x:Bind ViewModel.ToolButtonBackground, Mode=OneWay}"
+                        Foreground="{x:Bind ViewModel.ToolButtonForeground, Mode=OneWay}"
                         FontWeight="SemiBold"
                         IsEnabled="{x:Bind ViewModel.CanToggleTool, Mode=OneWay}"
                         Command="{x:Bind ViewModel.ToggleToolCommand}" />
@@ -293,6 +364,8 @@
                     <Button
                         Width="170"
                         Content="{x:Bind ViewModel.RingToggleText, Mode=OneWay}"
+                        Background="{x:Bind ViewModel.RingButtonBackground, Mode=OneWay}"
+                        Foreground="{x:Bind ViewModel.RingButtonForeground, Mode=OneWay}"
                         FontWeight="SemiBold"
                         IsEnabled="{x:Bind ViewModel.CanToggleRing, Mode=OneWay}"
                         Command="{x:Bind ViewModel.ToggleRingCommand}" />
@@ -315,13 +388,15 @@
 
                 <StackPanel Grid.Column="4" Spacing="4">
                     <Button
-                        Width="148"
+                        Width="170"
                         Content="{x:Bind ViewModel.LocalAirButtonText, Mode=OneWay}"
+                        Background="{x:Bind ViewModel.LocalAirButtonBackground, Mode=OneWay}"
+                        Foreground="{x:Bind ViewModel.LocalAirButtonForeground, Mode=OneWay}"
                         FontWeight="{x:Bind ViewModel.LocalAirButtonFontWeight, Mode=OneWay}"
                         IsEnabled="{x:Bind ViewModel.IsConnected, Mode=OneWay}"
                         Command="{x:Bind ViewModel.LocalAirCommand}" />
                     <ComboBox
-                        Width="148"
+                        Width="170"
                         ItemsSource="{x:Bind ViewModel.FrameCountOptions}"
                         SelectedItem="{x:Bind ViewModel.SelectedFrameCount, Mode=TwoWay}"
                         PlaceholderText="Кол-во кадров" />
@@ -383,8 +458,8 @@
                     <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource OldTableCellBorderStyle}">
                         <TextBlock Text="№ Зонда" Style="{StaticResource OldTableHeaderTextStyle}" />
                     </Border>
-                    <Border Grid.Row="0" Grid.Column="1" Background="{x:Bind ViewModel.AirColumnBackground, Mode=OneWay}" Style="{StaticResource OldTableCellBorderStyle}">
-                        <TextBlock Text="Воздух" Foreground="{x:Bind ViewModel.AirColumnForeground, Mode=OneWay}" Style="{StaticResource OldTableHeaderTextStyle}" />
+                    <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource OldTableCellBorderStyle}">
+                        <TextBlock Text="Воздух" Style="{StaticResource OldTableHeaderTextStyle}" />
                     </Border>
                     <Border Grid.Row="0" Grid.Column="2" Style="{StaticResource OldTableCellBorderStyle}">
                         <Grid Margin="4,2,4,0">
@@ -1709,6 +1784,7 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
@@ -1735,7 +1811,319 @@
                     Grid.Column="1"
                     HorizontalAlignment="Left"
                     IsOn="{x:Bind ViewModel.ExpressMode, Mode=TwoWay}" />
+
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="Размер элементов" VerticalAlignment="Center" />
+                <Button
+                    x:Name="WindowScaleButton"
+                    Grid.Row="2"
+                    Grid.Column="1"
+                    HorizontalAlignment="Left"
+                    AutomationProperties.Name="Масштаб окна"
+                    Click="WindowScale_Click"
+                    ToolTipService.ToolTip="Выбрать размер элементов интерфейса">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon FontSize="14" Glyph="&#xE8A3;" />
+                        <TextBlock Text="Масштаб окна" />
+                    </StackPanel>
+                </Button>
             </Grid>
         </Grid>
+
+        <!--
+            Вкладка "Документация": руководство пользователя. Раздел является
+            статическим текстом и не связан с MainPageViewModel, чтобы описание
+            порядка работы нельзя было случайно нарушить изменением измерительной
+            логики. Источник теории и порядка поверки - методика
+            "Калибровка зонда RLC-кольцом 1_2 С резонансного_v_9_1_.docx".
+        -->
+        <ScrollViewer
+            x:Name="DocumentationContent"
+            Grid.Row="1"
+            Grid.RowSpan="3"
+            Background="{StaticResource DocCanvasBrush}"
+            Padding="0"
+            HorizontalScrollBarVisibility="Disabled"
+            VerticalScrollBarVisibility="Auto"
+            Visibility="Collapsed">
+            <Grid Padding="28,20,28,32">
+                <Border
+                    MaxWidth="1120"
+                    HorizontalAlignment="Stretch"
+                    Background="{StaticResource DocSheetBrush}"
+                    BorderBrush="{StaticResource DocRuleBrush}"
+                    BorderThickness="1"
+                    CornerRadius="4">
+                    <StackPanel>
+
+                        <!-- Титульный блок руководства. -->
+                        <Border Background="{StaticResource DocDeepBlueBrush}" CornerRadius="3,3,0,0" Padding="32,24,32,24">
+                            <StackPanel Spacing="6">
+                                <TextBlock
+                                    Text="ООО НПФ &quot;АМК ГОРИЗОНТ&quot;"
+                                    FontSize="12"
+                                    FontWeight="SemiBold"
+                                    Foreground="#9DC3E6"
+                                    CharacterSpacing="120" />
+                                <TextBlock
+                                    Text="Руководство пользователя"
+                                    FontSize="28"
+                                    FontWeight="SemiBold"
+                                    Foreground="White"
+                                    TextWrapping="Wrap" />
+                                <TextBlock
+                                    Text="Приложение &quot;Кольца&quot; - поверка и калибровка зондов индукционного каротажа с помощью меры импеданса в форме RLC-кольца."
+                                    FontSize="14"
+                                    LineHeight="21"
+                                    Foreground="#D9EAF7"
+                                    TextWrapping="WrapWholeWords"
+                                    Margin="0,4,0,0" />
+                            </StackPanel>
+                        </Border>
+
+                        <StackPanel Padding="32,4,32,32">
+
+                <!-- 1 -->
+                <controls:DocSectionHeader Number="1" Title="Что делает приложение" />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• Подключается к прибору (зонду) и к поверочному кольцу по COM-порту." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• Читает метрологию зонда напрямую из прибора или из бинарного файла." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• Управляет кольцом: переключает набор резисторов R1..R8 и конденсаторов, измеряет фазовый отклик прибора и сравнивает его с расчётным эталоном." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• Заполняет таблицу отклонений R1..R8, оценивает их по заданному порогу и формирует Excel-рапорт." />
+                <TextBlock
+                    Style="{StaticResource DocTextStyle}"
+                    Margin="0,6,0,0"
+                    Text="Поддерживаемые приборы: Автономный, LWD и Картограф в режиме LWD 4tx; конфигурации на 3, 4 и 5 передатчиков." />
+
+                <!-- 2 -->
+                <controls:DocSectionHeader Number="2" Title="Порядок работы" />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="1. Установить кольцо на прибор между приёмными антеннами R1 и R2 (раздел 3)." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="2. Подключить кольцо к компьютеру: по Bluetooth или проводом (раздел 4)." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="3. Вкладка &quot;Главная&quot;: выбрать COM-порт прибора, включить прибор, дождаться идентификации зонда." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="4. Выбрать COM-порт кольца, включить кольцо, дождаться чтения его памяти." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="5. Вкладка &quot;Поверка кольца&quot;: проверить таблицу &quot;Расчёт ёмкостей&quot;. Нажимать &quot;Рассчитать&quot; нужно только если ёмкости ещё не рассчитаны, а &quot;Прочитать из кольца&quot; - только если параметры кольца ещё не прочитаны, то есть таблица не заполнена. Если значения уже есть в таблице, повторять эти действия не требуется." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="6. Вкладка &quot;Главная&quot;: нажать &quot;Локальный воздух&quot; и дождаться завершения сбора." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="7. Включить &quot;Режим АВТО&quot; либо заполнить отдельные сопротивления R1..R8 вручную." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="8. Проверить таблицу, отметить нужные сопротивления и нажать &quot;Рапорт&quot;." />
+
+                <!-- 3 -->
+                <controls:DocSectionHeader Number="3" Title="Установка кольца на прибор" />
+
+                <Border Style="{StaticResource DocCriticalBorderStyle}">
+                    <StackPanel Spacing="8">
+                        <TextBlock
+                            FontSize="11"
+                            FontWeight="Bold"
+                            Foreground="{StaticResource DocCriticalAccentBrush}"
+                            CharacterSpacing="140"
+                            Text="ВАЖНО" />
+                        <TextBlock
+                            FontSize="15"
+                            FontWeight="SemiBold"
+                            LineHeight="22"
+                            Foreground="{StaticResource DocDeepBlueBrush}"
+                            TextWrapping="WrapWholeWords"
+                            Text="Кольцо размещается между приёмными антеннами R1 и R2 на одинаковом расстоянии от каждой из них." />
+                        <TextBlock
+                            FontSize="14"
+                            LineHeight="22"
+                            Foreground="{StaticResource DocBodyTextBrush}"
+                            TextWrapping="WrapWholeWords"
+                            Text="Это главное условие корректной поверки. Расчёт разности фаз исходит из того, что сигнал, наведённый током кольца, одинаков для обеих приёмных антенн. При смещении кольца симметрия нарушается, и все измеренные отклонения R1..R8 становятся неверными. Приложение не может обнаружить такую ошибку установки: оно покажет числа, но эти числа не будут иметь физического смысла." />
+                    </StackPanel>
+                </Border>
+
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• Кольцо надевается на прибор соосно, плоскость кольца перпендикулярна оси зонда." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• Расстояния от плоскости кольца до антенн R1 и R2 должны быть равны. Положение следует контролировать измерением, а не на глаз." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• Короткозамыкатель во втором разрыве кольца должен быть установлен. Он снимается только для отдельного контроля параметров меры." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• Рядом с кольцом не должно быть металлических предметов, инструмента и посторонних кабелей: они искажают электромагнитное поле." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• Поле &quot;Позиция R1&quot; в блоке &quot;Идентификация зонда&quot; должно соответствовать фактической компоновке прибора: от него зависит знак измеряемой фазы." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• После любой перестановки кольца локальный воздух нужно собрать заново." />
+
+                <!-- 4 -->
+                <controls:DocSectionHeader Number="4" Title="Подключение кольца к компьютеру" />
+                <TextBlock Style="{StaticResource DocTextStyle}" Text="Кольцо подключается двумя способами: по Bluetooth или проводом. Оба способа равноценны для приложения: в обоих случаях в системе появляется COM-порт, который нужно выбрать в списке &quot;COM кольца&quot;." />
+
+                <Border Style="{StaticResource DocHintBorderStyle}">
+                    <StackPanel Spacing="8">
+                        <TextBlock
+                            FontSize="11"
+                            FontWeight="Bold"
+                            Foreground="{StaticResource DocAccentBlueBrush}"
+                            CharacterSpacing="140"
+                            Text="РЕКОМЕНДАЦИЯ" />
+                        <TextBlock
+                            FontSize="14"
+                            LineHeight="22"
+                            Foreground="{StaticResource DocBodyTextBrush}"
+                            TextWrapping="WrapWholeWords"
+                            Text="Предпочтительно подключение по Bluetooth. По результатам испытаний кольца работают через Bluetooth стабильнее, чем через провод. Разница невелика, но при наличии выбора следует предпочесть Bluetooth." />
+                    </StackPanel>
+                </Border>
+
+                <TextBlock Style="{StaticResource DocSubHeaderTextStyle}" Text="4.1. Подключение по Bluetooth" />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="1. Включить кольцо нажатием кнопки на управляющем блоке: после нажатия кольцо включается автоматически. Питание автономное, внутри кольца установлен аккумулятор, который можно заряжать." />
+                <TextBlock
+                    Style="{StaticResource DocNoteTextStyle}"
+                    Margin="14,0,0,4"
+                    Text="Если кольцо не используется более 30 минут, оно отключается автоматически. После автоотключения его нужно снова включить кнопкой, а при необходимости заново выбрать COM-порт в приложении." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="2. Открыть параметры Windows: &quot;Устройства&quot; - &quot;Bluetooth и другие устройства&quot; и убедиться, что Bluetooth включён." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="3. Нажать &quot;Добавление Bluetooth или другого устройства&quot; и выбрать тип &quot;Bluetooth&quot;." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="4. Дождаться появления кольца в списке найденных устройств. До сопряжения оно может отображаться как &quot;Неизвестное устройство&quot; - это нормально." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="5. Выполнить сопряжение. После сопряжения устройство отображается в списке как ZBOX4 или zbox4." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="6. Windows создаёт для сопряжённого кольца виртуальный COM-порт. Его и нужно выбрать в приложении в списке &quot;COM кольца&quot;." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="7. Если порт не появился в списке, нажать кнопку обновления с круговой стрелкой рядом со списком &quot;COM кольца&quot;." />
+                <TextBlock
+                    Style="{StaticResource DocNoteTextStyle}"
+                    Margin="0,6,0,0"
+                    Text="Все кольца имеют одинаковое имя ZBOX4 / zbox4 и различаются только номером созданного COM-порта. Если в работе несколько колец, сопрягайте и подключайте их по одному, чтобы не перепутать порт." />
+
+                <TextBlock Style="{StaticResource DocSubHeaderTextStyle}" Text="4.2. Проводное подключение" />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="1. Подключить кольцо кабелем через преобразователь RS-485 / USB-Serial и установить его драйвер." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="2. Выбрать появившийся COM-порт в списке &quot;COM кольца&quot;." />
+                <TextBlock
+                    Style="{StaticResource DocNoteTextStyle}"
+                    Margin="0,6,0,0"
+                    Text="Параметры обмена приложение задаёт самостоятельно и настраивать их не требуется: 9600 бод, 8 бит данных, без контроля чётности, 1 стоповый бит, без аппаратного управления потоком." />
+
+                <!-- 5 -->
+                <controls:DocSectionHeader Number="5" Title="Вкладка &quot;Главная&quot;" />
+                <TextBlock Style="{StaticResource DocSubHeaderTextStyle}" Text="Верхняя панель управления" />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• &quot;Усреднение&quot; - число кадров, усредняемых в одной точке после пяти стабилизационных кадров. Например, значение 5 означает 5 пропущенных и затем 5 усредняемых успешных кадров." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• &quot;Порог %&quot; - допуск, по которому окрашиваются ячейки таблицы." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• Кнопка паузы - приостанавливает и возобновляет фоновый опрос прибора." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• Кнопка включения прибора и список &quot;COM прибора&quot;." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• Кнопка включения кольца и список &quot;COM кольца&quot;." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• Кнопка &quot;Локальный воздух&quot; и поле количества кадров для его сбора." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• Кнопка &quot;Режим АВТО&quot; - полный автоматический проход R1..R8." />
+
+                <TextBlock Style="{StaticResource DocSubHeaderTextStyle}" Text="Таблица измерений" />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• Строки соответствуют измерительным каналам прибора: номер передатчика и рабочая частота." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• Столбец &quot;Воздух&quot; - сохранённый базовый уровень. Когда воздух задан, корпоративным красным подсвечивается кнопка &quot;Воздух: Задан&quot;, а заголовок столбца остаётся обычным." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• Шкала показывает текущее отклонение фазы в процентах от -18 до +18 с центральным маркером нуля." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• Столбец &quot;УЭС, Ом&quot; - текущее измеренное кажущееся удельное электрическое сопротивление." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• Столбцы R1..R8 - результат заполнения по каждому сопротивлению кольца." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• Кнопки R1..R8 имеют видимую границу: щелчок запускает заполнение только этого сопротивления; чекбокс рядом включает сопротивление в рапорт." />
+                <TextBlock
+                    Style="{StaticResource DocTextStyle}"
+                    Margin="0,6,0,0"
+                    FontWeight="SemiBold"
+                    Text="Значения в ячейках R1..R8 - это процент отклонения ФАЗЫ от расчётного эталона, а не отклонение УЭС." />
+
+                <TextBlock Style="{StaticResource DocSubHeaderTextStyle}" Text="Информационные панели" />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• &quot;Идентификация зонда&quot;: тип, серийный номер, сигнатура, номер, модификация, позиция R1." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• &quot;Состояние зонда&quot;: локальный воздух, число принятых кадров, температура." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• &quot;Состояние кольца&quot;: сигнатура, состояние расчёта ёмкостей, поддерживаемые типы приборов." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• Кнопки прибора и кольца подсвечиваются корпоративным красным, пока соответствующее устройство включено." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• Кнопка &quot;Рапорт&quot; расположена под панелью состояния кольца." />
+
+                <!-- 6 -->
+                <controls:DocSectionHeader Number="6" Title="Локальный воздух: обязательный шаг" />
+                <TextBlock Style="{StaticResource DocTextStyle}" Text="Локальный воздух - это базовый уровень фаз в текущих условиях, который вычитается из всех последующих измерений. Без него таблицу заполнить нельзя." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• Пока воздух не собран, &quot;Режим АВТО&quot; и ручное заполнение R1..R8 не запускаются, приложение показывает предупреждение." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• При нажатии кнопки приложение, если кольцо подключено, сначала отключает резистор и конденсатор кольца и дожидается подтверждения от него." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• Затем пропускаются стабилизационные кадры и набирается заданное число кадров. На кнопке отображается счётчик собранных кадров." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• После завершения панель &quot;Состояние зонда&quot; показывает, что воздух задан, а кнопка &quot;Воздух: Задан&quot; подсвечивается корпоративным красным." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• Во время сбора прибор и кольцо перемещать нельзя." />
+                <TextBlock
+                    Style="{StaticResource DocTextStyle}"
+                    Margin="0,6,0,0"
+                    FontWeight="SemiBold"
+                    Text="Воздух необходимо собрать заново при смене прибора, любой перестановке кольца и при заметном изменении условий на рабочем месте." />
+
+                <!-- 7 -->
+                <controls:DocSectionHeader Number="7" Title="Режим АВТО и ручной проход R1..R8" />
+                <TextBlock Style="{StaticResource DocTextStyle}" Text="Перед запуском должны выполняться все условия: прибор подключён, кольцо подключено, параметры кольца прочитаны и рассчитаны, локальный воздух собран. Если условие не выполнено, приложение сообщит точную причину." />
+                <TextBlock Style="{StaticResource DocTextStyle}" Text="В режиме АВТО приложение последовательно проходит R1..R8. В каждой точке оно выбирает на кольце нужный резистор и конденсатор, дожидается подтверждения от кольца, пропускает пять стабилизационных кадров, усредняет выбранное число кадров и записывает результат в ячейку. Кадры, принятые до подтверждения точки, в расчёт не берутся." />
+                <TextBlock Style="{StaticResource DocSubHeaderTextStyle}" Text="Экспресс-режим" />
+                <TextBlock Style="{StaticResource DocTextStyle}" Text="Экспресс-режим включён по умолчанию и переключается на вкладке &quot;Настройки&quot;." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• Включён: R1 и R2 проходят каждый канал по отдельности, а R3..R8 измеряются двумя групповыми точками по частотным диапазонам. Это заметно сокращает время поверки." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• Выключен: все сопротивления R1..R8 проходят каждый канал по отдельности. Проход дольше, но подробнее." />
+                <TextBlock Style="{StaticResource DocSubHeaderTextStyle}" Text="Ручной проход" />
+                <TextBlock Style="{StaticResource DocTextStyle}" Text="Щелчок по заголовку конкретного сопротивления заполняет только его столбец. Правила и ограничения те же, что у режима АВТО. Режим удобен, когда нужно переснять одно сопротивление, не повторяя весь цикл." />
+                <TextBlock
+                    Style="{StaticResource DocTextStyle}"
+                    Margin="0,6,0,0"
+                    FontWeight="SemiBold"
+                    Text="Во время прохода не перемещайте кольцо и прибор и не отключайте кабели." />
+
+                <!-- 8 -->
+                <controls:DocSectionHeader Number="8" Title="Оценка результата" />
+                <TextBlock Style="{StaticResource DocTextStyle}" Text="Цвет ячейки определяется выбранным порогом T в поле &quot;Порог %&quot;:" />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• модуль значения до T включительно - в допуске (зелёный);" />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• до 2 x T - предупреждение (оранжевый);" />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• до 3 x T - выход за допуск (красный);" />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• свыше 3 x T - критическое отклонение (тёмно-красный)." />
+                <TextBlock
+                    Style="{StaticResource DocTextStyle}"
+                    Margin="0,6,0,0"
+                    Text="Чекбоксы R1..R8 обновляются автоматически: сопротивление включается в рапорт, если оно заполнено и проходит по качеству. Оператор может изменить выбор вручную." />
+                <TextBlock
+                    Style="{StaticResource DocTextStyle}"
+                    Text="Значение УЭС 7200 Ом является служебным признаком того, что подобрать физическое значение по измеренной фазе не удалось. Такой результат следует расценивать как ошибку измерения, а не как показание прибора." />
+
+                <!-- 9 -->
+                <controls:DocSectionHeader Number="9" Title="Вкладка &quot;Поверка кольца&quot;" />
+                <TextBlock Style="{StaticResource DocSubHeaderTextStyle}" Text="Метрология зонда" />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• При подключённом приборе метрология читается из него автоматически, кнопка загрузки файла заблокирована и показывает &quot;(Считано из прибора)&quot;." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• Если прибор не подключён, нажмите &quot;Из файла&quot; рядом с заголовком &quot;Расчёт ёмкостей&quot; и укажите бинарный файл метрологии. Это позволяет рассчитать ёмкости без прибора." />
+
+                <TextBlock Style="{StaticResource DocSubHeaderTextStyle}" Text="Блоки вкладки" />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• &quot;Геометрия зонда&quot; - расстояния и рабочие частоты каналов из метрологии." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• &quot;Расчёт ёмкостей&quot; - строки &quot;Ёмкость, пФ&quot;, &quot;Реакт. расч., Ом&quot;, &quot;Активное R, Ом&quot; и &quot;Реакт. изм., Ом&quot;. Обе строки реактивности выводятся с четырьмя знаками после запятой. Сетка всегда десятипозиционная: для приборов на 3 и 4 передатчика заняты соответственно 6 и 8 позиций, остальные остаются пустыми." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• &quot;Сопротивления резисторов кольца, Ом&quot; - всегда восемь значений R1..R8. Это физически неизменная часть кольца, она не зависит от числа передатчиков прибора." />
+
+                <TextBlock Style="{StaticResource DocSubHeaderTextStyle}" Text="Кнопки" />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• &quot;Рассчитать&quot; - пересчитывает требуемые ёмкости и расчётные реактивные сопротивления по метрологии зонда. Пустые и нулевые измеренные значения дополняются расчётными; уже введённые положительные измеренные значения сохраняются." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• &quot;Прочитать из кольца&quot; - читает параметры из памяти подключённого кольца." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• &quot;Записать в кольцо&quot; - записывает параметры. Доступна только при включённом чекбоксе &quot;Редактировать&quot;. После записи приложение перечитывает память кольца и сравнивает значения; сообщение об успехе появляется только при полном совпадении, иначе перечисляются несовпавшие ячейки." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• &quot;Стереть все ячейки кольца&quot; - диагностическая команда, см. раздел 11." />
+                <TextBlock
+                    Style="{StaticResource DocNoteTextStyle}"
+                    Margin="0,6,0,0"
+                    Text="Кнопки &quot;Рассчитать&quot; и &quot;Прочитать из кольца&quot; всегда завершаются сообщением: успехом, указанием на неполный набор параметров или конкретной причиной отказа." />
+
+                <!-- 10 -->
+                <controls:DocSectionHeader Number="10" Title="Сигнатура кольца" />
+                <TextBlock Style="{StaticResource DocTextStyle}" Text="Сигнатура - трёхзначный номер, записанный в памяти кольца. Первая цифра обозначает семейство прибора, вторая - максимальное число передатчиков, третья - модификацию." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• 151 - универсальная мера семейства Автономный. Поддержка: Автономный 4-5 TX, LWD 3-4 TX, Картограф в режиме LWD-4TX." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• 241 - мера семейства LWD на четыре передатчика. Поддержка: LWD 4 TX, Картограф в режиме LWD-4TX. Приборы Автономный этой мерой не поверяются." />
+                <TextBlock
+                    Style="{StaticResource DocTextStyle}"
+                    Margin="0,6,0,0"
+                    Text="Поле &quot;Сигнатура кольца&quot; по умолчанию доступно только для чтения. Чтобы изменить значение: включить чекбокс &quot;Редактировать&quot;, ввести ровно три цифры и нажать &quot;Изменить сигнатуру&quot;. Запись считается успешной только после контрольного обратного чтения того же значения." />
+                <TextBlock
+                    Style="{StaticResource DocTextStyle}"
+                    FontWeight="SemiBold"
+                    Text="Перед поверкой убедитесь, что тип и число передатчиков подключённого прибора входят в строку &quot;Поддержка типов&quot; панели &quot;Состояние кольца&quot;." />
+                <TextBlock
+                    Style="{StaticResource DocNoteTextStyle}"
+                    Text="Если сигнатура не распознана или отсутствует, приложение сохраняет режим совместимости: работа не блокируется, но проверка соответствия прибора кольцу не выполняется, и неподтверждённые типы приборов кольцу не приписываются." />
+
+                <!-- 11 -->
+                <controls:DocSectionHeader Number="11" Title="Стирание памяти кольца" />
+                <TextBlock Style="{StaticResource DocTextStyle}" Text="Кнопка &quot;Стереть все ячейки кольца&quot; на вкладке &quot;Поверка кольца&quot; заполняет нулями все рабочие ячейки памяти кольца." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• Записанные активные и реактивные сопротивления будут потеряны: их придётся рассчитать и записать заново." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• Сигнатура хранится отдельно и этой командой не стирается." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• Команда выполняется только после отдельного подтверждения и никогда не запускается автоматически." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• Используйте её только осознанно, при диагностике кольца." />
+
+                <!-- 12 -->
+                <controls:DocSectionHeader Number="12" Title="Рапорт" />
+                <TextBlock Style="{StaticResource DocTextStyle}" Text="Кнопка &quot;Рапорт&quot; на вкладке &quot;Главная&quot; формирует книгу Excel в формате .xlsx. Установленный Microsoft Excel для этого не требуется." />
+                <TextBlock Style="{StaticResource DocTextStyle}" Text="В рапорт входят: дата и время создания; паспортные данные прибора и кольца (серийный номер, тип, сигнатура прибора, число передатчиков, модификация, номер, позиция R1, сигнатура кольца); список выбранных сопротивлений и номиналы резисторов кольца; каналы и частоты; значения выбранных R1..R8 с цветовой оценкой по действующему порогу; формульная оценка каналов и сводка по категориям; отдельный контроль каналов без данных; итоговое заключение, легенда порогов и область подписей." />
+                <TextBlock Style="{StaticResource DocTextStyle}" Text="Файл сохраняется через стандартный диалог. Имя по умолчанию имеет вид Koltsa_report_ГГГГММДД_ЧЧММСС.xlsx." />
+                <TextBlock Style="{StaticResource DocNoteTextStyle}" Text="Если рапорт сформировать нельзя, приложение сообщает причину: не выбрано ни одного сопротивления или отсутствуют данные измерений." />
+
+                <!-- 13 -->
+                <controls:DocSectionHeader Number="13" Title="Вкладка &quot;Настройки&quot;" />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• &quot;Интервал опроса, мс&quot; - период фонового опроса прибора. Значение по умолчанию 1000 мс, минимально допустимое 700 мс. Новое значение применяется со следующего цикла опроса." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• &quot;Экспресс-режим&quot; - влияет на порядок прохода каналов при заполнении таблицы, см. раздел 7. Включён по умолчанию." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• &quot;Масштаб окна&quot; - открывает выбор из пяти уровней. Средний уровень используется по умолчанию и подбирается под текущий монитор; доступны два уровня уменьшения и два уровня увеличения." />
+                <TextBlock Style="{StaticResource DocNoteTextStyle}" Margin="0,6,0,0" Text="Выбранные COM-порты прибора и кольца сохраняются между запусками приложения автоматически." />
+
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </ScrollViewer>
     </Grid>
 </Page>

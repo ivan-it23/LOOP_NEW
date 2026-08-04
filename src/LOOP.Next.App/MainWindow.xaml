@@ -37,6 +37,26 @@
                 Text="Кольца" />
         </Grid>
 
-        <Frame x:Name="RootFrame" Grid.Row="1" />
+        <!--
+            Узел масштабирования содержимого. RenderTransform сам по себе не меняет
+            разметку, поэтому кадру дополнительно задаётся размер рабочей области,
+            делённый на масштаб: содержимое верстается в уменьшенной области и затем
+            увеличивается. Это воспроизводит поведение layout-преобразования,
+            которого нет в WinUI.
+        -->
+        <Grid
+            x:Name="ContentScaleHost"
+            Grid.Row="1"
+            SizeChanged="OnContentScaleHostSizeChanged">
+            <Frame
+                x:Name="RootFrame"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Top"
+                RenderTransformOrigin="0,0">
+                <Frame.RenderTransform>
+                    <ScaleTransform x:Name="ContentScaleTransform" ScaleX="1" ScaleY="1" />
+                </Frame.RenderTransform>
+            </Frame>
+        </Grid>
     </Grid>
 </Window>

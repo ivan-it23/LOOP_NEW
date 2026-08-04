@@ -1,4 +1,6 @@
 using System.Runtime.InteropServices;
+using LoopNext.Core.Logging;
+using LOOP_Next_App.Services;
 using LOOP_Next_App.ViewModels;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
@@ -7,7 +9,8 @@ using Windows.Graphics;
 namespace LOOP_Next_App;
 
 /// <summary>
-/// Главное окно содержит пользовательский заголовок, Frame основной страницы и ограничения размера окна.
+/// Главное окно содержит пользовательский заголовок, Frame основной страницы,
+/// ограничения размера окна и масштаб содержимого.
 /// </summary>
 public sealed partial class MainWindow : Window
 {
@@ -21,6 +24,11 @@ public sealed partial class MainWindow : Window
     private MainPage? _mainPage;
     private SizeInt32 _minimumWindowSize;
     private bool _isApplyingMinimumSize;
+
+    private int _windowScalePosition = WindowScaleService.DefaultScalePosition;
+    private int? _legacyWindowScalePercent;
+    private int _automaticScalePercent = WindowScaleService.MinimumAutomaticScalePercent;
+    private bool _isXamlRootSubscribed;
 
     public MainWindow()
     {
@@ -37,8 +45,162 @@ public sealed partial class MainWindow : Window
         ApplyMinimumWindowSize(DefaultTransmitterCount);
         MaximizeOnLaunch();
 
+        LoadSavedScaleSetting();
+        ContentScaleHost.Loaded += OnContentScaleHostLoaded;
+
         RootFrame.Navigated += OnRootFrameNavigated;
         RootFrame.Navigate(typeof(MainPage));
+    }
+
+    /// <summary>
+    /// Сохранённая позиция пользователя: от -2 до +2, где 0 — рекомендуемый
+    /// масштаб для текущего монитора.
+    /// </summary>
+    public int WindowScalePosition => _windowScalePosition;
+
+    /// <summary>
+    /// Масштаб, подобранный для текущего монитора.
+    /// </summary>
+    public int AutomaticScalePercent => _automaticScalePercent;
+
+    /// <summary>
+    /// Фактически применённый масштаб содержимого.
+    /// </summary>
+    public int EffectiveScalePercent =>
+        WindowScaleService.GetScalePercent(_automaticScalePercent, _windowScalePosition);
+
+    /// <summary>
+    /// Множитель текущего масштаба. Нужен диалогам: они размещаются в popup-корне
+    /// XamlRoot, то есть вне масштабируемого кадра, и увеличиваются отдельно.
+    /// </summary>
+    public double ContentScaleFactor =>
+        WindowScaleService.GetScaleFactor(EffectiveScalePercent);
+
+    /// <summary>
+    /// Применяет и сохраняет одну из пяти позиций масштаба.
+    /// </summary>
+    public void ApplyWindowScalePosition(int scalePosition)
+    {
+        _windowScalePosition = WindowScaleService.NormalizeScalePosition(scalePosition);
+        _legacyWindowScalePercent = null;
+
+        SaveScalePosition(_windowScalePosition);
+        UpdateContentScale();
+
+        AppLogger.WriteDiagnostic(
+            "APP_SESSION",
+            "WINDOW_SCALE_APPLIED",
+            $"position={_windowScalePosition}|automatic={_automaticScalePercent}|effective={EffectiveScalePercent}");
+    }
+
+    private void LoadSavedScaleSetting()
+    {
+        var settings = UserSettingsStore.Load();
+        if (settings.WindowScalePosition is int savedPosition)
+        {
+            _windowScalePosition = WindowScaleService.NormalizeScalePosition(savedPosition);
+            return;
+        }
+
+        _legacyWindowScalePercent = settings.WindowScalePercent;
+    }
+
+    private static void SaveScalePosition(int scalePosition)
+    {
+        var settings = UserSettingsStore.Load();
+        settings.WindowScalePosition = WindowScaleService.NormalizeScalePosition(scalePosition);
+        settings.WindowScalePercent = null;
+        UserSettingsStore.Save(settings);
+    }
+
+    private void OnContentScaleHostLoaded(object sender, RoutedEventArgs e)
+    {
+        SubscribeToXamlRootChanges();
+        UpdateContentScale();
+    }
+
+    private void SubscribeToXamlRootChanges()
+    {
+        // Смена монитора меняет RasterizationScale, поэтому автоматический масштаб
+        // нужно пересчитывать при перемещении окна между экранами.
+        if (_isXamlRootSubscribed || ContentScaleHost.XamlRoot is null)
+        {
+            return;
+        }
+
+        ContentScaleHost.XamlRoot.Changed += OnXamlRootChanged;
+        _isXamlRootSubscribed = true;
+    }
+
+    private void OnXamlRootChanged(Microsoft.UI.Xaml.XamlRoot sender, Microsoft.UI.Xaml.XamlRootChangedEventArgs args) =>
+        UpdateContentScale();
+
+    private void OnContentScaleHostSizeChanged(object sender, SizeChangedEventArgs e) =>
+        ApplyContentScaleLayout();
+
+    /// <summary>
+    /// Пересчитывает автоматический масштаб по текущему монитору и применяет результат.
+    /// </summary>
+    private void UpdateContentScale()
+    {
+        _automaticScalePercent = CalculateAutomaticScalePercent();
+
+        // Первая реализация сохраняла абсолютный процент. После вычисления
+        // эталона текущего монитора переносим его на ближайшую из пяти позиций.
+        if (_legacyWindowScalePercent is int legacyScalePercent)
+        {
+            _windowScalePosition = WindowScaleService.GetClosestScalePosition(
+                _automaticScalePercent,
+                legacyScalePercent);
+            _legacyWindowScalePercent = null;
+            SaveScalePosition(_windowScalePosition);
+        }
+
+        ApplyContentScaleLayout();
+    }
+
+    private int CalculateAutomaticScalePercent()
+    {
+        var rasterizationScale = ContentScaleHost.XamlRoot?.RasterizationScale ?? 1.0;
+        if (!double.IsFinite(rasterizationScale) || rasterizationScale <= 0)
+        {
+            rasterizationScale = 1.0;
+        }
+
+        // WorkArea выражена в физических пикселях; для верстки нужны эффективные.
+        var workArea = DisplayArea.GetFromWindowId(AppWindow.Id, DisplayAreaFallback.Nearest).WorkArea;
+        var effectiveWidth = workArea.Width / rasterizationScale;
+        var effectiveHeight = workArea.Height / rasterizationScale;
+        var automaticScalePercent = WindowScaleService.GetAutomaticScalePercent(effectiveWidth, effectiveHeight);
+
+        // Диагностика нужна при разборе жалоб на размер элементов на чужих мониторах.
+        AppLogger.WriteDiagnostic(
+            "APP_SESSION",
+            "WINDOW_SCALE_AUTOMATIC",
+            $"rasterization_scale={rasterizationScale:F3}|work_area_physical={workArea.Width}x{workArea.Height}|work_area_effective={effectiveWidth:F1}x{effectiveHeight:F1}|reference={WindowScaleService.ReferenceContentWidth:F0}x{WindowScaleService.ReferenceContentHeight:F0}|automatic_percent={automaticScalePercent}");
+
+        return automaticScalePercent;
+    }
+
+    /// <summary>
+    /// Задаёт кадру размер рабочей области, делённый на масштаб, и применяет
+    /// преобразование. Без пересчёта размера RenderTransform обрезал бы содержимое.
+    /// </summary>
+    private void ApplyContentScaleLayout()
+    {
+        var hostWidth = ContentScaleHost.ActualWidth;
+        var hostHeight = ContentScaleHost.ActualHeight;
+        if (hostWidth <= 0 || hostHeight <= 0)
+        {
+            return;
+        }
+
+        var factor = WindowScaleService.GetScaleFactor(EffectiveScalePercent);
+
+        ContentScaleTransform.ScaleX = factor;
+        ContentScaleTransform.ScaleY = factor;
+        RootFrame.Width = hostWidth / factor;
+        RootFrame.Height = hostHeight / factor;
     }
 
     private void MaximizeOnLaunch()

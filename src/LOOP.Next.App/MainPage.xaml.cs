@@ -1,6 +1,7 @@
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml;
 using LoopNext.Core.Logging;
+using LOOP_Next_App.Services;
 using LOOP_Next_App.ViewModels;
 using Microsoft.UI;
 using Microsoft.UI.Xaml.Media;
@@ -17,6 +18,9 @@ public sealed partial class MainPage : Page
 
     // Гарантирует, что одновременно отображается не более одного модального уведомления.
     private bool _isShowingNotification;
+
+    // Защищает диалог масштаба от повторного открытия быстрым двойным нажатием.
+    private bool _isShowingWindowScaleDialog;
 
     public MainPage()
     {
@@ -47,6 +51,7 @@ public sealed partial class MainPage : Page
                 DefaultButton = ContentDialogButton.None
             };
             dialog.Content = BuildNotificationContent(notification, dialog);
+            ApplyContentScaleToDialog(dialog);
 
             await dialog.ShowAsync();
         }
@@ -58,6 +63,28 @@ public sealed partial class MainPage : Page
         {
             _isShowingNotification = false;
         }
+    }
+
+    /// <summary>
+    /// Применяет к диалогу текущий масштаб содержимого. Диалоги WinUI живут в
+    /// popup-корне XamlRoot, поэтому масштаб главного кадра на них не действует,
+    /// и без этого при увеличенном интерфейсе они выглядели бы мелкими.
+    /// </summary>
+    private static void ApplyContentScaleToDialog(ContentDialog dialog)
+    {
+        if (App.Window is not MainWindow window)
+        {
+            return;
+        }
+
+        var factor = window.ContentScaleFactor;
+        if (Math.Abs(factor - 1.0) < 0.001)
+        {
+            return;
+        }
+
+        dialog.RenderTransformOrigin = new Windows.Foundation.Point(0.5, 0.5);
+        dialog.RenderTransform = new ScaleTransform { ScaleX = factor, ScaleY = factor };
     }
 
     private static UIElement BuildNotificationContent(UserNotification notification, ContentDialog owner)
@@ -158,7 +185,8 @@ public sealed partial class MainPage : Page
             MainResistanceTable is null ||
             MainIdentificationPanel is null ||
             RingVerificationContent is null ||
-            SettingsContent is null)
+            SettingsContent is null ||
+            DocumentationContent is null)
         {
             return;
         }
@@ -168,6 +196,7 @@ public sealed partial class MainPage : Page
         SetMainContentVisibility(selectedIndex == 0);
         RingVerificationContent.Visibility = selectedIndex == 1 ? Visibility.Visible : Visibility.Collapsed;
         SettingsContent.Visibility = selectedIndex == 2 ? Visibility.Visible : Visibility.Collapsed;
+        DocumentationContent.Visibility = selectedIndex == 3 ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void SetMainContentVisibility(bool isVisible)
@@ -176,6 +205,96 @@ public sealed partial class MainPage : Page
         MainConnectionPanel.Visibility = visibility;
         MainResistanceTable.Visibility = visibility;
         MainIdentificationPanel.Visibility = visibility;
+    }
+
+    /// <summary>
+    /// Открывает выбор масштаба содержимого. Значение применяется сразу, чтобы
+    /// результат был виден за диалогом; отмена возвращает исходную настройку.
+    /// </summary>
+    private async void WindowScale_Click(object sender, RoutedEventArgs e)
+    {
+        if (_isShowingWindowScaleDialog || App.Window is not MainWindow window)
+        {
+            return;
+        }
+
+        var xamlRoot = XamlRoot ?? Content?.XamlRoot;
+        if (xamlRoot is null)
+        {
+            return;
+        }
+
+        var originalPosition = window.WindowScalePosition;
+        _isShowingWindowScaleDialog = true;
+        try
+        {
+            var dialog = new ContentDialog
+            {
+                XamlRoot = xamlRoot,
+                Title = "Масштаб окна",
+                PrimaryButtonText = "Готово",
+                SecondaryButtonText = "Отмена",
+                DefaultButton = ContentDialogButton.Primary
+            };
+            dialog.Content = BuildWindowScaleContent(window);
+            ApplyContentScaleToDialog(dialog);
+
+            if (await dialog.ShowAsync() != ContentDialogResult.Primary)
+            {
+                window.ApplyWindowScalePosition(originalPosition);
+            }
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Write(ex, "Ошибка выбора масштаба окна");
+            window.ApplyWindowScalePosition(originalPosition);
+        }
+        finally
+        {
+            _isShowingWindowScaleDialog = false;
+        }
+    }
+
+    private static UIElement BuildWindowScaleContent(MainWindow window)
+    {
+        var automaticScalePercent = window.AutomaticScalePercent;
+        var currentPosition = window.WindowScalePosition;
+
+        var panel = new StackPanel { Width = 380, Spacing = 14 };
+        panel.Children.Add(new TextBlock
+        {
+            Text =
+                "Средний уровень — рекомендуемый масштаб для текущего монитора. " +
+                "Выберите один из двух меньших или двух больших уровней. " +
+                "Изменение применяется сразу и сохраняется между запусками.",
+            FontSize = 13,
+            LineHeight = 19,
+            TextWrapping = TextWrapping.WrapWholeWords,
+            Foreground = Application.Current.Resources["TextFillColorSecondaryBrush"] as Brush
+        });
+
+        var options = new RadioButtons { MaxColumns = 1 };
+        foreach (var position in WindowScaleService.AvailableScalePositions)
+        {
+            options.Items.Add(WindowScaleService.GetScaleOptionText(position, automaticScalePercent));
+        }
+
+        options.SelectedIndex = currentPosition - WindowScaleService.MinimumScalePosition;
+
+        options.SelectionChanged += (_, _) =>
+        {
+            var index = options.SelectedIndex;
+            if (index < 0)
+            {
+                return;
+            }
+
+            var position = index + WindowScaleService.MinimumScalePosition;
+            window.ApplyWindowScalePosition(position);
+        };
+
+        panel.Children.Add(options);
+        return panel;
     }
 
     private async void MetrologyFile_Click(object sender, RoutedEventArgs e)
@@ -237,6 +356,7 @@ public sealed partial class MainPage : Page
                 CloseButtonText = "Отмена",
                 DefaultButton = ContentDialogButton.Close
             };
+            ApplyContentScaleToDialog(dialog);
 
             if (await dialog.ShowAsync() == ContentDialogResult.Primary)
             {

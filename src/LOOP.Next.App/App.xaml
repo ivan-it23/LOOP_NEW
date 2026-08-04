@@ -3,12 +3,40 @@
     x:Class="LOOP_Next_App.App"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="using:LOOP_Next_App">
+    xmlns:local="using:LOOP_Next_App"
+    RequestedTheme="Light">
+    <!--
+        RequestedTheme фиксирует светлую тему. Без него WinUI наследует системный
+        "Режим приложений", и на машине с тёмной темой Windows интерфейс уезжает:
+        ThemeResource переключаются на тёмные, а жёстко заданные цвета таблиц,
+        панелей и вкладки "Документация" остаются светлыми.
+    -->
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
             </ResourceDictionary.MergedDictionaries>
+
+            <!--
+                Фиксированная акцентная палитра. Значения совпадают со стандартным
+                синим акцентом Windows и записаны явно, чтобы CheckBox, ComboBox,
+                ToggleSwitch, NumberBox, TabView и AccentButtonStyle не брали цвет
+                из персонализации конкретного компьютера: на машинах с жёлтым
+                акцентом эти контролы отображались жёлтыми.
+
+                Собственные ключи словаря имеют приоритет над MergedDictionaries,
+                поэтому производные кисти WinUI (AccentFillColorDefaultBrush,
+                SystemControlForegroundAccentBrush и другие) строятся уже от этих
+                значений. В светлой теме заливка контролов берётся из
+                SystemAccentColorDark1.
+            -->
+            <Color x:Key="SystemAccentColor">#0078D7</Color>
+            <Color x:Key="SystemAccentColorLight1">#429CE3</Color>
+            <Color x:Key="SystemAccentColorLight2">#76B9ED</Color>
+            <Color x:Key="SystemAccentColorLight3">#A6D8FF</Color>
+            <Color x:Key="SystemAccentColorDark1">#005A9E</Color>
+            <Color x:Key="SystemAccentColorDark2">#004275</Color>
+            <Color x:Key="SystemAccentColorDark3">#002642</Color>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

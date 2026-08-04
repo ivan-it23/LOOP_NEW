@@ -9,6 +9,18 @@ public sealed class UserSettings
     public string? ToolPort { get; set; }
 
     public string? RingPort { get; set; }
+
+    /// <summary>
+    /// Выбранная пользователем позиция масштаба: от -2 до +2, где 0 —
+    /// рекомендуемый масштаб для текущего монитора.
+    /// </summary>
+    public int? WindowScalePosition { get; set; }
+
+    /// <summary>
+    /// Поле предыдущей реализации. Читается один раз для переноса настройки
+    /// на ближайшую из пяти позиций и затем очищается.
+    /// </summary>
+    public int? WindowScalePercent { get; set; }
 }
 
 public static class UserSettingsStore

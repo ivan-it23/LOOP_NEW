@@ -59,6 +59,57 @@ var checks = new List<(string Name, Action Run)>
         Require(RingSignatureCatalog.GetToolCompatibility(151, in lwd5) == RingToolCompatibility.Unsupported);
         Require(RingSignatureCatalog.GetToolCompatibility(123, in lwd5) == RingToolCompatibility.Unverified);
     }),
+    ("Signature 241 exposes the LWD four-transmitter compatibility", () =>
+    {
+        Require(RingSignatureCatalog.LwdFourTransmitterSignature == 241);
+        Require(
+            RingSignatureCatalog.GetSupportedToolTypes(241) ==
+            "LWD 4 TX, Картограф->LWD-4TX");
+        Require(RingSignatureCatalog.IsKnownSignature(241));
+        Require(!RingSignatureCatalog.IsKnownSignature(242));
+        Require(RingSignatureCatalog.TryParseEditableSignature("241", out var signature, out var error));
+        Require(signature == 241 && error is null);
+    }),
+    ("Signature 241 keeps the universal five-transmitter capacitance grid", () =>
+    {
+        Require(
+            RingSignatureCatalog.GetCapacitanceMappingProfile(241) ==
+            RingCapacitanceMappingProfile.UniversalFiveTransmitter);
+        // Прибор LWD 4 Tx: логические C5..C8 уходят в физический банк C6..C9.
+        Require(
+            RingMeasurementSequence.GetCommandCapacitance(
+                8,
+                5,
+                RingSignatureCatalog.GetCapacitanceMappingProfile(241)) == 6);
+        Require(
+            RingMeasurementSequence.GetCommandCapacitance(
+                8,
+                8,
+                RingSignatureCatalog.GetCapacitanceMappingProfile(241)) == 9);
+    }),
+    ("Signature 241 accepts only four-transmitter LWD family tools", () =>
+    {
+        var lwd4 = ToolIdentity.Decode(240000);
+        var lwd4Modified = ToolIdentity.Decode(243000);
+        var cartographLwd4 = ToolIdentity.Decode(349000);
+        var cartographLwd4Alt = ToolIdentity.Decode(359000);
+        var lwd3 = ToolIdentity.Decode(230000);
+        var lwd5 = ToolIdentity.Decode(250000);
+        var autonomous4 = ToolIdentity.Decode(140000);
+        var autonomous5 = ToolIdentity.Decode(150000);
+
+        // Поддерживаются: LWD 24n и картограф 34n в режиме LWD 4tx.
+        Require(RingSignatureCatalog.GetToolCompatibility(241, in lwd4) == RingToolCompatibility.Supported);
+        Require(RingSignatureCatalog.GetToolCompatibility(241, in lwd4Modified) == RingToolCompatibility.Supported);
+        Require(RingSignatureCatalog.GetToolCompatibility(241, in cartographLwd4) == RingToolCompatibility.Supported);
+        Require(RingSignatureCatalog.GetToolCompatibility(241, in cartographLwd4Alt) == RingToolCompatibility.Supported);
+
+        // Не поддерживаются: другое число передатчиков и всё семейство Автономный.
+        Require(RingSignatureCatalog.GetToolCompatibility(241, in lwd3) == RingToolCompatibility.Unsupported);
+        Require(RingSignatureCatalog.GetToolCompatibility(241, in lwd5) == RingToolCompatibility.Unsupported);
+        Require(RingSignatureCatalog.GetToolCompatibility(241, in autonomous4) == RingToolCompatibility.Unsupported);
+        Require(RingSignatureCatalog.GetToolCompatibility(241, in autonomous5) == RingToolCompatibility.Unsupported);
+    }),
     ("Editable signature rejects values outside the three-digit schema", () =>
     {
         Require(!RingSignatureCatalog.TryParseEditableSignature("15", out _, out var shortError));

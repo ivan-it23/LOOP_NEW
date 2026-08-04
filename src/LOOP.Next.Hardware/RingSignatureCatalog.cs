@@ -11,14 +11,31 @@ namespace LoopNext.Hardware;
 /// </summary>
 public static class RingSignatureCatalog
 {
+    // Универсальная мера, рассчитанная на максимальную конфигурацию Автономный 5 Tx.
     public const uint UniversalAutonomousSignature = 151;
+
+    // Мера семейства LWD на 4 передатчика: 2 - тип прибора LWD, 4 - максимальное
+    // число передатчиков, 1 - модификация. Приборы Автономный ею не обслуживаются.
+    public const uint LwdFourTransmitterSignature = 241;
 
     public const string UniversalAutonomousSupportedToolTypes =
         "Автономный 4-5 TX, LWD 3-4 TX, Картограф->LWD-4TX";
 
+    public const string LwdFourTransmitterSupportedToolTypes =
+        "LWD 4 TX, Картограф->LWD-4TX";
+
+    /// <summary>
+    /// Сигнатура присутствует в каталоге, то есть её набор поддерживаемых приборов
+    /// подтверждён. Для остальных значений приложение не приписывает кольцу
+    /// неподтверждённые возможности и сохраняет режим совместимости.
+    /// </summary>
+    public static bool IsKnownSignature(uint? signature) =>
+        signature is UniversalAutonomousSignature or LwdFourTransmitterSignature;
+
     public static string GetSupportedToolTypes(uint? signature) => signature switch
     {
         UniversalAutonomousSignature => UniversalAutonomousSupportedToolTypes,
+        LwdFourTransmitterSignature => LwdFourTransmitterSupportedToolTypes,
         null => "—",
         _ => $"Не определены для сигнатуры {signature.Value.ToString(CultureInfo.InvariantCulture)}"
     };
@@ -27,9 +44,12 @@ public static class RingSignatureCatalog
     /// Возвращает профиль физической раскладки конденсаторов. Неизвестные и
     /// ещё не промаркированные кольца продолжают работать по прежнему алгоритму
     /// приложения, пока парк устройств переводится на сигнатуры.
+    /// Обе каталожные сигнатуры относятся к устройствам на универсальной
+    /// физической сетке 5 Tx (десять позиций, банки C1..C5 и C6..C10): кольцо 241
+    /// получено перепрошивкой такого устройства, его плата не менялась.
     /// </summary>
     public static RingCapacitanceMappingProfile GetCapacitanceMappingProfile(uint? signature) =>
-        signature == UniversalAutonomousSignature
+        IsKnownSignature(signature)
             ? RingCapacitanceMappingProfile.UniversalFiveTransmitter
             : RingCapacitanceMappingProfile.CompatibilityFallback;
 
@@ -37,7 +57,7 @@ public static class RingSignatureCatalog
         uint? ringSignature,
         in ToolIdentity toolIdentity)
     {
-        if (ringSignature != UniversalAutonomousSignature)
+        if (!IsKnownSignature(ringSignature))
         {
             return RingToolCompatibility.Unverified;
         }
@@ -47,11 +67,10 @@ public static class RingSignatureCatalog
             return RingToolCompatibility.Unsupported;
         }
 
-        var isSupported = toolIdentity.DeviceType switch
+        var isSupported = ringSignature switch
         {
-            ToolIdentity.DeviceTypeAutonom => toolIdentity.TransmitterCount is 4 or 5,
-            ToolIdentity.DeviceTypeLwd => toolIdentity.TransmitterCount is 3 or 4,
-            ToolIdentity.DeviceTypeCartograph => toolIdentity.IsCartographLwd4TxMode,
+            UniversalAutonomousSignature => IsSupportedByUniversalAutonomous(in toolIdentity),
+            LwdFourTransmitterSignature => IsSupportedByLwdFourTransmitter(in toolIdentity),
             _ => false
         };
 
@@ -59,6 +78,27 @@ public static class RingSignatureCatalog
             ? RingToolCompatibility.Supported
             : RingToolCompatibility.Unsupported;
     }
+
+    // Кольцо 151: универсальная мера семейства Автономный.
+    private static bool IsSupportedByUniversalAutonomous(in ToolIdentity toolIdentity) =>
+        toolIdentity.DeviceType switch
+        {
+            ToolIdentity.DeviceTypeAutonom => toolIdentity.TransmitterCount is 4 or 5,
+            ToolIdentity.DeviceTypeLwd => toolIdentity.TransmitterCount is 3 or 4,
+            ToolIdentity.DeviceTypeCartograph => toolIdentity.IsCartographLwd4TxMode,
+            _ => false
+        };
+
+    // Кольцо 241: только приборы на четыре передатчика семейства LWD - собственно
+    // LWD 24n и картограф 34n в режиме LWD 4tx. Номер модификации прибора не влияет
+    // на совместимость. Автономный не поддерживается ни в одной конфигурации.
+    private static bool IsSupportedByLwdFourTransmitter(in ToolIdentity toolIdentity) =>
+        toolIdentity.DeviceType switch
+        {
+            ToolIdentity.DeviceTypeLwd => toolIdentity.TransmitterCount == 4,
+            ToolIdentity.DeviceTypeCartograph => toolIdentity.IsCartographLwd4TxMode,
+            _ => false
+        };
 
     public static bool TryParseEditableSignature(
         string? text,

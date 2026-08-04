@@ -22,10 +22,10 @@ namespace LOOP_Next_App.ViewModels;
 // ViewModel координирует UI главной страницы, аппаратный слой и расчётный конвейер измерений.
 public partial class MainPageViewModel : ObservableObject
 {
-    private static readonly SolidColorBrush AirColumnDefaultBrush = new(Colors.White);
-    private static readonly SolidColorBrush LocalAirSetBrush = new(Colors.Red);
-    private static readonly SolidColorBrush AirColumnDefaultForegroundBrush = new(Colors.Black);
-    private static readonly SolidColorBrush AirColumnSetForegroundBrush = new(Colors.White);
+    private static readonly SolidColorBrush CorporateRedBrush = new(ColorHelper.FromArgb(255, 192, 0, 0));
+    private static readonly SolidColorBrush ActiveStateForegroundBrush = new(Colors.White);
+    private static readonly SolidColorBrush InactiveButtonBackgroundBrush = new(ColorHelper.FromArgb(255, 229, 229, 229));
+    private static readonly SolidColorBrush InactiveButtonForegroundBrush = new(Colors.Black);
     private static readonly string[] DefaultRingCalibrationLabels =
     {
         "T1 401",
@@ -40,6 +40,9 @@ public partial class MainPageViewModel : ObservableObject
         "T5 2001"
     };
 
+    // После подтверждения каждой точки первые пять успешных кадров нужны только
+    // для установления режима. Они не входят в выбранное пользователем среднее:
+    // при SelectedAveraging=5 усредняются ровно кадры 6..10.
     private const int MeasurementSkipFrames = 5;
     private const double CompactIdentificationPanelWidth = 470;
     private const double ExpandedIdentificationPanelWidth = 540;
@@ -319,6 +322,8 @@ public partial class MainPageViewModel : ObservableObject
 
     partial void OnIsRingConnectedChanged(bool value)
     {
+        RingButtonBackground = value ? CorporateRedBrush : InactiveButtonBackgroundBrush;
+        RingButtonForeground = value ? ActiveStateForegroundBrush : InactiveButtonForegroundBrush;
         ResetRingResistanceSummary();
     }
 
@@ -333,6 +338,8 @@ public partial class MainPageViewModel : ObservableObject
     partial void OnIsConnectedChanged(bool value)
     {
         ConnectionStateText = value ? "Включено" : "Выключено";
+        ToolButtonBackground = value ? CorporateRedBrush : InactiveButtonBackgroundBrush;
+        ToolButtonForeground = value ? ActiveStateForegroundBrush : InactiveButtonForegroundBrush;
     }
 
     public bool CanConnect => !IsConnected && !string.IsNullOrWhiteSpace(SelectedToolPort);
@@ -346,6 +353,18 @@ public partial class MainPageViewModel : ObservableObject
     public string ToolToggleText => IsConnected ? "Выключить прибор" : "Включить прибор";
 
     public string RingToggleText => IsRingConnected ? "Выключить кольцо" : "Включить кольцо";
+
+    [ObservableProperty]
+    public partial Brush ToolButtonBackground { get; set; } = InactiveButtonBackgroundBrush;
+
+    [ObservableProperty]
+    public partial Brush ToolButtonForeground { get; set; } = InactiveButtonForegroundBrush;
+
+    [ObservableProperty]
+    public partial Brush RingButtonBackground { get; set; } = InactiveButtonBackgroundBrush;
+
+    [ObservableProperty]
+    public partial Brush RingButtonForeground { get; set; } = InactiveButtonForegroundBrush;
 
     public string PollingGlyph => IsPolling ? "\uE769" : "\uE768";
 
@@ -481,10 +500,10 @@ public partial class MainPageViewModel : ObservableObject
     public partial Windows.UI.Text.FontWeight LocalAirButtonFontWeight { get; set; } = FontWeights.Normal;
 
     [ObservableProperty]
-    public partial Brush AirColumnBackground { get; set; } = AirColumnDefaultBrush;
+    public partial Brush LocalAirButtonBackground { get; set; } = InactiveButtonBackgroundBrush;
 
     [ObservableProperty]
-    public partial Brush AirColumnForeground { get; set; } = AirColumnDefaultForegroundBrush;
+    public partial Brush LocalAirButtonForeground { get; set; } = InactiveButtonForegroundBrush;
 
     [RelayCommand]
     private async Task ToggleToolAsync()
@@ -1223,7 +1242,7 @@ public partial class MainPageViewModel : ObservableObject
             RingCalibrationRows[i].L2Text = parameter.L2.ToString("F3");
             RingCalibrationRows[i].FrequencyText = (parameter.Frequency / 1000f).ToString("F0");
             RingCalibrationRows[i].CapacitanceText = (value.CapacitanceFarads * 1_000_000_000_000f).ToString("F0");
-            RingCalibrationRows[i].ReactanceCalculatedText = value.Reactance.ToString("F3");
+            RingCalibrationRows[i].ReactanceCalculatedText = value.Reactance.ToString("F4");
             var hasMeasuredReactance =
                 TryParseDouble(RingCalibrationRows[i].ReactanceMeasuredText, out var measuredReactance) &&
                 measuredReactance > 0.000001;
@@ -2745,14 +2764,11 @@ public partial class MainPageViewModel : ObservableObject
         LocalAirButtonText = isCollecting
             ? $"Сбор: {collectedSampleCount} кадров"
             : showAirAsSet
-                ? "Воздух: задан"
+                ? "Воздух: Задан"
                 : "Локальный воздух";
         LocalAirButtonFontWeight = showAirAsSet ? FontWeights.SemiBold : FontWeights.Normal;
-
-        var airBackground = showAirAsSet ? LocalAirSetBrush : AirColumnDefaultBrush;
-        var airForeground = showAirAsSet ? AirColumnSetForegroundBrush : AirColumnDefaultForegroundBrush;
-        AirColumnBackground = airBackground;
-        AirColumnForeground = airForeground;
+        LocalAirButtonBackground = showAirAsSet ? CorporateRedBrush : InactiveButtonBackgroundBrush;
+        LocalAirButtonForeground = showAirAsSet ? ActiveStateForegroundBrush : InactiveButtonForegroundBrush;
     }
 
     private void UpdateResistanceRows(V10 resistivity, V10 corrected)
