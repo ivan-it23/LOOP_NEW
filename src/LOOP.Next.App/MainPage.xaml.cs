@@ -224,7 +224,7 @@ public sealed partial class MainPage : Page
             return;
         }
 
-        var originalPosition = window.WindowScalePosition;
+        var originalScalePercent = window.WindowScalePercent;
         _isShowingWindowScaleDialog = true;
         try
         {
@@ -241,13 +241,13 @@ public sealed partial class MainPage : Page
 
             if (await dialog.ShowAsync() != ContentDialogResult.Primary)
             {
-                window.ApplyWindowScalePosition(originalPosition);
+                window.ApplyWindowScalePercent(originalScalePercent);
             }
         }
         catch (Exception ex)
         {
             AppLogger.Write(ex, "Ошибка выбора масштаба окна");
-            window.ApplyWindowScalePosition(originalPosition);
+            window.ApplyWindowScalePercent(originalScalePercent);
         }
         finally
         {
@@ -257,29 +257,17 @@ public sealed partial class MainPage : Page
 
     private static UIElement BuildWindowScaleContent(MainWindow window)
     {
-        var automaticScalePercent = window.AutomaticScalePercent;
-        var currentPosition = window.WindowScalePosition;
+        var currentScalePercent = window.WindowScalePercent;
 
-        var panel = new StackPanel { Width = 380, Spacing = 14 };
-        panel.Children.Add(new TextBlock
-        {
-            Text =
-                "Средний уровень — рекомендуемый масштаб для текущего монитора. " +
-                "Выберите один из двух меньших или двух больших уровней. " +
-                "Изменение применяется сразу и сохраняется между запусками.",
-            FontSize = 13,
-            LineHeight = 19,
-            TextWrapping = TextWrapping.WrapWholeWords,
-            Foreground = Application.Current.Resources["TextFillColorSecondaryBrush"] as Brush
-        });
+        var panel = new StackPanel { Width = 240 };
 
         var options = new RadioButtons { MaxColumns = 1 };
-        foreach (var position in WindowScaleService.AvailableScalePositions)
+        foreach (var scalePercent in WindowScaleService.AvailableScalePercents)
         {
-            options.Items.Add(WindowScaleService.GetScaleOptionText(position, automaticScalePercent));
+            options.Items.Add(WindowScaleService.GetScaleOptionText(scalePercent));
         }
 
-        options.SelectedIndex = currentPosition - WindowScaleService.MinimumScalePosition;
+        options.SelectedIndex = WindowScaleService.GetScaleOptionIndex(currentScalePercent);
 
         options.SelectionChanged += (_, _) =>
         {
@@ -289,8 +277,8 @@ public sealed partial class MainPage : Page
                 return;
             }
 
-            var position = index + WindowScaleService.MinimumScalePosition;
-            window.ApplyWindowScalePosition(position);
+            var scalePercent = WindowScaleService.AvailableScalePercents[index];
+            window.ApplyWindowScalePercent(scalePercent);
         };
 
         panel.Children.Add(options);

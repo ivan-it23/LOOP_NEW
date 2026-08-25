@@ -2117,7 +2117,7 @@
                 <controls:DocSectionHeader Number="13" Title="Вкладка &quot;Настройки&quot;" />
                 <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• &quot;Интервал опроса, мс&quot; - период фонового опроса прибора. Значение по умолчанию 1000 мс, минимально допустимое 700 мс. Новое значение применяется со следующего цикла опроса." />
                 <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• &quot;Экспресс-режим&quot; - влияет на порядок прохода каналов при заполнении таблицы, см. раздел 7. Включён по умолчанию." />
-                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• &quot;Масштаб окна&quot; - открывает выбор из пяти уровней. Средний уровень используется по умолчанию и подбирается под текущий монитор; доступны два уровня уменьшения и два уровня увеличения." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• &quot;Масштаб окна&quot; - открывает единый для всех компьютеров выбор: 80%, 90%, 100%, 110% или 120%. По умолчанию используется 100%." />
                 <TextBlock Style="{StaticResource DocNoteTextStyle}" Margin="0,6,0,0" Text="Выбранные COM-порты прибора и кольца сохраняются между запусками приложения автоматически." />
 
                         </StackPanel>

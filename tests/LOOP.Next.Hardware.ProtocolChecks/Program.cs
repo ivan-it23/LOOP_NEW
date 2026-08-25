@@ -1,7 +1,9 @@
-using System.IO.Compression;
+﻿using System.IO.Compression;
+using System.Runtime.InteropServices;
 using System.Xml.Linq;
 using LOOP.Next.Reporting;
 using LoopNext.Core.Models;
+using LoopNext.Core.Protocol;
 using LoopNext.Hardware;
 
 var checks = new List<(string Name, Action Run)>
@@ -381,6 +383,84 @@ var checks = new List<(string Name, Action Run)>
         Require(worksheetXml.Contains("$C$9", StringComparison.Ordinal), "threshold reference is incorrect");
         Require(styleFormats[17].Element(spreadsheetNs + "alignment")?.Attribute("horizontal")?.Value == "left", "threshold value is not left-aligned");
         Require(styleFormats[18].Attribute("numFmtId")?.Value == "1", "resistance values are not integer-formatted");
+    }),
+    ("Сигнатуры старой прошивки разбираются как прежде и дают кадр 240 байт", () =>
+    {
+        // Значения из существующих проверок и реальные сигнатуры приборов в
+        // эксплуатации: ни одна не должна уйти в ветку новой прошивки.
+        foreach (var signature in new uint[] { 140000, 150000, 230000, 240000, 249000, 250000, 349000, 359000 })
+        {
+            var identity = ToolIdentity.Decode(signature);
+            Require(identity.FrameSize == ToolIdentity.LegacyFrameSize, $"frame size for {signature}");
+            Require(!identity.IsExtendedFirmware, $"firmware generation for {signature}");
+        }
+
+        // Сигнатура с мусором в старших битах: полезны только младшие 20 бит.
+        var legacyWithNoise = ToolIdentity.Decode(0x3143ADD1);
+        Require(legacyWithNoise.FrameSize == ToolIdentity.LegacyFrameSize, "noisy signature frame size");
+        Require(legacyWithNoise.DeviceType == ToolIdentity.DeviceTypeLwd, "noisy signature device type");
+        Require(legacyWithNoise.TransmitterCount == 4, "noisy signature transmitter count");
+        Require(legacyWithNoise.Number == 105, "noisy signature number");
+    }),
+    ("Сигнатура новой прошивки даёт кадр 320 байт и прежние поля прибора", () =>
+    {
+        var identity = ToolIdentity.Decode(320151501);
+        Require(identity.FrameSize == ToolIdentity.ExtendedFrameSize, "frame size");
+        Require(identity.IsExtendedFirmware, "firmware generation");
+        Require(identity.DeviceType == ToolIdentity.DeviceTypeAutonom, "device type");
+        Require(identity.TransmitterCount == 5, "transmitter count");
+        Require(identity.Modification == 1, "modification");
+        Require(identity.Number == 501, "number");
+        Require(identity.IsValid, "validity");
+        Require(identity.Low20 / 1000u == 151, "tool code for palette");
+
+        // Картограф в режиме LWD 4tx после перепрошивки остаётся той же веткой.
+        var cartograph = ToolIdentity.Decode(320349102);
+        Require(cartograph.FrameSize == ToolIdentity.ExtendedFrameSize, "cartograph frame size");
+        Require(cartograph.IsCartographLwd4TxMode, "cartograph mode");
+        Require(cartograph.TransmitterCount == 4, "cartograph transmitter count");
+    }),
+    ("Длина нагрузки ответа считается по размеру кадра", () =>
+    {
+        Require(
+            ToolProtocolConstants.GetToolPayloadLength(ToolIdentity.LegacyFrameSize) ==
+            ToolProtocolConstants.ToolPayloadLength,
+            "legacy payload length");
+        Require(
+            ToolProtocolConstants.GetToolPayloadLength(ToolIdentity.ExtendedFrameSize) ==
+            ToolProtocolConstants.ExtendedToolPayloadLength,
+            "extended payload length");
+        Require(ToolProtocolConstants.ExtendedToolPayloadLength == 322, "extended payload is 322 bytes");
+
+        // Метрология в обоих поколениях занимает 240 байт.
+        Require(ToolProtocolConstants.ToolMetrologySize == 240, "metrology size");
+    }),
+    ("Кадр новой прошивки разбирается по общей части", () =>
+    {
+        // Первые 240 байт кадра новой прошивки совпадают со старым, поэтому
+        // разбор со смещения служебных байт даёт те же значения, а хвост с
+        // амплитудными величинами этому приложению не нужен.
+        var frame = default(GpToolData);
+        frame.Signature = 320151501;
+        frame.Temperature = 42.5f;
+        frame.SetDeltaPhase(0, 2, 0.125f);
+        frame.SetDeltaPhase(1, 4, -0.25f);
+
+        var payload = new byte[ToolProtocolConstants.ExtendedToolPayloadLength];
+        MemoryMarshal.Write(payload.AsSpan(ToolProtocolConstants.ToolServicePrefixLength), in frame);
+        for (var i = ToolProtocolConstants.ToolServicePrefixLength + ToolProtocolConstants.ToolDataSize;
+             i < payload.Length;
+             i++)
+        {
+            payload[i] = 0xAB;
+        }
+
+        var parsed = MemoryMarshal.Read<GpToolData>(
+            payload.AsSpan(ToolProtocolConstants.ToolServicePrefixLength));
+        Require(parsed.Signature == frame.Signature, "signature survived");
+        Require(Math.Abs(parsed.Temperature - 42.5f) < 1e-6f, "temperature survived");
+        Require(Math.Abs(parsed.GetDeltaPhase(0, 2) - 0.125f) < 1e-6f, "delta phase F0T2 survived");
+        Require(Math.Abs(parsed.GetDeltaPhase(1, 4) + 0.25f) < 1e-6f, "delta phase F1T4 survived");
     })
 };
 

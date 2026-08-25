@@ -13,7 +13,6 @@ namespace LoopNext.Hardware;
 // Перенос get_ph_from_tool (function.cpp:318) и read_tool_signature (function.cpp:296).
 public static class ToolPort
 {
-    private const int FramePayloadLength = ToolProtocolConstants.ToolPayloadLength; // 242
     private const int SignaturePayloadLength = 6;
     private const int MaxRetries = 1;
     private const int PreFrameReceiveDelayMs = 50;
@@ -41,11 +40,26 @@ public static class ToolPort
 
         var metrologyIdentity = ToolIdentity.Decode(metrology.Signature);
         var acceptZeroFrameCrc = metrologyIdentity.IsCartographLwd4TxMode;
-        var dataIn = new byte[FramePayloadLength];
+
+        // Запрос кадра у обоих поколений прошивки одинаков, отличается только
+        // длина ответа: 240 байт кадра у старой прошивки и 320 у новой.
+        // Транспорт читает пакет фиксированной длины, поэтому размер кадра
+        // нужно знать заранее — его называет сигнатура метрологии.
+        //
+        // Вторая попытка идёт с длиной другого поколения: если метрология
+        // прибора не размечена, её сигнатура размер не назовёт, и ошибка длины
+        // выглядит как таймаут (ждём больше, чем прислали) либо как несовпадение
+        // CRC (прислали больше, чем ждём). Обе ситуации лечатся повтором с
+        // другой длиной, а не разбором мусора.
+        var frameSizes = BuildFrameSizeAttempts(metrologyIdentity.FrameSize);
+        var dataIn = new byte[ToolProtocolConstants.GetToolPayloadLength(ToolIdentity.ExtendedFrameSize)];
         var lastCode = ToolResponseCode.Timeout;
 
         for (var retry = 0; retry <= MaxRetries; retry++)
         {
+            var frameSize = frameSizes[Math.Min(retry, frameSizes.Length - 1)];
+            var framePayloadLength = ToolProtocolConstants.GetToolPayloadLength(frameSize);
+
             try
             {
                 com.DiscardInBuffer();
@@ -70,7 +84,7 @@ public static class ToolPort
                     com,
                     out _,
                     dataIn,
-                    FramePayloadLength,
+                    framePayloadLength,
                     acceptZeroCrc: acceptZeroFrameCrc);
             }
             catch (Exception ex) when (ex is InvalidOperationException or IOException)
@@ -84,7 +98,11 @@ public static class ToolPort
             if (result == ToolResponseCode.Ok)
             {
                 // GP_TOOL_DATA расположен со смещения 2 в принятой нагрузке.
-                var toolData = MemoryMarshal.Read<GpToolData>(dataIn.AsSpan(2));
+                // У кадра новой прошивки за первыми 240 байтами идут амплитудные
+                // величины; общая часть не сдвинулась, поэтому разбор одинаков,
+                // а хвост этому приложению не нужен — оно считает по фазе.
+                var toolData = MemoryMarshal.Read<GpToolData>(
+                    dataIn.AsSpan(ToolProtocolConstants.ToolServicePrefixLength));
                 if (acceptZeroFrameCrc && toolData.Signature != metrology.Signature)
                 {
                     AppLogger.Write(
@@ -99,15 +117,32 @@ public static class ToolPort
                 return new PhaseFrameResult(phases, rawPhases, ToolResponseCode.Ok, toolData.Temperature);
             }
 
-            if (result == ToolResponseCode.Timeout && retry < MaxRetries)
+            if (retry < MaxRetries)
             {
-                continue;
+                var nextFrameSize = frameSizes[Math.Min(retry + 1, frameSizes.Length - 1)];
+                if (result == ToolResponseCode.Timeout || nextFrameSize != frameSize)
+                {
+                    AppLogger.Write(
+                        $"TOOL_FRAME_RETRY: result={result}, frame_size={frameSize}, next_frame_size={nextFrameSize}, " +
+                        $"metrology_signature=0x{metrology.Signature:X8}");
+                    continue;
+                }
             }
 
             break;
         }
 
         return new PhaseFrameResult(phases, rawPhases, lastCode, 0f);
+    }
+
+    // Порядок попыток по размеру кадра: сначала размер, названный сигнатурой
+    // прибора, затем — размер другого поколения как запасной.
+    private static int[] BuildFrameSizeAttempts(int frameSizeFromSignature)
+    {
+        var alternate = frameSizeFromSignature == ToolIdentity.ExtendedFrameSize
+            ? ToolIdentity.LegacyFrameSize
+            : ToolIdentity.ExtendedFrameSize;
+        return [frameSizeFromSignature, alternate];
     }
 
     // Чтение сигнатуры прибора. Возвращает код результата и саму сигнатуру.
@@ -133,7 +168,8 @@ public static class ToolPort
         }
 
         AppLogger.Write(
-            $"RAW_TOOL_DATA: signature=0x{data.Signature:X8}, Tx={txCount}, condition={data.Condition}, frame={data.Frame}, temp={data.Temperature:F2}, " +
+            $"RAW_TOOL_DATA: signature=0x{data.Signature:X8}, firmware={(identity.IsExtendedFirmware ? "new" : "legacy")}, " +
+            $"frame_size={identity.FrameSize}, Tx={txCount}, condition={data.Condition}, frame={data.Frame}, temp={data.Temperature:F2}, " +
             $"rho=[{string.Join(", ", rhoValues)}], phase_mG=[{string.Join(", ", phaseValues)}], delta_mG=[{string.Join(", ", deltaValues)}]");
     }
 
