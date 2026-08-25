@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO.Ports;
 using System.Runtime.InteropServices;
 using LoopNext.Core.Logging;
@@ -20,6 +20,11 @@ public static class ToolConnection
 
     private const byte ReadSubCommand = 0x05;
 
+    // Смещение, по которому кончается часть метрологии, общая для обоих
+    // поколений прошивки. Дальше у старой служебная область, у новой —
+    // воздушные поправки затухания.
+    private const int MetrologyCommonSize = 84;
+
     public readonly record struct ToolConnectResult(
         bool Success,
         GpToolMetrology Metrology,
@@ -32,6 +37,12 @@ public static class ToolConnection
     public static ToolConnectResult Connect(SerialPort port)
     {
         AppLogger.Write("=== НАЧАЛО ВКЛЮЧЕНИЯ ПРИБОРА (единый COM-опрос) ===");
+
+        // Новый сеанс связи снова выдаёт однократную диагностику: дамп первого
+        // кадра и состав конвейера фаз. Иначе после смены прибора в журнале
+        // остались бы данные предыдущего.
+        ToolPort.ResetSessionDiagnostics();
+        ToolPhaseProcessor.ResetSessionDiagnostics();
         try
         {
             if (port.IsOpen)
@@ -53,7 +64,7 @@ public static class ToolConnection
             Thread.Sleep(PostOpenDelayMs);
 
             AppLogger.Write("Чтение метрологии (команда 0x13)...");
-            var metrology = ReadMetrologyOnConnect(port);
+            var metrology = ReadMetrologyOnConnect(port, out var metrologyPayload);
 
             port.DiscardOutBuffer();
             Thread.Sleep(PostCloseDelayMs);
@@ -64,7 +75,7 @@ public static class ToolConnection
                 $"Метрология прибора: Signature=0x{metrology.Signature:X8}, Serial={metrology.Serial}, " +
                 $"N_Tx={identity.TransmitterCount}, Channels={sondeParameters.Count}, DeviceType={identity.DeviceType}, Valid={identity.IsValid}, " +
                 $"Firmware={(identity.IsExtendedFirmware ? "new" : "legacy")}, FrameSize={identity.FrameSize}");
-            LogMetrologyDetails(in metrology);
+            LogMetrologyDetails(in metrology, metrologyPayload);
             AppLogger.Write("=== ПРИБОР УСПЕШНО ВКЛЮЧЕН ===");
             return new ToolConnectResult(true, metrology, sondeParameters);
         }
@@ -95,39 +106,92 @@ public static class ToolConnection
         Thread.Sleep(PostCloseDelayMs);
     }
 
-    private static void LogMetrologyDetails(in GpToolMetrology metrology)
+    // Полный разбор метрологии прибора: все поля структуры, а для новой
+    // прошивки — ещё и воздушные поправки затухания, которые она разместила в
+    // начале служебной области. Раскладка самой структуры здесь не меняется:
+    // поправки читаются из принятой нагрузки только ради журнала.
+    private static void LogMetrologyDetails(in GpToolMetrology metrology, ReadOnlySpan<byte> payload)
     {
         var identity = ToolIdentity.Decode(metrology.Signature);
         var txCount = (int)identity.TransmitterCount;
         var freqCount = GpToolMetrology.FrequencyCount;
+
         var l1Values = new List<string>(txCount);
         var l2Values = new List<string>(txCount);
-        var airZzValues = new List<string>(freqCount * txCount);
         for (var tx = 0; tx < txCount; tx++)
         {
-            l1Values.Add($"T{tx}={metrology.GetL1(tx) / 1000.0:F3}");
-            l2Values.Add($"T{tx}={metrology.GetL2(tx) / 1000.0:F3}");
+            l1Values.Add($"T{tx + 1}={metrology.GetL1(tx) / 1000.0:F3}");
+            l2Values.Add($"T{tx + 1}={metrology.GetL2(tx) / 1000.0:F3}");
         }
 
+        AppLogger.Write(
+            $"METROLOGY_GEOMETRY: L1(м)=[{string.Join(", ", l1Values)}] L2(м)=[{string.Join(", ", l2Values)}] " +
+            $"F1={metrology.GetFrequency(0)} кГц F2={metrology.GetFrequency(1)} кГц");
+        AppLogger.Write(
+            $"METROLOGY_IDENTITY: корпус={metrology.Serial} диаметр={metrology.SondeDiameterMm} мм " +
+            $"work_type={metrology.WorkType} Rx_Position={metrology.RxPosition}");
+
+        var airZz = new List<string>(freqCount * txCount);
+        var minAmp = new List<string>(freqCount * txCount);
         for (var freq = 0; freq < freqCount; freq++)
         {
             for (var tx = 0; tx < txCount; tx++)
             {
-                airZzValues.Add($"F{freq}T{tx}={metrology.GetAirZz(freq, tx) / 1000.0:F3}");
+                airZz.Add($"F{freq + 1}T{tx + 1}={metrology.GetAirZz(freq, tx)}");
+                minAmp.Add($"F{freq + 1}T{tx + 1}={metrology.GetAirZzAmplitude(freq, tx)}");
             }
         }
 
+        AppLogger.Write($"METROLOGY_AIR_PHASE: Air_zz=[{string.Join(", ", airZz)}]");
+        AppLogger.Write($"METROLOGY_MIN_AMPLITUDE: min_amp=[{string.Join(", ", minAmp)}]");
+
+        LogAirAttenuation(identity, payload, txCount, freqCount);
+
         AppLogger.Write(
-            $"METROLOGY_DETAIL: RxPosition={metrology.RxPosition}, F0={metrology.GetFrequency(0)}kHz, F1={metrology.GetFrequency(1)}kHz, " +
-            $"L1(m)=[{string.Join(", ", l1Values)}], L2(m)=[{string.Join(", ", l2Values)}], " +
-            $"Air_zz(m)=[{string.Join(", ", airZzValues)}]");
+            ToolSerialTransport.FormatHexDump("METROLOGY_DUMP", payload));
+    }
+
+    // Воздушные поправки затухания лежат по смещению 84 внутри метрологии и
+    // существуют только у новой прошивки: у старой там нерасшифрованная
+    // служебная область, и выводить её как калибровку нельзя.
+    private static void LogAirAttenuation(
+        ToolIdentity identity,
+        ReadOnlySpan<byte> payload,
+        int txCount,
+        int freqCount)
+    {
+        if (!identity.IsExtendedFirmware)
+        {
+            AppLogger.Write("METROLOGY_AIR_ATTENUATION: прибор старой прошивки, поправок затухания нет");
+            return;
+        }
+
+        var structure = payload[ToolProtocolConstants.ToolServicePrefixLength..];
+        if (structure.Length < ToolProtocolConstants.ToolMetrologySize)
+        {
+            return;
+        }
+
+        var values = new List<string>(freqCount * txCount);
+        for (var freq = 0; freq < freqCount; freq++)
+        {
+            for (var tx = 0; tx < txCount; tx++)
+            {
+                var offset = MetrologyCommonSize + ((freq * GpToolMetrology.MaxTransmitterCount + tx) * sizeof(float));
+                var value = BitConverter.ToSingle(structure.Slice(offset, sizeof(float)));
+                values.Add($"F{freq + 1}T{tx + 1}={value:F4}");
+            }
+        }
+
+        AppLogger.Write($"METROLOGY_AIR_ATTENUATION (дБ): air_att_dB=[{string.Join(", ", values)}]");
     }
 
     // Чтение метрологии при подключении: 3 попытки команды 0x13 с паузой перед приёмом.
-    private static GpToolMetrology ReadMetrologyOnConnect(SerialPort port)
+    private static GpToolMetrology ReadMetrologyOnConnect(SerialPort port, out byte[] receivedPayload)
     {
         Span<byte> payload = stackalloc byte[] { ReadSubCommand, 0x00 };
         var dataIn = new byte[MetrologyPayloadLength];
+        receivedPayload = dataIn;
         var result = ToolResponseCode.Timeout;
         var metrology = default(GpToolMetrology);
 

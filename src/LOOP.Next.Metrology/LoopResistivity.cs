@@ -1,4 +1,4 @@
-using LoopNext.Core.Logging;
+﻿using LoopNext.Core.Logging;
 using LoopNext.Core.Models;
 
 namespace LoopNext.Metrology;
@@ -133,10 +133,9 @@ public static class LoopResistivity
             roData.SetValue(i, RoDfi(param, phaseFromLoop.GetValue(i)));
         }
 
-        var phaseValues = string.Join(", ", Enumerable.Range(0, count).Select(i => $"[{i}]={(phaseFromLoop.GetValue(i) * PhysicalConstants.Milligrad):F1}"));
-        var roValues = string.Join(", ", Enumerable.Range(0, count).Select(i => $"[{i}]={roData.GetValue(i):F2}"));
-        AppLogger.Write($"RO_DFI: фазы (мГ)=[{phaseValues}], УЭС (Ohm*m)=[{roValues}]");
-
+        // Входные фазы и полученные УЭС пишет вызывающая сторона вместе с
+        // контекстом прохода (RING_FRAME), поэтому здесь строки нет: она
+        // повторяла те же векторы на каждом кадре.
         return roData;
     }
 

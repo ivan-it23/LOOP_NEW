@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO.Ports;
@@ -2625,8 +2625,6 @@ public partial class MainPageViewModel : ObservableObject
                     _toolIoLock.Release();
                 }
 
-                AppLogger.Write($"Получен кадр от прибора: Code={frame.Code}, RxPosition={_rxPosition}");
-
                 if (frame.Code == ToolResponseCode.Ok)
                 {
                     V10 air;
@@ -2637,13 +2635,10 @@ public partial class MainPageViewModel : ObservableObject
                         air = _localAir.Air;
                     }
 
-                    LogFramePhases("FRAME_PHASES raw_delta_normalized", frame.RawPhases, _channelCount);
-                    LogFramePhases("FRAME_PHASES oriented_before_air", frame.Phases, _channelCount);
-                    LogFramePhases("FRAME_PHASES local_air", air, _channelCount);
-                    LogFramePhases("FRAME_PHASES corrected_after_air", corrected, _channelCount);
-
+                    // Те же четыре вектора выводит LogRingFramePipeline, но с
+                    // контекстом прохода: номер точки, R, C, температура. Второй
+                    // набор строк без контекста только удваивал журнал.
                     var resistivity = LoopResistivity.RoDfi(_sondeParameters, corrected);
-                    AppLogger.Write("Вычислены УЭС по скорректированным фазам.");
                     LogRingFramePipeline(frame.RawPhases, frame.Phases, air, corrected, resistivity, _frameCounter + 1, frame.Temperature);
 
                     _frameCounter++;
@@ -2666,13 +2661,6 @@ public partial class MainPageViewModel : ObservableObject
                 break;
             }
         }
-    }
-
-    private void LogFramePhases(string header, V10 phases, int channelCount)
-    {
-        var count = Math.Min(channelCount, V10.ChannelCount);
-        var values = string.Join(", ", Enumerable.Range(0, count).Select(i => $"[{i}]={(phases.GetValue(i) * PhysicalConstants.Milligrad):F1}"));
-        AppLogger.Write($"{header} (мГ): {values}");
     }
 
     private void LogRingFramePipeline(

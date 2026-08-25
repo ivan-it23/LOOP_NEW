@@ -435,6 +435,60 @@ var checks = new List<(string Name, Action Run)>
         // Метрология в обоих поколениях занимает 240 байт.
         Require(ToolProtocolConstants.ToolMetrologySize == 240, "metrology size");
     }),
+    ("Амплитудные поля новой прошивки читаются по своим смещениям", () =>
+    {
+        Require(ExtendedFrameFields.RhoAttSmtOffset == 240, "rho_att_smt offset");
+        Require(ExtendedFrameFields.AttDbSmtOffset == 280, "att_dB_smt offset");
+        Require(ExtendedFrameFields.RequiredFrameSize == ToolIdentity.ExtendedFrameSize, "required frame size");
+
+        // Кадр заполняется так, чтобы каждое значение было опознаваемым:
+        // rho_att = 100*freq + tx, att_dB = -(freq + 1) * (tx + 1).
+        var frame = new byte[ToolIdentity.ExtendedFrameSize];
+        for (var freq = 0; freq < 2; freq++)
+        {
+            for (var tx = 0; tx < 5; tx++)
+            {
+                var index = (freq * 5 + tx) * sizeof(float);
+                BitConverter.TryWriteBytes(
+                    frame.AsSpan(ExtendedFrameFields.RhoAttSmtOffset + index),
+                    100f * freq + tx);
+                BitConverter.TryWriteBytes(
+                    frame.AsSpan(ExtendedFrameFields.AttDbSmtOffset + index),
+                    -(freq + 1f) * (tx + 1f));
+            }
+        }
+
+        for (var freq = 0; freq < 2; freq++)
+        {
+            for (var tx = 0; tx < 5; tx++)
+            {
+                Require(
+                    ExtendedFrameFields.TryReadRhoAttSmt(frame, freq, tx, out var rho)
+                    && Math.Abs(rho - (100f * freq + tx)) < 1e-6f,
+                    $"rho_att F{freq}T{tx}");
+                Require(
+                    ExtendedFrameFields.TryReadAttDbSmt(frame, freq, tx, out var att)
+                    && Math.Abs(att + (freq + 1f) * (tx + 1f)) < 1e-6f,
+                    $"att_dB F{freq}T{tx}");
+            }
+        }
+
+        // Кадр старой прошивки этих полей не содержит — чтение обязано отказать,
+        // а не вернуть содержимое чужой памяти.
+        var legacyFrame = new byte[ToolIdentity.LegacyFrameSize];
+        Require(!ExtendedFrameFields.TryReadRhoAttSmt(legacyFrame, 0, 0, out _), "legacy rho_att");
+        Require(!ExtendedFrameFields.TryReadAttDbSmt(legacyFrame, 0, 0, out _), "legacy att_dB");
+        Require(!ExtendedFrameFields.TryReadRhoAttSmt(frame, 0, 5, out _), "transmitter out of range");
+        Require(!ExtendedFrameFields.TryReadRhoAttSmt(frame, 2, 0, out _), "frequency out of range");
+    }),
+    ("Дамп обмена печатает адреса смещений", () =>
+    {
+        var bytes = new byte[] { 0xCE, 0x1F, 0x15, 0x13 };
+        var dump = ToolSerialTransport.FormatHexDump("RX", bytes);
+        Require(dump.Contains("RX (4 B):", StringComparison.Ordinal), "заголовок с размером");
+        Require(dump.Contains("0000: CE 1F 15 13", StringComparison.Ordinal), "строка со смещением");
+        Require(ToolSerialTransport.FormatHexDump("RX", []).Contains("(0 B)", StringComparison.Ordinal), "пустой буфер");
+    }),
     ("Кадр новой прошивки разбирается по общей части", () =>
     {
         // Первые 240 байт кадра новой прошивки совпадают со старым, поэтому

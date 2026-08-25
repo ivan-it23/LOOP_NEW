@@ -1,4 +1,4 @@
-using LoopNext.Core.Logging;
+﻿using LoopNext.Core.Logging;
 using LoopNext.Core.Models;
 
 namespace LoopNext.Metrology;
@@ -10,6 +10,15 @@ namespace LoopNext.Metrology;
 public static class ToolPhaseProcessor
 {
     public const int FrequencyCount = 2;
+
+    // Постоянная часть конвейера пишется один раз за сеанс связи — см. ниже.
+    private static bool _loggedPipelineConfiguration;
+
+    /// <summary>Сбрасывает однократную диагностику при новом сеансе связи.</summary>
+    public static void ResetSessionDiagnostics()
+    {
+        _loggedPipelineConfiguration = false;
+    }
 
     // RawPhases хранит нормализованный DELTA_PH до ориентации знака; Phases хранит рабочий ориентированный поток.
     public readonly record struct PhaseResult(V10 Phases, V10 RawPhases, PhaseOrientationDebug Debug);
@@ -46,22 +55,25 @@ public static class ToolPhaseProcessor
             }
         }
 
-        var rawValues = FormatPhaseVector(rawPhases, identity.TransmitterCount);
-        var orientedValues = FormatPhaseVector(phases, identity.TransmitterCount);
-        AppLogger.Write(
-            $"PHASE_PIPELINE: signature=0x{data.Signature:X8}, Tx={identity.TransmitterCount}, Rx={normalizedRx}, " +
-            $"source=DELTA_PH, raw_normalized_mG=[{rawValues}], oriented_mG=[{orientedValues}], phase_smt_used=false, air_zz_used=false");
-        for (uint freq = 0; freq < FrequencyCount; freq++)
+        // Одна запись на кадр вместо строки на канал: покадровая расшифровка
+        // повторяла те же векторы по одному значению и на длинном проходе
+        // заслоняла собой обмен с прибором. Знаки ориентации выводятся здесь же
+        // компактным вектором — они и были единственным, чего не было в сводке.
+        //
+        // Состав конвейера от кадра к кадру не меняется, поэтому пишется один
+        // раз за сессию.
+        if (!_loggedPipelineConfiguration)
         {
-            for (uint tx = 0; tx < identity.TransmitterCount; tx++)
-            {
-                var orientationSign = debug.OrientationSign[freq, tx];
-                AppLogger.Write(
-                    $"PHASE_PIPELINE_CH: F{freq} Tx{tx + 1}, raw_delta_mG={(debug.RawDelta[freq, tx] * PhysicalConstants.Milligrad):F1}, " +
-                    $"normalized_mG={(debug.RawNormalized[freq, tx] * PhysicalConstants.Milligrad):F1}, orientation_sign={orientationSign}, " +
-                    $"oriented_mG={(debug.FinalPhase[freq, tx] * PhysicalConstants.Milligrad):F1}");
-            }
+            _loggedPipelineConfiguration = true;
+            AppLogger.Write(
+                $"PHASE_PIPELINE: signature=0x{data.Signature:X8}, Tx={identity.TransmitterCount}, " +
+                $"Rx_Position={normalizedRx}, source=DELTA_PH, phase_smt_used=false, air_zz_used=false");
         }
+
+        AppLogger.Write(
+            $"PHASE_PIPELINE_VECTORS (mG): raw_normalized=[{FormatPhaseVector(rawPhases, identity.TransmitterCount)}] " +
+            $"oriented=[{FormatPhaseVector(phases, identity.TransmitterCount)}] " +
+            $"orientation_signs=[{FormatOrientationSigns(debug, identity.TransmitterCount)}]");
 
         return new PhaseResult(phases, rawPhases, debug);
     }
@@ -105,6 +117,20 @@ public static class ToolPhaseProcessor
         }
 
         return phases;
+    }
+
+    private static string FormatOrientationSigns(PhaseOrientationDebug debug, uint transmitterCount)
+    {
+        var parts = new List<string>((int)(FrequencyCount * transmitterCount));
+        for (uint freq = 0; freq < FrequencyCount; freq++)
+        {
+            for (uint tx = 0; tx < transmitterCount; tx++)
+            {
+                parts.Add($"F{freq}T{tx + 1}={debug.OrientationSign[freq, tx]:+0;-0}");
+            }
+        }
+
+        return string.Join(", ", parts);
     }
 
     private static string FormatPhaseVector(V10 phases, uint transmitterCount)
