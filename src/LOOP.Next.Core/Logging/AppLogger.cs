@@ -22,12 +22,12 @@ public static class AppLogger
         while (current != null)
         {
             var srcCandidate = Path.Combine(current.FullName, "src");
-            if (Directory.Exists(srcCandidate))
+            if (Directory.Exists(srcCandidate) && IsWritable(srcCandidate))
             {
                 return srcCandidate;
             }
 
-            if (current.Name.Equals("src", StringComparison.OrdinalIgnoreCase))
+            if (current.Name.Equals("src", StringComparison.OrdinalIgnoreCase) && IsWritable(current.FullName))
             {
                 return current.FullName;
             }
@@ -35,7 +35,47 @@ public static class AppLogger
             current = current.Parent;
         }
 
-        return appDirectory;
+        if (IsWritable(appDirectory))
+        {
+            return appDirectory;
+        }
+
+        // Каталог установки может быть недоступен для записи: пользователь вправе
+        // выбрать при установке путь вида Program Files, а обычной учётной записи
+        // туда писать нельзя. Ошибки записи в журнал подавляются, поэтому без
+        // этого запасного пути диагностика молча пропадала бы именно на тех
+        // машинах, где она нужнее всего.
+        var fallback = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "LOOP_NEXT");
+
+        try
+        {
+            Directory.CreateDirectory(fallback);
+            return fallback;
+        }
+        catch
+        {
+            return appDirectory;
+        }
+    }
+
+    private static bool IsWritable(string directory)
+    {
+        try
+        {
+            var probePath = Path.Combine(directory, $".loop_write_probe_{Environment.ProcessId}");
+            using (var probe = new FileStream(probePath, FileMode.Create, FileAccess.Write, FileShare.None, 1, FileOptions.DeleteOnClose))
+            {
+                probe.WriteByte(0);
+            }
+
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private static readonly object Lock = new();

@@ -54,6 +54,12 @@ public sealed partial class MainWindow : Window
     }
 
     /// <summary>
+    /// Загруженная страница приложения. Нужна для показа диалогов из App, где
+    /// доступно только окно.
+    /// </summary>
+    public MainPage? Page => _mainPage;
+
+    /// <summary>
     /// Выбранный пользователем относительный масштаб содержимого.
     /// </summary>
     public int WindowScalePercent => _windowScalePercent;

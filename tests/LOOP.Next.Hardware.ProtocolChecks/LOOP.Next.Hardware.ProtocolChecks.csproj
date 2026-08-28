@@ -10,6 +10,13 @@
     <ProjectReference Include="..\..\src\LOOP.Next.Reporting\LOOP.Next.Reporting.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <!--
+      Проверки подключают отдельные файлы приложения по ссылке, а не весь проект:
+      LOOP.Next.App собирается под WinUI и в консольном наборе проверок не нужен.
+      Оба файла намеренно не зависят от WinUI и содержат только правила без
+      ввода-вывода, поэтому компилируются в обычном net10.0.
+    -->
     <Compile Include="..\..\src\LOOP.Next.App\Services\WindowScaleService.cs" Link="AppLogic\WindowScaleService.cs" />
+    <Compile Include="..\..\src\LOOP.Next.App\Services\UpdateManifest.cs" Link="AppLogic\UpdateManifest.cs" />
   </ItemGroup>
 </Project>

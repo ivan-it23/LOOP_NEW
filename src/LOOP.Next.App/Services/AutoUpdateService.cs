@@ -1,266 +1,349 @@
 using System.Diagnostics;
 using System.Net.Http;
-using System.Reflection;
-using System.Runtime.InteropServices;
-using System.Text;
+using System.Security.Cryptography;
 using LoopNext.Core.Logging;
 
 namespace LOOP_Next_App.Services;
 
-internal static class AutoUpdateService
+/// <summary>
+/// Проверка версии на сайте, загрузка установщика и запуск обновления.
+///
+/// Ввод-вывод отделён от разбора манифеста: правила формата, сравнение версий и
+/// аргументы установщика лежат в <see cref="UpdateManifest" /> и проверяются
+/// автономно.
+/// </summary>
+public static class AutoUpdateService
 {
-    private const int MessageBoxIconInformation = 0x00000040;
-    private const int MessageBoxIconQuestion = 0x00000020;
-    private const int MessageBoxIconWarning = 0x00000030;
-    private const int MessageBoxIconError = 0x00000010;
-    private const int MessageBoxOk = 0x00000000;
-    private const int MessageBoxYesNo = 0x00000004;
-    private const int DialogYes = 6;
+    /// <summary>
+    /// Короткий тайм-аут на чтение `koltsa-version.txt`: файл занимает десятки
+    /// байт, и при недоступном сайте проверка не должна задерживать запуск.
+    /// </summary>
+    private static readonly TimeSpan VersionCheckTimeout = TimeSpan.FromSeconds(10);
 
-    private static readonly HttpClient Http = new()
-    {
-        Timeout = TimeSpan.FromSeconds(8)
-    };
+    /// <summary>
+    /// Клиент проверки версии и клиент загрузки разделены намеренно.
+    ///
+    /// `HttpClient.Timeout` ограничивает всю операцию целиком, включая чтение
+    /// тела ответа. Прежний общий клиент с тайм-аутом 8 секунд не мог скачать
+    /// установщик размером около 60 МБ ни на одном канале медленнее 8 МБ/с:
+    /// загрузка обрывалась по тайм-ауту, и обновление молча не происходило.
+    /// У клиента загрузки тайм-аут снят, а прерывание выполняется токеном.
+    /// </summary>
+    private static readonly HttpClient VersionHttp = new() { Timeout = VersionCheckTimeout };
 
-    public static async Task RunUpdateCheckAsync(nint ownerWindow, bool silent)
+    private static readonly HttpClient DownloadHttp = new() { Timeout = Timeout.InfiniteTimeSpan };
+
+    public static string SetupLogPath => Path.Combine(Path.GetTempPath(), "koltsa_setup.log");
+
+    /// <summary>
+    /// Читает манифест обновления. Сетевые и форматные ошибки возвращаются как
+    /// результат, а не исключение: проверка обновлений не должна ломать запуск.
+    /// </summary>
+    public static async Task<UpdateCheckResult> CheckAsync(CancellationToken cancellationToken = default)
     {
         try
         {
-            var info = await CheckForUpdateAsync().ConfigureAwait(false);
-
-            if (!string.IsNullOrWhiteSpace(info.ErrorMessage))
-            {
-                if (!silent)
-                {
-                    ShowMessage(ownerWindow, info.ErrorMessage, "Проверка обновлений", MessageBoxIconWarning | MessageBoxOk);
-                }
-
-                return;
-            }
-
-            if (!info.Available)
-            {
-                if (!silent)
-                {
-                    ShowMessage(
-                        ownerWindow,
-                        $"Установлена последняя версия ({ApplicationInfo.CurrentVersionText}).",
-                        "Проверка обновлений",
-                        MessageBoxIconInformation | MessageBoxOk);
-                }
-
-                return;
-            }
-
-            var prompt =
-                $"Доступна новая версия: {info.RemoteVersion}\n" +
-                $"Текущая версия: {ApplicationInfo.CurrentVersionText}\n\n" +
-                "Скачать и установить обновление?";
-
-            if (ShowMessage(ownerWindow, prompt, "Обновление доступно", MessageBoxIconQuestion | MessageBoxYesNo) != DialogYes)
-            {
-                return;
-            }
-
-            var installerPath = await DownloadUpdateAsync(info, ownerWindow).ConfigureAwait(false);
-            if (string.IsNullOrWhiteSpace(installerPath))
-            {
-                return;
-            }
-
-            if (ApplyUpdate(installerPath))
-            {
-                ShowMessage(
-                    ownerWindow,
-                    "Обновление скачано. Приложение будет закрыто, установщик обновит файлы и запустит новую версию.",
-                    "Обновление",
-                    MessageBoxIconInformation | MessageBoxOk);
-
-                App.DispatcherQueue.TryEnqueue(() => App.Window.Close());
-            }
-            else
-            {
-                ShowMessage(ownerWindow, "Не удалось запустить процесс обновления.", "Ошибка обновления", MessageBoxIconError | MessageBoxOk);
-            }
-        }
-        catch (Exception ex)
-        {
-            AppLogger.Write(ex, "Ошибка автообновления");
-            if (!silent)
-            {
-                ShowMessage(ownerWindow, ex.Message, "Ошибка обновления", MessageBoxIconError | MessageBoxOk);
-            }
-        }
-    }
-
-    private static async Task<UpdateInfo> CheckForUpdateAsync()
-    {
-        using var request = new HttpRequestMessage(HttpMethod.Get, ApplicationInfo.VersionFileUrl);
-        request.Headers.UserAgent.ParseAdd(ApplicationInfo.UserAgent);
-
-        string body;
-        try
-        {
-            body = await SendStringRequestAsync(request).ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            return UpdateInfo.Failed($"Не удалось подключиться к серверу обновлений: {ex.Message}");
-        }
-
-        var lines = body
-            .Split(new[] { "\r\n", "\n" }, StringSplitOptions.None)
-            .Select(static line => line.Trim())
-            .Where(static line => line.Length > 0)
-            .ToArray();
-
-        if (lines.Length < 2)
-        {
-            return UpdateInfo.Failed("Некорректный формат version.txt. Ожидаются две строки: версия и имя установщика.");
-        }
-
-        if (!Version.TryParse(lines[0], out var remoteVersion))
-        {
-            return UpdateInfo.Failed("Некорректная версия в version.txt.");
-        }
-
-        var installerFileName = lines[1];
-        if (!installerFileName.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
-        {
-            return UpdateInfo.Failed("Во второй строке version.txt должен быть указан exe-файл установщика.");
-        }
-
-        var downloadUrl = new Uri(new Uri(ApplicationInfo.UpdateBaseUrl), Uri.EscapeDataString(installerFileName));
-        return new UpdateInfo(remoteVersion, installerFileName, downloadUrl, remoteVersion > ApplicationInfo.CurrentVersion, null);
-    }
-
-    private static async Task<string> SendStringRequestAsync(HttpRequestMessage request)
-    {
-        using var response = await Http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
-        response.EnsureSuccessStatusCode();
-        return await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-    }
-
-    private static async Task<string?> DownloadUpdateAsync(UpdateInfo info, nint ownerWindow)
-    {
-        var localPath = Path.Combine(Path.GetTempPath(), "koltsa_update_" + info.InstallerFileName);
-
-        try
-        {
-            using var request = new HttpRequestMessage(HttpMethod.Get, info.DownloadUrl);
+            using var request = new HttpRequestMessage(HttpMethod.Get, ApplicationInfo.VersionFileUrl);
             request.Headers.UserAgent.ParseAdd(ApplicationInfo.UserAgent);
-            using var response = await Http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
+
+            using var response = await VersionHttp
+                .SendAsync(request, HttpCompletionOption.ResponseContentRead, cancellationToken)
+                .ConfigureAwait(false);
             response.EnsureSuccessStatusCode();
 
-            await using (var remote = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
-            await using (var local = File.Create(localPath))
+            var body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+
+            if (!UpdateManifest.TryParse(body, out var manifest, out var parseError) || manifest is null)
             {
-                await remote.CopyToAsync(local).ConfigureAwait(false);
+                AppLogger.WriteDiagnostic("APP_UPDATE", "MANIFEST_INVALID", $"error={parseError}");
+                return UpdateCheckResult.Failed(parseError ?? "Некорректный файл версии.");
             }
 
-            if (!IsValidPeFile(localPath))
+            var isNewer = UpdateManifest.IsNewerVersion(manifest.Version, ApplicationInfo.CurrentVersion);
+
+            AppLogger.WriteDiagnostic(
+                "APP_UPDATE",
+                "MANIFEST_READ",
+                $"remote_version={manifest.VersionText}|current_version={ApplicationInfo.CurrentVersionText}|installer={manifest.InstallerFileName}|has_sha256={manifest.Sha256 is not null}|update_available={isNewer}");
+
+            return UpdateCheckResult.Succeeded(manifest, isNewer);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            AppLogger.WriteDiagnostic("APP_UPDATE", "MANIFEST_TIMEOUT");
+            return UpdateCheckResult.Failed("Сервер обновлений не ответил вовремя.");
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Write(ex, "Ошибка проверки обновлений");
+            return UpdateCheckResult.Failed($"Не удалось подключиться к серверу обновлений: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Скачивает установщик во временный каталог и проверяет его до запуска.
+    /// </summary>
+    public static async Task<UpdateDownloadResult> DownloadAsync(
+        UpdateManifest manifest,
+        IProgress<double>? progress = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(manifest);
+
+        var localPath = Path.Combine(Path.GetTempPath(), UpdateManifest.GetDownloadFileName(manifest));
+
+        try
+        {
+            var downloadUri = manifest.BuildDownloadUri(ApplicationInfo.UpdateBaseUrl);
+            AppLogger.WriteDiagnostic("APP_UPDATE", "DOWNLOAD_BEGIN", $"url={downloadUri}|target={localPath}");
+
+            using var request = new HttpRequestMessage(HttpMethod.Get, downloadUri);
+            request.Headers.UserAgent.ParseAdd(ApplicationInfo.UserAgent);
+
+            using var response = await DownloadHttp
+                .SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
+                .ConfigureAwait(false);
+            response.EnsureSuccessStatusCode();
+
+            var expectedLength = response.Content.Headers.ContentLength;
+
+            await using (var remote = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false))
+            await using (var local = new FileStream(localPath, FileMode.Create, FileAccess.Write, FileShare.None))
             {
-                File.Delete(localPath);
-                ShowMessage(ownerWindow, "Скачанный файл повреждён или не является установщиком.", "Ошибка обновления", MessageBoxIconError | MessageBoxOk);
-                return null;
+                var buffer = new byte[81920];
+                long copied = 0;
+                int read;
+                while ((read = await remote.ReadAsync(buffer, cancellationToken).ConfigureAwait(false)) > 0)
+                {
+                    await local.WriteAsync(buffer.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
+                    copied += read;
+                    if (expectedLength is > 0)
+                    {
+                        progress?.Report(Math.Clamp((double)copied / expectedLength.Value, 0.0, 1.0));
+                    }
+                }
+            }
+
+            var actualLength = new FileInfo(localPath).Length;
+            if (expectedLength is > 0 && actualLength != expectedLength.Value)
+            {
+                return FailDownload(localPath, $"Файл скачан не полностью: {actualLength} из {expectedLength.Value} байт.");
+            }
+
+            if (!IsWindowsExecutable(localPath))
+            {
+                return FailDownload(localPath, "Скачанный файл не является установщиком Windows.");
+            }
+
+            if (manifest.Sha256 is { } expectedHash)
+            {
+                var actualHash = ComputeSha256(localPath);
+                if (!string.Equals(actualHash, expectedHash, StringComparison.OrdinalIgnoreCase))
+                {
+                    AppLogger.WriteDiagnostic(
+                        "APP_UPDATE",
+                        "DOWNLOAD_HASH_MISMATCH",
+                        $"expected={expectedHash}|actual={actualHash}");
+                    return FailDownload(
+                        localPath,
+                        "Контрольная сумма скачанного установщика не совпала с указанной на сервере. Установка отменена.");
+                }
+
+                AppLogger.WriteDiagnostic("APP_UPDATE", "DOWNLOAD_HASH_VERIFIED", $"sha256={actualHash}");
             }
 
             RemoveMarkOfTheWeb(localPath);
-            return localPath;
+
+            AppLogger.WriteDiagnostic("APP_UPDATE", "DOWNLOAD_COMPLETED", $"path={localPath}|bytes={actualLength}");
+            return UpdateDownloadResult.Succeeded(localPath);
+        }
+        catch (OperationCanceledException)
+        {
+            TryDelete(localPath);
+            throw;
         }
         catch (Exception ex)
         {
             AppLogger.Write(ex, "Ошибка скачивания обновления");
-            ShowMessage(ownerWindow, $"Не удалось скачать обновление: {ex.Message}", "Ошибка обновления", MessageBoxIconError | MessageBoxOk);
-            return null;
+            return FailDownload(localPath, $"Не удалось скачать обновление: {ex.Message}");
         }
     }
 
-    private static bool ApplyUpdate(string installerPath)
+    /// <summary>
+    /// Запускает установщик и сообщает, началась ли установка.
+    ///
+    /// Промежуточный `.cmd`-сценарий убран намеренно. Он ждал завершения
+    /// процесса и затем перезапускал приложение строкой
+    /// `if exist "…\Кольца.exe" start "" "…\Кольца.exe"`. Имя исполняемого файла
+    /// содержит кириллицу, сценарий сохранялся в UTF-8 с BOM, а `cmd.exe`
+    /// разбирает `.cmd` в кодовой странице консоли: путь превращался в мусор,
+    /// `if exist` не срабатывал, и приложение после обновления не открывалось.
+    /// Теперь возврат приложения выполняет сам установщик записью `[Run]` по
+    /// флагу `/RESTARTAPP=1`, а закрытие работающих копий берёт на себя
+    /// `/CLOSEAPPLICATIONS`.
+    /// </summary>
+    public static bool StartInstaller(string installerPath)
     {
-        var currentExe = Environment.ProcessPath ?? Assembly.GetExecutingAssembly().Location;
-        var currentPid = Environment.ProcessId;
-        var scriptPath = Path.Combine(Path.GetTempPath(), "koltsa_updater.cmd");
-        var logPath = Path.Combine(Path.GetTempPath(), "koltsa_updater.log");
-
-        var installerArguments =
-            "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /CURRENTUSER /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS";
-
-        var script = new StringBuilder();
-        script.AppendLine("@echo off");
-        script.AppendLine("chcp 65001 >NUL");
-        script.AppendLine("setlocal EnableDelayedExpansion");
-        script.AppendLine($"set \"LOG={logPath}\"");
-        script.AppendLine($"(echo [%date% %time%] Koltsa updater started)> \"%LOG%\" 2>&1");
-        script.AppendLine($"(echo Installer: {installerPath})>> \"%LOG%\" 2>&1");
-        script.AppendLine($"(echo Current  : {currentExe})>> \"%LOG%\" 2>&1");
-        script.AppendLine($"(echo PID      : {currentPid})>> \"%LOG%\" 2>&1");
-        script.AppendLine(":wait_loop");
-        script.AppendLine($"tasklist /FI \"PID eq {currentPid}\" 2>NUL | find \"{currentPid}\" >NUL");
-        script.AppendLine("if not errorlevel 1 (");
-        script.AppendLine("    timeout /t 1 /nobreak >NUL");
-        script.AppendLine("    goto wait_loop");
-        script.AppendLine(")");
-        script.AppendLine("timeout /t 2 /nobreak >NUL");
-        script.AppendLine($"\"{installerPath}\" {installerArguments} >> \"%LOG%\" 2>&1");
-        script.AppendLine("(echo [%date% %time%] installer finished errorlevel=!errorlevel!)>> \"%LOG%\" 2>&1");
-        script.AppendLine($"if exist \"{currentExe}\" start \"\" \"{currentExe}\"");
-        script.AppendLine($"del \"{installerPath}\" >NUL 2>&1");
-        script.AppendLine("(goto) 2>nul & del \"%~f0\"");
-
-        File.WriteAllText(scriptPath, script.ToString(), new UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
-
-        var startInfo = new ProcessStartInfo
+        try
         {
-            FileName = "cmd.exe",
-            Arguments = $"/C \"{scriptPath}\"",
-            CreateNoWindow = true,
-            UseShellExecute = false,
-            WindowStyle = ProcessWindowStyle.Hidden
-        };
+            var arguments = UpdateManifest.BuildSilentInstallArguments(SetupLogPath);
 
-        Process.Start(startInfo);
-        return true;
-    }
+            AppLogger.WriteDiagnostic(
+                "APP_UPDATE",
+                "INSTALLER_START",
+                $"path={installerPath}|arguments={arguments}|setup_log={SetupLogPath}");
 
-    private static bool IsValidPeFile(string path)
-    {
-        using var stream = File.OpenRead(path);
-        if (stream.Length < 1024)
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = installerPath,
+                Arguments = arguments,
+                // UseShellExecute=true запускает установщик как обычный двойной
+                // клик пользователя: корректно отрабатывают ассоциации, запрос
+                // повышения прав и рабочий каталог.
+                UseShellExecute = true,
+                WorkingDirectory = Path.GetTempPath()
+            };
+
+            var process = Process.Start(startInfo);
+            if (process is null)
+            {
+                AppLogger.WriteDiagnostic("APP_UPDATE", "INSTALLER_START_FAILED", $"reason=process_is_null");
+                return false;
+            }
+
+            return true;
+        }
+        catch (Exception ex)
         {
+            AppLogger.Write(ex, "Не удалось запустить установщик обновления");
             return false;
         }
-
-        Span<byte> header = stackalloc byte[2];
-        return stream.Read(header) == 2 && header[0] == (byte)'M' && header[1] == (byte)'Z';
     }
 
+    /// <summary>
+    /// Удаляет установщики, оставшиеся во временном каталоге от прерванных
+    /// обновлений. Раньше уборкой занимался `.cmd`-сценарий, который до неё мог
+    /// и не дойти, а файл занимает около 60 МБ.
+    /// </summary>
+    public static void CleanupStaleDownloads()
+    {
+        try
+        {
+            var temp = Path.GetTempPath();
+            foreach (var file in Directory.EnumerateFiles(temp, UpdateManifest.DownloadFilePrefix + "*.exe"))
+            {
+                try
+                {
+                    // Файл текущего обновления мог быть запущен минуту назад,
+                    // поэтому свежие загрузки не трогаем.
+                    if (DateTime.UtcNow - File.GetLastWriteTimeUtc(file) > TimeSpan.FromHours(1))
+                    {
+                        File.Delete(file);
+                        AppLogger.WriteDiagnostic("APP_UPDATE", "STALE_DOWNLOAD_REMOVED", $"path={file}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    AppLogger.Write(ex, "Не удалось удалить старый файл обновления");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Write(ex, "Не удалось просмотреть временный каталог обновлений");
+        }
+    }
+
+    private static UpdateDownloadResult FailDownload(string path, string message)
+    {
+        TryDelete(path);
+        return UpdateDownloadResult.Failed(message);
+    }
+
+    private static void TryDelete(string path)
+    {
+        try
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Write(ex, "Не удалось удалить временный файл обновления");
+        }
+    }
+
+    private static string ComputeSha256(string path)
+    {
+        using var stream = File.OpenRead(path);
+        return Convert.ToHexString(SHA256.HashData(stream));
+    }
+
+    private static bool IsWindowsExecutable(string path)
+    {
+        try
+        {
+            using var stream = File.OpenRead(path);
+            if (stream.Length < 1024)
+            {
+                return false;
+            }
+
+            Span<byte> header = stackalloc byte[2];
+            return stream.Read(header) == 2 && header[0] == (byte)'M' && header[1] == (byte)'Z';
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Write(ex, "Не удалось проверить формат скачанного установщика");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Снимает метку загрузки из интернета, если она была проставлена. Файл
+    /// скачивается напрямую и метки обычно не получает, но при работе через
+    /// прокси или антивирус она появляется, а вместе с ней и запрос SmartScreen
+    /// посреди тихой установки.
+    /// </summary>
     private static void RemoveMarkOfTheWeb(string path)
     {
         try
         {
-            File.Delete(path + ":Zone.Identifier");
+            var zoneStream = path + ":Zone.Identifier";
+            if (File.Exists(zoneStream))
+            {
+                File.Delete(zoneStream);
+                AppLogger.WriteDiagnostic("APP_UPDATE", "MARK_OF_THE_WEB_REMOVED", $"path={path}");
+            }
         }
         catch (Exception ex)
         {
-            AppLogger.Write(ex, "Не удалось удалить Zone.Identifier у обновления");
+            AppLogger.Write(ex, "Не удалось снять метку загрузки у установщика");
         }
     }
+}
 
-    private static int ShowMessage(nint ownerWindow, string text, string caption, int type) =>
-        MessageBoxW(ownerWindow, text, caption, type);
+public sealed record UpdateCheckResult(
+    UpdateManifest? Manifest,
+    bool UpdateAvailable,
+    string? ErrorMessage)
+{
+    public bool HasError => ErrorMessage is not null;
 
-    [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-    private static extern int MessageBoxW(nint hWnd, string text, string caption, int type);
+    public static UpdateCheckResult Succeeded(UpdateManifest manifest, bool updateAvailable) =>
+        new(manifest, updateAvailable, null);
 
-    private sealed record UpdateInfo(
-        Version RemoteVersion,
-        string InstallerFileName,
-        Uri DownloadUrl,
-        bool Available,
-        string? ErrorMessage)
-    {
-        public static UpdateInfo Failed(string error) =>
-            new(new Version(0, 0, 0), string.Empty, new Uri(ApplicationInfo.UpdateBaseUrl), false, error);
-    }
+    public static UpdateCheckResult Failed(string errorMessage) =>
+        new(null, false, errorMessage);
+}
+
+public sealed record UpdateDownloadResult(string? InstallerPath, string? ErrorMessage)
+{
+    public bool Success => InstallerPath is not null;
+
+    public static UpdateDownloadResult Succeeded(string installerPath) => new(installerPath, null);
+
+    public static UpdateDownloadResult Failed(string errorMessage) => new(null, errorMessage);
 }

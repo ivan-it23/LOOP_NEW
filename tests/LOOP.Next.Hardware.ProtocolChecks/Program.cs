@@ -716,6 +716,76 @@ var checks = new List<(string Name, Action Run)>
                 $"user percent {percent}");
         }
     }),
+    ("Манифест обновления из двух строк разбирается как прежде", () =>
+    {
+        Require(UpdateManifest.TryParse("1.1.5\r\nKoltsa-Setup-1.1.5.exe\r\n", out var manifest, out var error));
+        Require(error is null && manifest is not null);
+        Require(manifest!.Version == new Version(1, 1, 5), "version");
+        Require(manifest.InstallerFileName == "Koltsa-Setup-1.1.5.exe", "installer");
+        Require(manifest.Sha256 is null, "no hash in the two-line form");
+        Require(manifest.VersionText == "1.1.5", "version text");
+    }),
+    ("Манифест принимает необязательную третью строку с SHA-256", () =>
+    {
+        var hash = new string('a', 64);
+        Require(UpdateManifest.TryParse($"1.2.0\nKoltsa-Setup-1.2.0.exe\n{hash}\n", out var manifest, out var error));
+        Require(error is null && manifest is not null);
+        Require(manifest!.Sha256 == hash.ToUpperInvariant(), "hash is normalised to upper case");
+
+        Require(!UpdateManifest.TryParse("1.2.0\nKoltsa-Setup-1.2.0.exe\nZZZZ", out _, out var badHashError));
+        Require(!string.IsNullOrWhiteSpace(badHashError), "short or non-hex hash is rejected");
+    }),
+    ("Манифест отвергает имя установщика с путём", () =>
+    {
+        // Имя приходит по незащищённому HTTP и подставляется и в адрес загрузки,
+        // и в путь сохранения, поэтому выход за каталог должен быть невозможен.
+        Require(!UpdateManifest.IsSafeInstallerFileName("..\\..\\evil.exe"), "parent traversal");
+        Require(!UpdateManifest.IsSafeInstallerFileName("sub/dir/setup.exe"), "forward slash");
+        Require(!UpdateManifest.IsSafeInstallerFileName("C:\\Windows\\evil.exe"), "absolute path");
+        Require(!UpdateManifest.IsSafeInstallerFileName("setup.bat"), "not an exe");
+        Require(!UpdateManifest.IsSafeInstallerFileName(""), "empty");
+        Require(UpdateManifest.IsSafeInstallerFileName("Koltsa-Setup-1.1.5.exe"), "plain file name");
+
+        Require(!UpdateManifest.TryParse("1.1.5\n..\\evil.exe", out _, out var error));
+        Require(!string.IsNullOrWhiteSpace(error));
+    }),
+    ("Версия сборки и версия сервера сравниваются по трём разрядам", () =>
+    {
+        // Сборка объявляет 1.1.4.0, сервер пишет 1.1.4: без нормализации
+        // Version("1.1.4") имеет Revision -1 и считается младше собственной сборки.
+        Require(!UpdateManifest.IsNewerVersion(new Version("1.1.4"), new Version("1.1.4.0")), "same release");
+        Require(UpdateManifest.IsNewerVersion(new Version("1.1.5"), new Version("1.1.4.0")), "newer build");
+        Require(UpdateManifest.IsNewerVersion(new Version("1.2.0"), new Version("1.1.9.0")), "newer minor");
+        Require(!UpdateManifest.IsNewerVersion(new Version("1.1.3"), new Version("1.1.4.0")), "older build");
+        Require(UpdateManifest.FormatVersion(new Version("1.1.4.0")) == "1.1.4", "three-part text");
+    }),
+    ("Аргументы тихой установки не содержат отвергаемых Inno ключей", () =>
+    {
+        var arguments = UpdateManifest.BuildSilentInstallArguments(@"C:\Temp\koltsa_setup.log");
+
+        Require(arguments.Contains("/VERYSILENT", StringComparison.Ordinal), "silent");
+        Require(arguments.Contains("/SUPPRESSMSGBOXES", StringComparison.Ordinal), "no message boxes");
+        Require(arguments.Contains("/CLOSEAPPLICATIONS", StringComparison.Ordinal), "close running copies");
+        Require(arguments.Contains("/RESTARTAPP=1", StringComparison.Ordinal), "relaunch flag for the [Run] entry");
+        Require(arguments.Contains(@"/LOG=""C:\Temp\koltsa_setup.log""", StringComparison.Ordinal), "setup log");
+
+        // /CURRENTUSER Inno принимает только при PrivilegesRequiredOverridesAllowed=commandline,
+        // иначе прекращает установку, а с /SUPPRESSMSGBOXES делает это молча.
+        Require(!arguments.Contains("/CURRENTUSER", StringComparison.Ordinal), "no privilege override switch");
+        // Перезапуск выполняет запись [Run]; второй механизм открыл бы две копии.
+        Require(!arguments.Contains("/RESTARTAPPLICATIONS", StringComparison.Ordinal), "no restart manager relaunch");
+    }),
+    ("Имя временного файла обновления остаётся в пределах каталога", () =>
+    {
+        Require(UpdateManifest.TryParse("2.0.0\nKoltsa-Setup-2.0.0.exe", out var manifest, out _));
+        var fileName = UpdateManifest.GetDownloadFileName(manifest!);
+
+        Require(fileName == "koltsa_update_Koltsa-Setup-2.0.0.exe", "prefixed name");
+        Require(Path.GetFileName(fileName) == fileName, "no directory part");
+
+        var uri = manifest!.BuildDownloadUri("http://example.test/files/");
+        Require(uri.ToString() == "http://example.test/files/Koltsa-Setup-2.0.0.exe", "download url");
+    }),
     ("Подсказки масштабируются размером шрифта вслед за содержимым", () =>
     {
         Require(

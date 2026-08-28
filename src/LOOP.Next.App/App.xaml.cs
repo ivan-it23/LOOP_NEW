@@ -70,6 +70,47 @@ public partial class App : Application
             "APP_SESSION",
             "WINDOW_ACTIVATED",
             $"hwnd={WindowHandle}|title=Кольца");
-        _ = AutoUpdateService.RunUpdateCheckAsync(WindowHandle, silent: true);
+        _ = RunStartupUpdateCheckAsync();
+    }
+
+    /// <summary>
+    /// Тихая проверка обновлений при запуске.
+    ///
+    /// Окно показывается только когда обновление действительно доступно: сбой
+    /// сети или недоступный сайт не должны встречать пользователя сообщением об
+    /// ошибке при каждом запуске. Ручная проверка через вкладку
+    /// «Проверить обновления» ошибки показывает — там их запросил пользователь.
+    /// </summary>
+    private static async Task RunStartupUpdateCheckAsync()
+    {
+        try
+        {
+            AutoUpdateService.CleanupStaleDownloads();
+
+            var result = await AutoUpdateService.CheckAsync().ConfigureAwait(false);
+            if (!result.UpdateAvailable || result.Manifest is null)
+            {
+                return;
+            }
+
+            DispatcherQueue.TryEnqueue(async void () =>
+            {
+                try
+                {
+                    if (Window is MainWindow { Page: { } page })
+                    {
+                        await page.ShowUpdateDialogAsync(result);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    AppLogger.Write(ex, "Ошибка показа окна обновления при запуске");
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Write(ex, "Ошибка проверки обновлений при запуске");
+        }
     }
 }

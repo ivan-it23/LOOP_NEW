@@ -22,6 +22,10 @@ public sealed partial class MainPage : Page
     // Защищает диалог масштаба от повторного открытия быстрым двойным нажатием.
     private bool _isShowingWindowScaleDialog;
 
+    // То же для окна проверки обновлений: вкладку-действие легко нажать дважды,
+    // а автоматическая проверка при запуске может совпасть с ручной.
+    private bool _isShowingUpdateDialog;
+
     public MainPage()
     {
         InitializeComponent();
@@ -261,9 +265,261 @@ public sealed partial class MainPage : Page
         return dialog;
     }
 
+    /// <summary>
+    /// Индекс вкладки-действия «Проверить обновления». Своего содержимого она не
+    /// имеет и работает как кнопка: выбор возвращается на прежнюю вкладку.
+    /// </summary>
+    private const int UpdateTabIndex = 4;
+
+    private int _lastContentTabIndex;
+
     private void RootTabs_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
+        if (RootTabs is null)
+        {
+            return;
+        }
+
+        if (RootTabs.SelectedIndex == UpdateTabIndex)
+        {
+            // Возврат выбора повторно вызывает этот обработчик, но уже с обычным
+            // индексом, поэтому дополнительной защиты от рекурсии не требуется.
+            RootTabs.SelectedIndex = _lastContentTabIndex;
+            _ = ShowUpdateDialogAsync(prefetched: null);
+            return;
+        }
+
+        _lastContentTabIndex = RootTabs.SelectedIndex;
         UpdateSelectedTabContent();
+    }
+
+    /// <summary>
+    /// Показывает окно проверки обновлений: текущая версия, состояние проверки и,
+    /// если на сервере есть более новая версия, кнопка загрузки с установкой.
+    ///
+    /// Окно служит подстраховкой на случай сбоя автоматической проверки при
+    /// запуске, поэтому проверка выполняется заново, а не берётся из кеша, если
+    /// готовый результат не передан явно.
+    /// </summary>
+    /// <param name="prefetched">
+    /// Результат проверки, выполненной при запуске приложения. Когда задан,
+    /// повторный запрос к серверу не выполняется.
+    /// </param>
+    public async Task ShowUpdateDialogAsync(UpdateCheckResult? prefetched)
+    {
+        if (_isShowingUpdateDialog)
+        {
+            return;
+        }
+
+        var xamlRoot = XamlRoot ?? Content?.XamlRoot;
+        if (xamlRoot is null)
+        {
+            return;
+        }
+
+        _isShowingUpdateDialog = true;
+        try
+        {
+            var dialog = new ContentDialog
+            {
+                XamlRoot = xamlRoot,
+                CloseButtonText = "Закрыть",
+                DefaultButton = ContentDialogButton.Close
+            };
+
+            var status = new TextBlock
+            {
+                FontSize = 15,
+                LineHeight = 22,
+                TextWrapping = TextWrapping.WrapWholeWords
+            };
+
+            var progress = new ProgressBar
+            {
+                IsIndeterminate = true,
+                Visibility = Visibility.Collapsed,
+                Margin = new Thickness(0, 4, 0, 0)
+            };
+
+            var installButton = new Button
+            {
+                Content = "Скачать и установить",
+                MinWidth = 220,
+                Height = 38,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                Visibility = Visibility.Collapsed
+            };
+            if (Application.Current.Resources.TryGetValue("AccentButtonStyle", out var accentStyle) &&
+                accentStyle is Style style)
+            {
+                installButton.Style = style;
+            }
+
+            dialog.Content = BuildUpdateDialogContent(status, progress, installButton);
+            ApplyContentScaleToDialog(dialog);
+
+            var showTask = dialog.ShowAsync();
+            _ = RunUpdateDialogWorkflowAsync(dialog, status, progress, installButton, prefetched);
+            await showTask;
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Write(ex, "Ошибка окна проверки обновлений");
+        }
+        finally
+        {
+            _isShowingUpdateDialog = false;
+        }
+    }
+
+    private static UIElement BuildUpdateDialogContent(
+        TextBlock status,
+        ProgressBar progress,
+        Button installButton)
+    {
+        var content = new Grid
+        {
+            MinWidth = 420,
+            MaxWidth = 520,
+            RowSpacing = 14
+        };
+        for (var i = 0; i < 4; i++)
+        {
+            content.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        }
+
+        var title = new TextBlock
+        {
+            Text = "Обновление приложения",
+            FontSize = 22,
+            FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+            TextWrapping = TextWrapping.Wrap
+        };
+
+        var currentVersion = new TextBlock
+        {
+            Text = $"Установленная версия: {ApplicationInfo.CurrentVersionText}",
+            FontSize = 15
+        };
+
+        content.Children.Add(title);
+        content.Children.Add(currentVersion);
+        content.Children.Add(status);
+        content.Children.Add(progress);
+        content.Children.Add(installButton);
+
+        Grid.SetRow(currentVersion, 1);
+        Grid.SetRow(status, 2);
+        Grid.SetRow(progress, 2);
+        Grid.SetRow(installButton, 3);
+
+        // Строка состояния и полоса загрузки делят строку: полоса появляется под
+        // текстом только на время скачивания.
+        progress.VerticalAlignment = VerticalAlignment.Bottom;
+        progress.Margin = new Thickness(0, 34, 0, 0);
+
+        return content;
+    }
+
+    private async Task RunUpdateDialogWorkflowAsync(
+        ContentDialog dialog,
+        TextBlock status,
+        ProgressBar progress,
+        Button installButton,
+        UpdateCheckResult? prefetched)
+    {
+        try
+        {
+            var result = prefetched;
+            if (result is null)
+            {
+                status.Text = "Проверка обновлений…";
+                progress.IsIndeterminate = true;
+                progress.Visibility = Visibility.Visible;
+                result = await AutoUpdateService.CheckAsync().ConfigureAwait(true);
+                progress.Visibility = Visibility.Collapsed;
+            }
+
+            if (result.HasError)
+            {
+                status.Text = result.ErrorMessage;
+                return;
+            }
+
+            if (!result.UpdateAvailable || result.Manifest is null)
+            {
+                status.Text = "Установлена последняя версия. Обновление не требуется.";
+                return;
+            }
+
+            var manifest = result.Manifest;
+            status.Text = $"Доступна версия {manifest.VersionText}.";
+            installButton.Visibility = Visibility.Visible;
+            installButton.Click += async (_, _) =>
+                await DownloadAndInstallAsync(dialog, status, progress, installButton, manifest);
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Write(ex, "Ошибка проверки обновлений в диалоге");
+            status.Text = $"Не удалось проверить обновления: {ex.Message}";
+            progress.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    private async Task DownloadAndInstallAsync(
+        ContentDialog dialog,
+        TextBlock status,
+        ProgressBar progress,
+        Button installButton,
+        UpdateManifest manifest)
+    {
+        installButton.IsEnabled = false;
+        progress.IsIndeterminate = false;
+        progress.Minimum = 0;
+        progress.Maximum = 100;
+        progress.Value = 0;
+        progress.Visibility = Visibility.Visible;
+        status.Text = "Загрузка обновления…";
+
+        try
+        {
+            // Progress создаётся в UI-потоке, поэтому обновления полосы приходят
+            // в него же и отдельного маршалирования не требуют.
+            var reporter = new Progress<double>(value => progress.Value = value * 100.0);
+            var download = await AutoUpdateService.DownloadAsync(manifest, reporter).ConfigureAwait(true);
+
+            if (!download.Success || download.InstallerPath is null)
+            {
+                status.Text = download.ErrorMessage ?? "Не удалось скачать обновление.";
+                progress.Visibility = Visibility.Collapsed;
+                installButton.IsEnabled = true;
+                return;
+            }
+
+            status.Text = "Установка запускается. Приложение закроется и откроется снова после обновления.";
+
+            if (!AutoUpdateService.StartInstaller(download.InstallerPath))
+            {
+                status.Text = "Не удалось запустить установщик обновления.";
+                progress.Visibility = Visibility.Collapsed;
+                installButton.IsEnabled = true;
+                return;
+            }
+
+            dialog.Hide();
+
+            // Установщик закрывает оставшиеся копии сам, но корректное закрытие
+            // из приложения избавляет пользователя от принудительного завершения.
+            App.Window.Close();
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Write(ex, "Ошибка загрузки обновления");
+            status.Text = $"Не удалось скачать обновление: {ex.Message}";
+            progress.Visibility = Visibility.Collapsed;
+            installButton.IsEnabled = true;
+        }
     }
 
     private void UpdateSelectedTabContent()
