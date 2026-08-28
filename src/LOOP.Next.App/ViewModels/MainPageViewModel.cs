@@ -581,7 +581,7 @@ public partial class MainPageViewModel : ObservableObject
         }
 
         _userSettings.ToolPort = portName;
-        UserSettingsStore.Save(_userSettings);
+        UserSettingsStore.Update(settings => settings.ToolPort = portName);
     }
 
     private void SaveSelectedRingPort(string? portName)
@@ -592,7 +592,7 @@ public partial class MainPageViewModel : ObservableObject
         }
 
         _userSettings.RingPort = portName;
-        UserSettingsStore.Save(_userSettings);
+        UserSettingsStore.Update(settings => settings.RingPort = portName);
     }
 
     [RelayCommand]

@@ -1,4 +1,5 @@
 ﻿using System.IO.Ports;
+using System.Buffers.Binary;
 using System.Text;
 using LoopNext.Core.Logging;
 
@@ -10,13 +11,19 @@ public enum ToolResponseCode
     Ok = 0,
     Timeout = 1,
     CrcError = 2,
-    PortClosed = 3
+    PortClosed = 3,
+    InvalidResponse = 4
 }
 
 // Низкоуровневый протокол обмена с прибором по UART.
 // Формат старого пакета: [CMD:1][PAYLOAD:N][CRC_lo:1][CRC_hi:1]; CRC считается по [CMD + PAYLOAD].
 public static class ToolSerialTransport
 {
+    public const int FramedHeaderLength = 3;
+    public const int FramedCrcLength = 2;
+    public const int FramedMinimumPacketLength = FramedHeaderLength + FramedCrcLength;
+    public const int FramedMaximumPacketLength = 4096;
+
     // Отправка команды прибору. Возвращает 0 при успехе, 1 при ошибке записи (send_to_tool).
     public static int Send(SerialPort com, byte cmd, ReadOnlySpan<byte> data, int length)
     {
@@ -44,6 +51,143 @@ public static class ToolSerialTransport
         // Запрос короткий, поэтому пишется целиком: по нему видно и команду, и CRC.
         AppLogger.Write($"TOOL_TX: cmd=0x{cmd:X2} size={packet.Length} bytes={Convert.ToHexString(packet)}");
         return 0;
+    }
+
+    /// <summary>
+    /// Формирует пакет новой прошивки:
+    /// [CMD][полная длина LE:2][payload][CRC16 LE:2].
+    /// </summary>
+    public static byte[] BuildFramedPacket(byte cmd, ReadOnlySpan<byte> payload)
+    {
+        var totalLength = checked(payload.Length + FramedMinimumPacketLength);
+        if (totalLength > ushort.MaxValue)
+        {
+            throw new ArgumentOutOfRangeException(nameof(payload), "Пакет прибора превышает поле длины uint16.");
+        }
+
+        var packet = new byte[totalLength];
+        packet[0] = cmd;
+        BinaryPrimitives.WriteUInt16LittleEndian(packet.AsSpan(1, sizeof(ushort)), (ushort)totalLength);
+        payload.CopyTo(packet.AsSpan(FramedHeaderLength));
+
+        var crc = Crc16.Compute(packet, totalLength - FramedCrcLength);
+        BinaryPrimitives.WriteUInt16LittleEndian(packet.AsSpan(totalLength - FramedCrcLength), crc);
+        return packet;
+    }
+
+    /// <summary>
+    /// Проверяет и разбирает полный пакет новой прошивки.
+    /// </summary>
+    public static ToolResponseCode ParseFramedPacket(
+        ReadOnlySpan<byte> packet,
+        out byte cmd,
+        out byte[] payload)
+    {
+        cmd = 0;
+        payload = Array.Empty<byte>();
+        if (packet.Length < FramedMinimumPacketLength)
+        {
+            return ToolResponseCode.InvalidResponse;
+        }
+
+        var declaredLength = BinaryPrimitives.ReadUInt16LittleEndian(packet.Slice(1, sizeof(ushort)));
+        if (declaredLength != packet.Length || declaredLength > FramedMaximumPacketLength)
+        {
+            return ToolResponseCode.InvalidResponse;
+        }
+
+        var calculatedCrc = Crc16.Compute(packet, packet.Length - FramedCrcLength);
+        var receivedCrc = BinaryPrimitives.ReadUInt16LittleEndian(packet[^FramedCrcLength..]);
+        if (calculatedCrc != receivedCrc)
+        {
+            return ToolResponseCode.CrcError;
+        }
+
+        cmd = packet[0];
+        payload = packet.Slice(
+            FramedHeaderLength,
+            packet.Length - FramedMinimumPacketLength).ToArray();
+        return ToolResponseCode.Ok;
+    }
+
+    /// <summary>
+    /// Отправляет пакет с полем длины, используемый только новой прошивкой.
+    /// </summary>
+    public static int SendFramed(SerialPort com, byte cmd, ReadOnlySpan<byte> payload)
+    {
+        var packet = BuildFramedPacket(cmd, payload);
+        try
+        {
+            com.Write(packet, 0, packet.Length);
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Write(
+                $"TOOL_FRAMED_TX: cmd=0x{cmd:X2} size={packet.Length} ОШИБКА ЗАПИСИ {ex.GetType().Name}: {ex.Message}");
+            return 1;
+        }
+
+        AppLogger.Write(
+            $"TOOL_FRAMED_TX: cmd=0x{cmd:X2} size={packet.Length} bytes={Convert.ToHexString(packet)}");
+        return 0;
+    }
+
+    /// <summary>
+    /// Читает ответ новой прошивки по длине из заголовка, затем проверяет CRC.
+    /// </summary>
+    public static ToolResponseCode ReceiveFramed(SerialPort com, out byte cmd, out byte[] payload)
+    {
+        cmd = 0;
+        payload = Array.Empty<byte>();
+        var startedAt = DateTime.Now;
+        var header = new byte[FramedHeaderLength];
+
+        if (!ReadExactly(com, header, out var headerBytesRead))
+        {
+            AppLogger.Write(
+                $"TOOL_FRAMED_RX: expected_header={FramedHeaderLength} read={headerBytesRead} " +
+                $"elapsed_ms={Elapsed(startedAt)} result=Timeout");
+            TryDiscardInput(com);
+            return ToolResponseCode.Timeout;
+        }
+
+        var declaredLength = BinaryPrimitives.ReadUInt16LittleEndian(header.AsSpan(1, sizeof(ushort)));
+        if (declaredLength < FramedMinimumPacketLength || declaredLength > FramedMaximumPacketLength)
+        {
+            AppLogger.Write(
+                $"TOOL_FRAMED_RX: header={Convert.ToHexString(header)} declared={declaredLength} " +
+                $"elapsed_ms={Elapsed(startedAt)} result=InvalidResponse");
+            TryDiscardInput(com);
+            return ToolResponseCode.InvalidResponse;
+        }
+
+        var packet = new byte[declaredLength];
+        header.CopyTo(packet, 0);
+        var tail = new byte[declaredLength - FramedHeaderLength];
+        if (!ReadExactly(com, tail, out var tailBytesRead))
+        {
+            AppLogger.Write(
+                $"TOOL_FRAMED_RX: declared={declaredLength} read={FramedHeaderLength + tailBytesRead} " +
+                $"elapsed_ms={Elapsed(startedAt)} result=Timeout");
+            TryDiscardInput(com);
+            return ToolResponseCode.Timeout;
+        }
+
+        tail.CopyTo(packet, FramedHeaderLength);
+        var result = ParseFramedPacket(packet, out cmd, out payload);
+        var calculatedCrc = Crc16.Compute(packet, packet.Length - FramedCrcLength);
+        var receivedCrc = BinaryPrimitives.ReadUInt16LittleEndian(packet.AsSpan(packet.Length - FramedCrcLength));
+        AppLogger.Write(
+            $"TOOL_FRAMED_RX: cmd=0x{packet[0]:X2} declared={declaredLength} payload={payload.Length} " +
+            $"read={packet.Length} elapsed_ms={Elapsed(startedAt)} crc_calc=0x{calculatedCrc:X4} " +
+            $"crc_recv=0x{receivedCrc:X4} result={result}");
+
+        if (result != ToolResponseCode.Ok)
+        {
+            AppLogger.Write(FormatHexDump("TOOL_FRAMED_RX_DUMP", packet));
+        }
+
+        return result;
     }
 
     // Полный шестнадцатеричный дамп с адресами смещений. Нужен там, где по
@@ -155,5 +299,41 @@ public static class ToolSerialTransport
     private static long Elapsed(DateTime startedAt)
     {
         return (long)(DateTime.Now - startedAt).TotalMilliseconds;
+    }
+
+    private static bool ReadExactly(SerialPort com, byte[] buffer, out int bytesRead)
+    {
+        bytesRead = 0;
+        try
+        {
+            while (bytesRead < buffer.Length)
+            {
+                var count = com.Read(buffer, bytesRead, buffer.Length - bytesRead);
+                if (count <= 0)
+                {
+                    return false;
+                }
+
+                bytesRead += count;
+            }
+
+            return true;
+        }
+        catch (TimeoutException)
+        {
+            return false;
+        }
+    }
+
+    private static void TryDiscardInput(SerialPort com)
+    {
+        try
+        {
+            com.DiscardInBuffer();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or IOException)
+        {
+            AppLogger.Write(ex, "Не удалось очистить входной буфер прибора после ошибки framed-пакета.");
+        }
     }
 }

@@ -11,19 +11,26 @@ public sealed class UserSettings
     public string? RingPort { get; set; }
 
     /// <summary>
-    /// Поле версии 1.1.1. Читается один раз для переноса относительной позиции
-    /// в один из пяти абсолютных процентов и затем очищается.
+    /// Устаревшее поле версии 1.1.1. После миграции очищается.
     /// </summary>
     public int? WindowScalePosition { get; set; }
 
     /// <summary>
-    /// Выбранный масштаб окна. Допустимы только 80, 90, 100, 110 и 120.
+    /// Относительный масштаб окна. Допустимы только 80, 90, 100, 110 и 120.
     /// </summary>
     public int? WindowScalePercent { get; set; }
+
+    /// <summary>
+    /// Версия смысла полей масштаба. Отсутствие версии означает настройку,
+    /// созданную до введения DPI-нормализованного масштаба.
+    /// </summary>
+    public int? WindowScaleSettingsVersion { get; set; }
 }
 
 public static class UserSettingsStore
 {
+    private static readonly object SyncRoot = new();
+
     private static string SettingsDirectory => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "LOOP_NEXT");
@@ -31,6 +38,41 @@ public static class UserSettingsStore
     private static string SettingsPath => Path.Combine(SettingsDirectory, "settings.json");
 
     public static UserSettings Load()
+    {
+        lock (SyncRoot)
+        {
+            return LoadCore();
+        }
+    }
+
+    public static void Save(UserSettings settings)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+
+        lock (SyncRoot)
+        {
+            SaveCore(settings);
+        }
+    }
+
+    /// <summary>
+    /// Атомарно изменяет только нужные поля актуальной копии настроек. Это не
+    /// позволяет кешу одного компонента затереть масштаб или COM-порт,
+    /// сохранённый другим компонентом.
+    /// </summary>
+    public static void Update(Action<UserSettings> update)
+    {
+        ArgumentNullException.ThrowIfNull(update);
+
+        lock (SyncRoot)
+        {
+            var settings = LoadCore();
+            update(settings);
+            SaveCore(settings);
+        }
+    }
+
+    private static UserSettings LoadCore()
     {
         try
         {
@@ -49,7 +91,7 @@ public static class UserSettingsStore
         }
     }
 
-    public static void Save(UserSettings settings)
+    private static void SaveCore(UserSettings settings)
     {
         try
         {

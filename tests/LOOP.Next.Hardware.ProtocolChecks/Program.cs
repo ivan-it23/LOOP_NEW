@@ -5,6 +5,7 @@ using LOOP.Next.Reporting;
 using LoopNext.Core.Models;
 using LoopNext.Core.Protocol;
 using LoopNext.Hardware;
+using LOOP_Next_App.Services;
 
 var checks = new List<(string Name, Action Run)>
 {
@@ -515,6 +516,238 @@ var checks = new List<(string Name, Action Run)>
         Require(Math.Abs(parsed.Temperature - 42.5f) < 1e-6f, "temperature survived");
         Require(Math.Abs(parsed.GetDeltaPhase(0, 2) - 0.125f) < 1e-6f, "delta phase F0T2 survived");
         Require(Math.Abs(parsed.GetDeltaPhase(1, 4) + 0.25f) < 1e-6f, "delta phase F1T4 survived");
+    }),
+    ("Новая структура занимает 320 байт, а старая остаётся 240-байтной", () =>
+    {
+        Require(Marshal.SizeOf<GpToolData>() == ToolIdentity.LegacyFrameSize, "legacy structure size");
+        Require(Marshal.SizeOf<ExtendedGpToolData>() == ToolIdentity.ExtendedFrameSize, "extended structure size");
+
+        var frame = default(ExtendedGpToolData);
+        frame.Common.Signature = 320151502;
+        frame.Common.SetDeltaPhase(1, 4, -0.125f);
+        frame.SetRhoAttSmt(0, 3, 321.5f);
+        frame.SetAttDbSmt(1, 4, -7.25f);
+
+        var bytes = new byte[ToolIdentity.ExtendedFrameSize];
+        MemoryMarshal.Write(bytes, in frame);
+        Require(BitConverter.ToUInt32(bytes, 0) == 320151502, "common data starts at offset 0");
+        Require(
+            Math.Abs(BitConverter.ToSingle(bytes, ExtendedFrameFields.RhoAttSmtOffset + 3 * sizeof(float)) - 321.5f) < 1e-6f,
+            "rho_att_smt starts at offset 240");
+        Require(
+            Math.Abs(BitConverter.ToSingle(bytes, ExtendedFrameFields.AttDbSmtOffset + 9 * sizeof(float)) + 7.25f) < 1e-6f,
+            "att_dB_smt starts at offset 280");
+
+        var parsed = MemoryMarshal.Read<ExtendedGpToolData>(bytes);
+        Require(Math.Abs(parsed.Common.GetDeltaPhase(1, 4) + 0.125f) < 1e-6f, "common delta phase survived");
+        Require(Math.Abs(parsed.GetRhoAttSmt(0, 3) - 321.5f) < 1e-6f, "rho_att survived");
+        Require(Math.Abs(parsed.GetAttDbSmt(1, 4) + 7.25f) < 1e-6f, "att_dB survived");
+    }),
+    ("Запрос новой прошивки использует length-framed формат", () =>
+    {
+        var request = ToolSerialTransport.BuildFramedPacket(
+            ToolProtocolConstants.CmdGetData,
+            ReadOnlySpan<byte>.Empty);
+
+        Require(request.SequenceEqual(Convert.FromHexString("1105002295")), "firmware request bytes");
+        Require(
+            ToolSerialTransport.ParseFramedPacket(request, out var command, out var payload) == ToolResponseCode.Ok,
+            "request parses");
+        Require(command == ToolProtocolConstants.CmdGetData, "request command");
+        Require(payload.Length == 0, "request payload");
+    }),
+    ("320-байтный ответ читается по длине пакета и своей сигнатуре", () =>
+    {
+        var frame = default(ExtendedGpToolData);
+        frame.Common.Signature = 320151502;
+        frame.Common.Frame = 77;
+        frame.Common.Temperature = 36.75f;
+        frame.Common.SetDeltaPhase(0, 0, 0.25f);
+        frame.SetRhoAttSmt(1, 4, 987.5f);
+
+        var rawFrame = new byte[ToolIdentity.ExtendedFrameSize];
+        MemoryMarshal.Write(rawFrame, in frame);
+        var packet = ToolSerialTransport.BuildFramedPacket(ToolProtocolConstants.CmdGetData, rawFrame);
+
+        Require(packet.Length == ToolIdentity.ExtendedFrameSize + 5, "wire packet size");
+        Require(packet[1] == 0x45 && packet[2] == 0x01, "declared length is 325");
+        Require(
+            ToolSerialTransport.ParseFramedPacket(packet, out var command, out var payload) == ToolResponseCode.Ok,
+            "response parses");
+        Require(command == ToolProtocolConstants.CmdGetData, "response command");
+        Require(payload.Length == ToolIdentity.ExtendedFrameSize, "response payload size");
+
+        var parsed = MemoryMarshal.Read<ExtendedGpToolData>(payload);
+        var identity = ToolIdentity.Decode(parsed.Common.Signature);
+        Require(identity.IsValid && identity.IsExtendedFirmware, "embedded extended signature");
+        Require(identity.FrameSize == payload.Length, "signature confirms payload size");
+        Require(parsed.Common.Frame == 77, "frame number");
+        Require(Math.Abs(parsed.Common.Temperature - 36.75f) < 1e-6f, "temperature");
+        Require(Math.Abs(parsed.GetRhoAttSmt(1, 4) - 987.5f) < 1e-6f, "extended tail");
+    }),
+    ("Новая ветка отвергает неверную длину и CRC пакета", () =>
+    {
+        var valid = ToolSerialTransport.BuildFramedPacket(
+            ToolProtocolConstants.CmdGetData,
+            new byte[ToolIdentity.ExtendedFrameSize]);
+
+        var invalidLength = valid.ToArray();
+        invalidLength[1]--;
+        Require(
+            ToolSerialTransport.ParseFramedPacket(invalidLength, out _, out _) == ToolResponseCode.InvalidResponse,
+            "invalid declared length");
+
+        var invalidCrc = valid.ToArray();
+        invalidCrc[^1] ^= 0x80;
+        Require(
+            ToolSerialTransport.ParseFramedPacket(invalidCrc, out _, out _) == ToolResponseCode.CrcError,
+            "invalid CRC");
+    }),
+    ("Масштаб окна предлагает фиксированные относительные значения с дефолтом 100%", () =>
+    {
+        Require(WindowScaleService.DefaultScalePercent == 100, "default scale");
+        Require(
+            WindowScaleService.AvailableScalePercents.SequenceEqual(new[] { 80, 90, 100 }),
+            "available scales");
+        Require(WindowScaleService.NormalizeScalePercent(84) == 80, "normalize lower value");
+        Require(WindowScaleService.NormalizeScalePercent(105) == 100, "normalize tie toward default");
+        Require(WindowScaleService.NormalizeScalePercent(116) == 100, "normalize upper value");
+        Require(WindowScaleService.MaximumScalePercent == 100, "no option may exceed the fitted width");
+    }),
+    ("Старая схема масштаба один раз сбрасывается на 100%, новая сохраняет выбор", () =>
+    {
+        Require(WindowScaleService.ResolveSavedScalePercent(null, 80) == 100, "1.1.3 migration");
+        Require(WindowScaleService.ResolveSavedScalePercent(null, null) == 100, "fresh install");
+        Require(
+            WindowScaleService.ResolveSavedScalePercent(
+                WindowScaleService.CurrentSettingsSchemaVersion,
+                90) == 90,
+            "current setting");
+        Require(
+            WindowScaleService.ResolveSavedScalePercent(
+                WindowScaleService.CurrentSettingsSchemaVersion,
+                87) == 90,
+            "current setting normalization");
+
+        // Значения выше 100% больше не предлагаются: сохранённый ранее выбор
+        // подтягивается к 100%, иначе пользователь остался бы с обрезанной таблицей.
+        Require(
+            WindowScaleService.ResolveSavedScalePercent(
+                WindowScaleService.CurrentSettingsSchemaVersion,
+                110) == 100,
+            "saved 110% falls back to 100%");
+        Require(
+            WindowScaleService.ResolveSavedScalePercent(
+                WindowScaleService.CurrentSettingsSchemaVersion,
+                120) == 100,
+            "saved 120% falls back to 100%");
+    }),
+    ("Эталонный компьютер 1920x1080 при Windows 125% получает масштаб ровно 1.0", () =>
+    {
+        var host = HostEffectiveSize(1920, 1080, 1.25);
+        Require(Math.Abs(host.Width - WindowScaleService.ReferenceContentWidth) < 0.5, "reference host width");
+        Require(
+            Math.Abs(WindowScaleService.GetEffectiveScaleFactor(100, host.Width, host.Height) - 1.0) < 0.000001,
+            "reference render scale");
+    }),
+    ("Один экран даёт один физический размер при Windows от 100% до 200%", () =>
+    {
+        // Размеры рабочей области приходят в эффективных пикселях, поэтому
+        // вписывание в окно само компенсирует системный DPI: на одном и том же
+        // экране 1920x1080 физический размер элементов не зависит от масштаба Windows.
+        foreach (var rasterizationScale in new[] { 1.0, 1.25, 1.5, 1.75, 2.0 })
+        {
+            var host = HostEffectiveSize(1920, 1080, rasterizationScale);
+            var renderScale = WindowScaleService.GetEffectiveScaleFactor(100, host.Width, host.Height);
+            Require(
+                Math.Abs(renderScale * rasterizationScale - WindowScaleService.ReferenceRasterizationScale) < 0.000001,
+                $"physical size at Windows {rasterizationScale * 100:F0}%");
+        }
+    }),
+    ("Содержимое вписывается и в маленький ноутбук, и в большой монитор", () =>
+    {
+        var screens = new[]
+        {
+            (Width: 1366, Height: 768, Scale: 1.0),
+            (Width: 1280, Height: 800, Scale: 1.0),
+            (Width: 1440, Height: 900, Scale: 1.0),
+            (Width: 1920, Height: 1080, Scale: 1.0),
+            (Width: 1920, Height: 1080, Scale: 1.25),
+            (Width: 1920, Height: 1200, Scale: 1.0),
+            (Width: 2560, Height: 1440, Scale: 1.0),
+            (Width: 3840, Height: 2160, Scale: 1.5),
+            (Width: 3840, Height: 2160, Scale: 2.0)
+        };
+
+        foreach (var screen in screens)
+        {
+            var host = HostEffectiveSize(screen.Width, screen.Height, screen.Scale);
+            var renderScale = WindowScaleService.GetEffectiveScaleFactor(100, host.Width, host.Height);
+
+            // Ничего не обрезается: масштабированный эталонный кадр помещается в окно.
+            Require(
+                WindowScaleService.ReferenceContentWidth * renderScale <= host.Width + 0.5,
+                $"width fits on {screen.Width}x{screen.Height} @ {screen.Scale * 100:F0}%");
+            Require(
+                WindowScaleService.ReferenceContentHeight * renderScale <= host.Height + 0.5,
+                $"height fits on {screen.Width}x{screen.Height} @ {screen.Scale * 100:F0}%");
+
+            // Окно заполняется хотя бы по одной стороне: пустого поля как на
+            // непропорционально мелком виде не остаётся.
+            var fillsWidth = WindowScaleService.ReferenceContentWidth * renderScale >= host.Width - 0.5;
+            var fillsHeight = WindowScaleService.ReferenceContentHeight * renderScale >= host.Height - 0.5;
+            Require(
+                fillsWidth || fillsHeight,
+                $"fills window on {screen.Width}x{screen.Height} @ {screen.Scale * 100:F0}%");
+        }
+    }),
+    ("Пользовательские 80–100% применяются поверх вписывания в окно", () =>
+    {
+        var host = HostEffectiveSize(1920, 1080, 1.0);
+        var autoFit = WindowScaleService.GetAutoFitFactor(host.Width, host.Height);
+        Require(Math.Abs(autoFit - 1.25) < 0.000001, "auto fit at Windows 100%");
+
+        foreach (var percent in WindowScaleService.AvailableScalePercents)
+        {
+            Require(
+                Math.Abs(
+                    WindowScaleService.GetEffectiveScaleFactor(percent, host.Width, host.Height)
+                    - autoFit * percent / 100.0) < 0.000001,
+                $"user percent {percent}");
+        }
+    }),
+    ("Подсказки масштабируются размером шрифта вслед за содержимым", () =>
+    {
+        Require(
+            Math.Abs(WindowScaleService.GetToolTipFontSize(1.0) - WindowScaleService.ToolTipBaseFontSize) < 0.000001,
+            "reference machine keeps the system size");
+        Require(
+            Math.Abs(WindowScaleService.GetToolTipFontSize(1.25) - 15.0) < 0.000001,
+            "Windows 100% enlarges the tooltip with the content");
+        Require(
+            Math.Abs(WindowScaleService.GetToolTipFontSize(0.8) - 9.6) < 0.000001,
+            "user 80% shrinks the tooltip with the content");
+
+        // Вырожденный коэффициент не должен схлопывать подсказку в ноль.
+        Require(
+            Math.Abs(WindowScaleService.GetToolTipFontSize(0) - WindowScaleService.ToolTipBaseFontSize) < 0.000001,
+            "zero factor");
+        Require(
+            Math.Abs(WindowScaleService.GetToolTipFontSize(double.NaN) - WindowScaleService.ToolTipBaseFontSize) < 0.000001,
+            "NaN factor");
+    }),
+    ("Вырожденные размеры окна не ломают масштаб", () =>
+    {
+        Require(Math.Abs(WindowScaleService.GetAutoFitFactor(0, 0) - 1.0) < 0.000001, "zero size");
+        Require(Math.Abs(WindowScaleService.GetAutoFitFactor(-10, 100) - 1.0) < 0.000001, "negative size");
+        Require(Math.Abs(WindowScaleService.GetAutoFitFactor(double.NaN, 100) - 1.0) < 0.000001, "NaN size");
+
+        Require(
+            Math.Abs(WindowScaleService.GetAutoFitFactor(1, 1) - WindowScaleService.MinimumAutoFitFactor) < 0.000001,
+            "clamped below");
+        Require(
+            Math.Abs(WindowScaleService.GetAutoFitFactor(100000, 100000) - WindowScaleService.MaximumAutoFitFactor) < 0.000001,
+            "clamped above");
     })
 };
 
@@ -641,6 +874,23 @@ static LoopReportCell SampleCell(int channelIndex, int resistanceIndex)
     };
     var deviation = deviations[channelIndex, resistanceOffset];
     return new LoopReportCell(deviation, MeasurementQualityClassifier.Classify(deviation, 6));
+}
+
+// Размер узла масштабирования содержимого в эффективных пикселях для
+// развёрнутого окна на экране заданного разрешения и системного масштаба.
+// Из физической высоты вычитается панель задач, из эффективной - строка
+// пользовательского заголовка окна.
+static (double Width, double Height) HostEffectiveSize(
+    int physicalWidth,
+    int physicalHeight,
+    double rasterizationScale)
+{
+    const double TaskbarEffectiveHeight = 40.0;
+    const double TitleBarEffectiveHeight = 48.0;
+
+    return (
+        physicalWidth / rasterizationScale,
+        physicalHeight / rasterizationScale - TaskbarEffectiveHeight - TitleBarEffectiveHeight);
 }
 
 static void Require(bool condition, string message = "assertion failed")

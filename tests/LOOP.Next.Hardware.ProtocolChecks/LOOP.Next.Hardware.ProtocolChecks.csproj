@@ -9,4 +9,7 @@
     <ProjectReference Include="..\..\src\LOOP.Next.Hardware\LOOP.Next.Hardware.csproj" />
     <ProjectReference Include="..\..\src\LOOP.Next.Reporting\LOOP.Next.Reporting.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\..\src\LOOP.Next.App\Services\WindowScaleService.cs" Link="AppLogic\WindowScaleService.cs" />
+  </ItemGroup>
 </Project>

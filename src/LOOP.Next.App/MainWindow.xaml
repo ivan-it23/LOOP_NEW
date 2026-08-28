@@ -40,23 +40,32 @@
         <!--
             Узел масштабирования содержимого. RenderTransform сам по себе не меняет
             разметку, поэтому кадру дополнительно задаётся размер рабочей области,
-            делённый на масштаб: содержимое верстается в уменьшенной области и затем
-            увеличивается. Это воспроизводит поведение layout-преобразования,
+            делённый на масштаб: содержимое верстается в приведённой области и затем
+            масштабируется. Это воспроизводит поведение layout-преобразования,
             которого нет в WinUI.
+
+            Кадр обязан лежать в Canvas. При масштабе меньше 100% кадр по расчёту
+            шире рабочей области, а обычная панель выдала бы такому ребёнку слот по
+            своему размеру и наложила бы layout-clip: содержимое обрезалось бы по
+            правому и нижнему краю ещё до применения ScaleTransform, и правые
+            колонки таблицы пропадали. Canvas измеряет ребёнка без ограничения и
+            размещает его целиком, поэтому обрезки не возникает.
         -->
         <Grid
             x:Name="ContentScaleHost"
             Grid.Row="1"
             SizeChanged="OnContentScaleHostSizeChanged">
-            <Frame
-                x:Name="RootFrame"
-                HorizontalAlignment="Left"
-                VerticalAlignment="Top"
-                RenderTransformOrigin="0,0">
-                <Frame.RenderTransform>
-                    <ScaleTransform x:Name="ContentScaleTransform" ScaleX="1" ScaleY="1" />
-                </Frame.RenderTransform>
-            </Frame>
+            <Canvas>
+                <Frame
+                    x:Name="RootFrame"
+                    Canvas.Left="0"
+                    Canvas.Top="0"
+                    RenderTransformOrigin="0,0">
+                    <Frame.RenderTransform>
+                        <ScaleTransform x:Name="ContentScaleTransform" ScaleX="1" ScaleY="1" />
+                    </Frame.RenderTransform>
+                </Frame>
+            </Canvas>
         </Grid>
     </Grid>
 </Window>

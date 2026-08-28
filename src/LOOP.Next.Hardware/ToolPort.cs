@@ -53,6 +53,11 @@ public static class ToolPort
         }
 
         var metrologyIdentity = ToolIdentity.Decode(metrology.Signature);
+        if (metrologyIdentity.IsExtendedFirmware)
+        {
+            return GetPhaseFromExtendedTool(com, cmd, in metrology);
+        }
+
         var acceptZeroFrameCrc = metrologyIdentity.IsCartographLwd4TxMode;
 
         // Запрос кадра у обоих поколений прошивки одинаков, отличается только
@@ -147,6 +152,109 @@ public static class ToolPort
         }
 
         return new PhaseFrameResult(phases, rawPhases, lastCode, 0f);
+    }
+
+    // Новая прошивка передаёт самостоятельный length-framed пакет:
+    // [CMD][LEN_L][LEN_H][GP_DATA:320][CRC16]. Размер читается с провода и
+    // обязательно подтверждается сигнатурой самого кадра. Старая ветка выше
+    // остаётся на прежнем фиксированном транспорте.
+    private static PhaseFrameResult GetPhaseFromExtendedTool(
+        SerialPort com,
+        byte cmd,
+        in GpToolMetrology metrology)
+    {
+        var phases = default(V10);
+        phases.Clear();
+        var rawPhases = default(V10);
+        rawPhases.Clear();
+        var lastCode = ToolResponseCode.Timeout;
+
+        for (var retry = 0; retry <= MaxRetries; retry++)
+        {
+            try
+            {
+                com.DiscardInBuffer();
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or IOException)
+            {
+                AppLogger.Write(ex, "Порт прибора закрыт во время подготовки framed-опроса новой прошивки.");
+                return new PhaseFrameResult(phases, rawPhases, ToolResponseCode.PortClosed, 0f);
+            }
+
+            if (ToolSerialTransport.SendFramed(com, cmd, ReadOnlySpan<byte>.Empty) != 0)
+            {
+                return new PhaseFrameResult(phases, rawPhases, ToolResponseCode.Timeout, 0f);
+            }
+
+            byte responseCommand;
+            byte[] payload;
+            try
+            {
+                lastCode = ToolSerialTransport.ReceiveFramed(com, out responseCommand, out payload);
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or IOException)
+            {
+                AppLogger.Write(ex, "Порт прибора закрыт во время framed-чтения кадра новой прошивки.");
+                return new PhaseFrameResult(phases, rawPhases, ToolResponseCode.PortClosed, 0f);
+            }
+
+            if (lastCode == ToolResponseCode.Ok)
+            {
+                if (responseCommand != cmd || payload.Length != ToolIdentity.ExtendedFrameSize)
+                {
+                    AppLogger.Write(
+                        $"TOOL_EXTENDED_FRAME_REJECTED: cmd=0x{responseCommand:X2} expected_cmd=0x{cmd:X2} " +
+                        $"payload={payload.Length} expected_payload={ToolIdentity.ExtendedFrameSize}");
+                    lastCode = ToolResponseCode.InvalidResponse;
+                }
+                else
+                {
+                    var extendedData = MemoryMarshal.Read<ExtendedGpToolData>(payload);
+                    var toolData = extendedData.Common;
+                    var frameIdentity = ToolIdentity.Decode(toolData.Signature);
+                    if (!frameIdentity.IsValid
+                        || !frameIdentity.IsExtendedFirmware
+                        || frameIdentity.FrameSize != payload.Length)
+                    {
+                        AppLogger.Write(
+                            $"TOOL_EXTENDED_FRAME_REJECTED: signature=0x{toolData.Signature:X8} " +
+                            $"valid={frameIdentity.IsValid} signature_frame_size={frameIdentity.FrameSize} " +
+                            $"received_frame_size={payload.Length}");
+                        lastCode = ToolResponseCode.InvalidResponse;
+                    }
+                    else
+                    {
+                        LogRawExtendedToolData(in toolData, payload);
+                        var phaseResult = ToolPhaseProcessor.FillPhaseFromToolData(in toolData, in metrology);
+                        return new PhaseFrameResult(
+                            phaseResult.Phases,
+                            phaseResult.RawPhases,
+                            ToolResponseCode.Ok,
+                            toolData.Temperature);
+                    }
+                }
+            }
+
+            if (retry < MaxRetries)
+            {
+                AppLogger.Write(
+                    $"TOOL_EXTENDED_FRAME_RETRY: result={lastCode}, attempt={retry + 1}/{MaxRetries + 1}, " +
+                    $"metrology_signature=0x{metrology.Signature:X8}");
+            }
+        }
+
+        return new PhaseFrameResult(phases, rawPhases, lastCode, 0f);
+    }
+
+    private static void LogRawExtendedToolData(in GpToolData data, ReadOnlySpan<byte> frame)
+    {
+        // Старый диагностический путь ожидает два служебных байта перед
+        // структурой. Добавляем их только в копию для журнала, не меняя
+        // проверенную 240-байтную ветку и её смещения.
+        var diagnosticPayload = new byte[
+            ToolProtocolConstants.ToolServicePrefixLength + frame.Length];
+        frame.CopyTo(diagnosticPayload.AsSpan(ToolProtocolConstants.ToolServicePrefixLength));
+        LogRawToolData(in data, diagnosticPayload, frame.Length);
     }
 
     // Порядок попыток по размеру кадра: сначала размер, названный сигнатурой

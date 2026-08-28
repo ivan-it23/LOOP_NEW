@@ -2,6 +2,7 @@ using System;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
+using LOOP_Next_App.Services;
 
 namespace LOOP_Next_App.Controls;
 
@@ -143,6 +144,15 @@ public sealed partial class MeasurementIndicator : UserControl
         var description = $"Среднее: {averageText}\nТекущее: {currentText}\nСостояние: {status}";
 
         IndicatorToolTip.Content = description;
+
+        // Подсказка живёт в popup-корне XamlRoot, вне масштабируемого кадра, и
+        // размер ей задаётся отдельно. Делается это здесь, а не только общим
+        // обходом страницы: строки таблицы перестраиваются при смене числа
+        // передатчиков, и новый индикатор иначе остался бы прежнего размера.
+        if (App.Window is MainWindow window)
+        {
+            IndicatorToolTip.FontSize = WindowScaleService.GetToolTipFontSize(window.ContentScaleFactor);
+        }
         AutomationProperties.SetName(this, $"Шкала разности фаз. Среднее {averageText}. Текущее {currentText}. {status}.");
         AutomationProperties.SetHelpText(this, $"Допуск плюс-минус {threshold:0.#} процента.");
     }

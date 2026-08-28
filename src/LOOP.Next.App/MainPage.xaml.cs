@@ -27,6 +27,93 @@ public sealed partial class MainPage : Page
         InitializeComponent();
         UpdateSelectedTabContent();
         ViewModel.NotificationRequested += OnNotificationRequested;
+        Loaded += OnMainPageLoaded;
+    }
+
+    private void OnMainPageLoaded(object sender, RoutedEventArgs e)
+    {
+        Loaded -= OnMainPageLoaded;
+        ApplyContentScaleToToolTips();
+    }
+
+    /// <summary>
+    /// Приводит все всплывающие подсказки к текущему масштабу содержимого.
+    ///
+    /// Подсказки живут в popup-корне `XamlRoot`, то есть вне масштабируемого
+    /// кадра, поэтому `RenderTransform` главного кадра на них не действует и
+    /// рядом с увеличенным интерфейсом они выглядят мелкими. Приложение объявляет
+    /// подсказки на кнопках, чекбоксах рапорта и полях кольца, ещё одну на каждую
+    /// строку таблицы добавляет `MeasurementIndicator`, и по одной себе проставляют
+    /// вкладки `TabViewItem`. Обрабатываются все: иначе часть подсказок осталась бы
+    /// прежнего размера и разнобой был бы заметнее исходной проблемы.
+    ///
+    /// Размер задаётся шрифтом, а не трансформацией: `Popup` располагает и обрезает
+    /// подсказку по её неотмасштабированной разметке, поэтому `RenderTransform`
+    /// увеличивал текст, не увеличивая коробку, и длинные подсказки обрезались.
+    ///
+    /// Стиль не переопределяется намеренно: неявный стиль без `BasedOn` заменил бы
+    /// шаблон системного контрола целиком, а ключ стандартного стиля не входит в
+    /// публичный контракт WinUI и может отличаться между версиями Windows App SDK.
+    /// </summary>
+    public void ApplyContentScaleToToolTips()
+    {
+        if (App.Window is not MainWindow window)
+        {
+            return;
+        }
+
+        var fontSize = WindowScaleService.GetToolTipFontSize(window.ContentScaleFactor);
+
+        ScaleToolTipsInSubtree(this, fontSize);
+
+        // Вкладки живут в собственном шаблоне TabView и в обход обхода страницы
+        // могут быть ещё не построены, поэтому обрабатываются отдельно и явно.
+        if (RootTabs is not null)
+        {
+            foreach (var item in RootTabs.TabItems)
+            {
+                if (item is DependencyObject tabItem)
+                {
+                    ScaleToolTipOn(tabItem, fontSize);
+                }
+            }
+        }
+    }
+
+    private static void ScaleToolTipsInSubtree(DependencyObject root, double fontSize)
+    {
+        ScaleToolTipOn(root, fontSize);
+
+        var childCount = VisualTreeHelper.GetChildrenCount(root);
+        for (var i = 0; i < childCount; i++)
+        {
+            ScaleToolTipsInSubtree(VisualTreeHelper.GetChild(root, i), fontSize);
+        }
+    }
+
+    /// <summary>
+    /// Приводит подсказку одного элемента. Подсказка, объявленная в XAML строкой,
+    /// оборачивается в `ToolTip`: у строки нет свойств оформления, поэтому задать
+    /// ей размер иначе нельзя. Повторный вызов уже находит готовый `ToolTip` и
+    /// только меняет размер, поэтому масштаб не накапливается.
+    /// </summary>
+    private static void ScaleToolTipOn(DependencyObject element, double fontSize)
+    {
+        var current = ToolTipService.GetToolTip(element);
+        if (current is null)
+        {
+            return;
+        }
+
+        if (current is not ToolTip toolTip)
+        {
+            toolTip = new ToolTip { Content = current };
+            ToolTipService.SetToolTip(element, toolTip);
+        }
+
+        // Снимаем трансформацию прежнего подхода: она обрезала длинные подсказки.
+        toolTip.RenderTransform = null;
+        toolTip.FontSize = fontSize;
     }
 
     private async void OnNotificationRequested(UserNotification notification)
