@@ -5,6 +5,7 @@ using LOOP.Next.Reporting;
 using LoopNext.Core.Models;
 using LoopNext.Core.Protocol;
 using LoopNext.Hardware;
+using LoopNext.Metrology;
 using LOOP_Next_App.Services;
 
 var checks = new List<(string Name, Action Run)>
@@ -73,22 +74,63 @@ var checks = new List<(string Name, Action Run)>
         Require(RingSignatureCatalog.TryParseEditableSignature("241", out var signature, out var error));
         Require(signature == 241 && error is null);
     }),
-    ("Signature 241 keeps the universal five-transmitter capacitance grid", () =>
+    ("Кольцо 241 несёт восемь ёмкостей и сдвига не требует", () =>
     {
-        Require(
-            RingSignatureCatalog.GetCapacitanceMappingProfile(241) ==
-            RingCapacitanceMappingProfile.UniversalFiveTransmitter);
-        // Прибор LWD 4 Tx: логические C5..C8 уходят в физический банк C6..C9.
-        Require(
-            RingMeasurementSequence.GetCommandCapacitance(
-                8,
-                5,
-                RingSignatureCatalog.GetCapacitanceMappingProfile(241)) == 6);
-        Require(
-            RingMeasurementSequence.GetCommandCapacitance(
-                8,
-                8,
-                RingSignatureCatalog.GetCapacitanceMappingProfile(241)) == 9);
+        // Подтверждено разработчиком кольца и прогоном 22.09: у меры с
+        // сигнатурой 241 восемь ёмкостей, банки C1..C4 и C5..C8. Девятой
+        // позиции нет - команда CAP 9 квитируется, но реле не переключает,
+        // и точка остаётся без отклика.
+        var profile = RingSignatureCatalog.GetCapacitanceMappingProfile(241);
+        Require(profile == RingCapacitanceMappingProfile.CompactFourTransmitter, "профиль кольца 241");
+
+        for (var logical = 1; logical <= 8; logical++)
+        {
+            Require(
+                RingMeasurementSequence.GetCommandCapacitance(8, logical, profile) == logical,
+                $"логическая C{logical} без сдвига");
+        }
+
+        // Ячейка реактивности совпадает с каналом один в один.
+        for (var channel = 0; channel < 8; channel++)
+        {
+            Require(
+                RingMeasurementSequence.GetChannelCellIndex(8, channel, profile) == channel,
+                $"канал {channel} читает свою ячейку");
+        }
+    }),
+    ("Кольцо 151 несёт десять ёмкостей и требует сдвига для 3 и 4 Tx", () =>
+    {
+        var profile = RingSignatureCatalog.GetCapacitanceMappingProfile(151);
+        Require(profile == RingCapacitanceMappingProfile.UniversalFiveTransmitter, "профиль кольца 151");
+
+        // Четыре передатчика: логические C5..C8 уходят в банк C6..C9.
+        int[] expectedFourTx = [1, 2, 3, 4, 6, 7, 8, 9];
+        for (var logical = 1; logical <= 8; logical++)
+        {
+            Require(
+                RingMeasurementSequence.GetCommandCapacitance(8, logical, profile) == expectedFourTx[logical - 1],
+                $"4 Tx: логическая C{logical}");
+            Require(
+                RingMeasurementSequence.GetChannelCellIndex(8, logical - 1, profile) == expectedFourTx[logical - 1] - 1,
+                $"4 Tx: ячейка канала {logical - 1}");
+        }
+
+        // Три передатчика: логические C4..C6 уходят в банк C6..C8.
+        int[] expectedThreeTx = [1, 2, 3, 6, 7, 8];
+        for (var logical = 1; logical <= 6; logical++)
+        {
+            Require(
+                RingMeasurementSequence.GetCommandCapacitance(6, logical, profile) == expectedThreeTx[logical - 1],
+                $"3 Tx: логическая C{logical}");
+        }
+
+        // Пять передатчиков занимают обе банки целиком, сдвигать нечего.
+        for (var logical = 1; logical <= 10; logical++)
+        {
+            Require(
+                RingMeasurementSequence.GetCommandCapacitance(10, logical, profile) == logical,
+                $"5 Tx: логическая C{logical}");
+        }
     }),
     ("Signature 241 accepts only four-transmitter LWD family tools", () =>
     {
@@ -165,33 +207,148 @@ var checks = new List<(string Name, Action Run)>
         Require(RingParameterLayout.GetRequiredWorkingCellCount(8) == 8);
         Require(RingParameterLayout.GetRequiredWorkingCellCount(10) == 10);
     }),
-    ("Fresh 4 Tx ring accepts eight resistances and eight reactances", () =>
+    ("Кольцо на восемь ёмкостей: 4 Tx читает реактивности подряд", () =>
     {
         var cells = CreateRingCells(
             resistanceCount: 8,
             reactanceCount: 8,
             returnedCellCount: 10);
-        var layout = RingParameterLayout.BuildParameterSet(cells, 8);
+        var layout = RingParameterLayout.BuildParameterSet(
+            cells,
+            8,
+            RingCapacitanceMappingProfile.CompactFourTransmitter);
 
         Require(layout.IsComplete);
         Require(layout.RequiredCellCount == 8);
         Require(layout.CompleteCellCount == 8);
         Require(layout.Parameters.Count == 8);
+
+        // Реактивность канала берётся из его собственной ячейки: Z_i = i + 0,5.
+        for (var channel = 0; channel < 8; channel++)
+        {
+            Require(
+                NearlyEqual(layout.Parameters[channel].Reactance, channel + 0.5f),
+                $"канал {channel} читает Z{channel}");
+        }
     }),
-    ("Fresh 3 Tx ring accepts R7 and R8 with inactive zero reactance", () =>
+    ("Кольцо на десять ёмкостей: 4 Tx читает высокочастотную группу со сдвигом", () =>
+    {
+        // Регрессия на прогон 22.09: приложение командовало физической ёмкостью
+        // со сдвигом, а эталонную реактивность брало по несдвинутому индексу,
+        // и все каналы 2001 кГц сравнивались с чужой мерой.
+        var cells = CreateRingCells(
+            resistanceCount: 8,
+            reactanceCount: 10,
+            returnedCellCount: 10);
+        var layout = RingParameterLayout.BuildParameterSet(
+            cells,
+            8,
+            RingCapacitanceMappingProfile.UniversalFiveTransmitter);
+
+        Require(layout.IsComplete);
+        Require(layout.Parameters.Count == 8);
+
+        // Каналы 0..3 читают Z0..Z3, каналы 4..7 - Z5..Z8.
+        int[] expectedCells = [0, 1, 2, 3, 5, 6, 7, 8];
+        for (var channel = 0; channel < 8; channel++)
+        {
+            Require(
+                NearlyEqual(layout.Parameters[channel].Reactance, expectedCells[channel] + 0.5f),
+                $"канал {channel} читает Z{expectedCells[channel]}");
+        }
+
+        // Сопротивления по-прежнему берутся по индексу набора: R1..R8 в Z0..Z7.
+        for (var index = 0; index < 8; index++)
+        {
+            Require(NearlyEqual(layout.Parameters[index].Resistance, index + 1f), $"R{index + 1} в Z{index}");
+        }
+    }),
+    ("Кольцо на десять ёмкостей: 3 Tx читает высокочастотную группу со сдвигом", () =>
     {
         var cells = CreateRingCells(
             resistanceCount: 8,
-            reactanceCount: 6,
+            reactanceCount: 10,
             returnedCellCount: 10);
-        var layout = RingParameterLayout.BuildParameterSet(cells, 6);
+        var layout = RingParameterLayout.BuildParameterSet(
+            cells,
+            6,
+            RingCapacitanceMappingProfile.UniversalFiveTransmitter);
 
         Require(layout.IsComplete);
         Require(layout.RequiredCellCount == 8);
-        Require(layout.CompleteCellCount == 8);
         Require(layout.Parameters.Count == 8);
-        Require(NearlyEqual(layout.Parameters[6].Reactance, 0f));
-        Require(NearlyEqual(layout.Parameters[7].Reactance, 0f));
+
+        // Каналы 0..2 читают Z0..Z2, каналы 3..5 - Z5..Z7.
+        int[] expectedCells = [0, 1, 2, 5, 6, 7];
+        for (var channel = 0; channel < 6; channel++)
+        {
+            Require(
+                NearlyEqual(layout.Parameters[channel].Reactance, expectedCells[channel] + 0.5f),
+                $"канал {channel} читает Z{expectedCells[channel]}");
+        }
+    }),
+    ("Обратное отображение ячейки на канал защищает запись в кольцо", () =>
+    {
+        // Запись обязана класть реактивность канала в ячейку его физической
+        // ёмкости. Позиции, которые прибору не принадлежат, относятся к пятому
+        // передатчику: рассчитать их нечем, и перезаписывать нельзя.
+        var universal = RingCapacitanceMappingProfile.UniversalFiveTransmitter;
+        int[] expectedOwners = [0, 1, 2, 3, -1, 4, 5, 6, 7, -1];
+        for (var cell = 0; cell < 10; cell++)
+        {
+            Require(
+                RingMeasurementSequence.GetCellChannelIndex(8, cell, universal) == expectedOwners[cell],
+                $"универсальное кольцо, 4 Tx: владелец Z{cell}");
+        }
+
+        // Три передатчика занимают ещё меньше позиций.
+        int[] expectedOwnersThreeTx = [0, 1, 2, -1, -1, 3, 4, 5, -1, -1];
+        for (var cell = 0; cell < 10; cell++)
+        {
+            Require(
+                RingMeasurementSequence.GetCellChannelIndex(6, cell, universal) == expectedOwnersThreeTx[cell],
+                $"универсальное кольцо, 3 Tx: владелец Z{cell}");
+        }
+
+        // На компактном кольце и на пятипередатчиковом приборе соответствие прямое.
+        for (var cell = 0; cell < 8; cell++)
+        {
+            Require(
+                RingMeasurementSequence.GetCellChannelIndex(
+                    8,
+                    cell,
+                    RingCapacitanceMappingProfile.CompactFourTransmitter) == cell,
+                $"компактное кольцо: владелец Z{cell}");
+        }
+
+        for (var cell = 0; cell < 10; cell++)
+        {
+            Require(
+                RingMeasurementSequence.GetCellChannelIndex(10, cell, universal) == cell,
+                $"5 Tx: владелец Z{cell}");
+        }
+    }),
+    ("Кольцо на восемь ёмкостей не считается полным по правилам универсального", () =>
+    {
+        // Восемь заполненных ячеек достаточно только для компактного кольца.
+        // Универсальное требует ещё и Z8 под четвёртый высокочастотный канал.
+        var cells = CreateRingCells(
+            resistanceCount: 8,
+            reactanceCount: 8,
+            returnedCellCount: 10);
+
+        Require(
+            RingParameterLayout.BuildParameterSet(
+                cells,
+                8,
+                RingCapacitanceMappingProfile.CompactFourTransmitter).IsComplete,
+            "компактное кольцо полно");
+        Require(
+            !RingParameterLayout.BuildParameterSet(
+                cells,
+                8,
+                RingCapacitanceMappingProfile.UniversalFiveTransmitter).IsComplete,
+            "универсальному кольцу не хватает Z8");
     }),
     ("Fresh 5 Tx ring requires ten reactances but only eight resistances", () =>
     {
@@ -818,6 +975,471 @@ var checks = new List<(string Name, Action Run)>
         Require(
             Math.Abs(WindowScaleService.GetAutoFitFactor(100000, 100000) - WindowScaleService.MaximumAutoFitFactor) < 0.000001,
             "clamped above");
+    }),
+    ("Незаполненные L1/L2 признаются непригодной геометрией", () =>
+    {
+        Require(new SondeParameter { L1 = 0.345f, L2 = 0.599f, Frequency = 401000f }.HasUsableGeometry, "исправный канал");
+        Require(!new SondeParameter { L1 = 0f, L2 = 0f, Frequency = 401000f }.HasUsableGeometry, "нули из метрологии");
+        Require(!new SondeParameter { L1 = 0.345f, L2 = 0f, Frequency = 401000f }.HasUsableGeometry, "нет L2");
+        Require(!new SondeParameter { L1 = 0.599f, L2 = 0.345f, Frequency = 401000f }.HasUsableGeometry, "L2 не больше L1");
+        Require(!new SondeParameter { L1 = 0.345f, L2 = 0.599f, Frequency = 0f }.HasUsableGeometry, "нет частоты");
+        Require(!new SondeParameter { L1 = float.NaN, L2 = 0.599f, Frequency = 401000f }.HasUsableGeometry, "NaN в геометрии");
+    }),
+    ("Прямая задача на вырожденной геометрии отдаёт NaN, а не число из неопределённости", () =>
+    {
+        var loop = new LoopParameter { Resistance = 1f, Reactance = 0.9018f, Radius = 0.5f, AdditionalWireResistance = 0.5f };
+        var degenerate = new SondeParameter { L1 = 0f, L2 = 0f, Frequency = 401000f };
+        var usable = new SondeParameter { L1 = 0.345f, L2 = 0.599f, Frequency = 401000f };
+
+        Require(float.IsNaN(LoopResistivity.DfiFromLoop(degenerate, loop)), "вырожденный канал");
+        Require(float.IsFinite(LoopResistivity.DfiFromLoop(usable, loop)), "исправный канал считается по-прежнему");
+    }),
+    ("Обратная задача завершается на вырожденной геометрии и на NaN-фазе", () =>
+    {
+        // Регрессия на зависание интерфейса: обе точки останова золотого сечения -
+        // сравнения с невязкой, а любое сравнение с NaN ложно, поэтому прежний
+        // do...while не завершался никогда и вешал поток, из которого его вызвали.
+        var degenerate = new SondeParameter { L1 = 0f, L2 = 0f, Frequency = 401000f };
+        var usable = new SondeParameter { L1 = 0.345f, L2 = 0.599f, Frequency = 401000f };
+
+        RequireCompletes(
+            () => Require(float.IsNaN(LoopResistivity.RoDfi(degenerate, 0.87f)), "вырожденная геометрия"),
+            "RoDfi на вырожденной геометрии");
+        RequireCompletes(
+            () => Require(float.IsNaN(LoopResistivity.RoDfi(usable, float.NaN)), "NaN-фаза"),
+            "RoDfi на NaN-фазе");
+        RequireCompletes(
+            () => Require(float.IsFinite(LoopResistivity.RoDfi(usable, 0.01f)), "исправный вход"),
+            "RoDfi на исправном входе");
+    }),
+    ("Эталоны прибора 320151303 считаются по заполненным каналам и NaN по пустым", () =>
+    {
+        // Реальная метрология прибора Автономный 5 Tx № 303: сигнатура объявляет
+        // пять передатчиков, а L1/L2 для T5 не заданы. Каналы 4 и 9 обязаны
+        // остаться без эталона, остальные восемь - посчитаться как прежде.
+        ushort[] l1 = [345, 720, 1100, 1480, 0];
+        ushort[] l2 = [599, 974, 1354, 1734, 0];
+        ushort[] frequencies = [401, 2001];
+
+        var sondeParameters = new List<SondeParameter>();
+        foreach (var frequency in frequencies)
+        {
+            for (var tx = 0; tx < 5; tx++)
+            {
+                sondeParameters.Add(new SondeParameter
+                {
+                    L1 = l1[tx] / 1000f,
+                    L2 = l2[tx] / 1000f,
+                    Frequency = frequency * 1000f
+                });
+            }
+        }
+
+        float[] resistances = [1f, 5f, 20f, 50f, 100f, 428f, 814f, 1500f, 0f, 0f];
+        float[] reactances = [0.9018f, 1.5395f, 1.8522f, 2.0095f, 4.5004f, 7.6801f, 9.2408f, 10.02f, 9.842f, 10.258f];
+        var loopParameters = new List<LoopParameter>();
+        for (var i = 0; i < 10; i++)
+        {
+            loopParameters.Add(new LoopParameter
+            {
+                Resistance = resistances[i],
+                Reactance = reactances[i],
+                Radius = 0.5f,
+                AdditionalWireResistance = 0.5f
+            });
+        }
+
+        RequireCompletes(
+            () =>
+            {
+                var phases = LoopResistivity.CalcPhaseFromLoop(sondeParameters, loopParameters);
+                var resistivities = LoopResistivity.CalcRoFromLoop(sondeParameters, phases);
+
+                Require(phases.Count == MeasurementTable.ResistanceCount + 1, "число наборов фаз");
+                Require(resistivities.Count == phases.Count, "число наборов УЭС");
+
+                for (var resistance = 1; resistance <= MeasurementTable.ResistanceCount; resistance++)
+                {
+                    foreach (var channel in new[] { 4, 9 })
+                    {
+                        Require(float.IsNaN(phases[resistance].GetValue(channel)), $"R{resistance} канал {channel}: фаза");
+                        Require(float.IsNaN(resistivities[resistance].GetValue(channel)), $"R{resistance} канал {channel}: УЭС");
+                    }
+
+                    foreach (var channel in new[] { 0, 1, 2, 3, 5, 6, 7, 8 })
+                    {
+                        Require(float.IsFinite(phases[resistance].GetValue(channel)), $"R{resistance} канал {channel}: фаза");
+                        Require(float.IsFinite(resistivities[resistance].GetValue(channel)), $"R{resistance} канал {channel}: УЭС");
+                    }
+                }
+            },
+            "расчёт эталонов на неполной метрологии");
+    }),
+    ("Ёмкость вырожденного канала не подменяется нижней границей поиска", () =>
+    {
+        // Прежде тернарный поиск на нулевой геометрии сползал на CapacitanceMin и
+        // выдавал 500,408 пФ с отрицательной реактивностью — значения, по виду
+        // неотличимые от расчётных и негодные к записи в кольцо.
+        var degenerate = RingCalibrationCalculator.Calculate(
+            new SondeParameter { L1 = 0f, L2 = 0f, Frequency = 401000f });
+        Require(float.IsNaN(degenerate.CapacitanceFarads), "ёмкость вырожденного канала");
+        Require(float.IsNaN(degenerate.Reactance), "реактивность вырожденного канала");
+        Require(
+            double.IsNaN(RingCalibrationCalculator.CMaxFi(
+                401000,
+                RingCalibrationCalculator.DefaultLoopRadius,
+                RingCalibrationCalculator.DefaultLoopInductance,
+                0,
+                0)),
+            "прямой вызов C_max_fi");
+
+        var usable = RingCalibrationCalculator.Calculate(
+            new SondeParameter { L1 = 0.345f, L2 = 0.599f, Frequency = 401000f });
+        Require(float.IsFinite(usable.CapacitanceFarads) && usable.CapacitanceFarads > 0f, "ёмкость исправного канала");
+        Require(float.IsFinite(usable.Reactance) && usable.Reactance > 0f, "реактивность исправного канала");
+    }),
+    ("Оба поколения отвечают одинаково устроенным length-framed пакетом", () =>
+    {
+        // Старая прошивка ставит в поле длины постоянные 245 (main_LWD_1DDS,
+        // GetDataCommand), новая вычисляет struct_size + 5 = 325. Разбор один.
+        var legacyFrame = new byte[ToolProtocolConstants.ToolDataSize];
+        BitConverter.GetBytes(0x000386BEu).CopyTo(legacyFrame, 0);
+        var legacyPacket = ToolSerialTransport.BuildFramedPacket(ToolProtocolConstants.CmdGetData, legacyFrame);
+        Require(legacyPacket.Length == 245, "длина пакета старой прошивки");
+        Require(legacyPacket[1] == 245 && legacyPacket[2] == 0, "поле длины старой прошивки");
+
+        var extendedFrame = new byte[ToolProtocolConstants.ExtendedToolDataSize];
+        BitConverter.GetBytes(320151303u).CopyTo(extendedFrame, 0);
+        var extendedPacket = ToolSerialTransport.BuildFramedPacket(ToolProtocolConstants.CmdGetData, extendedFrame);
+        Require(extendedPacket.Length == 325, "длина пакета новой прошивки");
+        Require(extendedPacket[1] == 0x45 && extendedPacket[2] == 0x01, "поле длины новой прошивки");
+
+        foreach (var packet in new[] { legacyPacket, extendedPacket })
+        {
+            Require(
+                ToolSerialTransport.ParseFramedPacket(packet, out var cmd, out var payload) == ToolResponseCode.Ok,
+                "разбор пакета");
+            Require(cmd == ToolProtocolConstants.CmdGetData, "код команды");
+            Require(ToolProtocolConstants.IsKnownFrameSize(payload.Length), "размер кадра известен");
+        }
+
+        Require(!ToolProtocolConstants.IsKnownFrameSize(242), "242 не является размером кадра");
+        Require(!ToolProtocolConstants.IsKnownFrameSize(0), "нулевой размер кадра");
+    }),
+    ("Ответ метрологии совпадает у обоих транспортов побайтово", () =>
+    {
+        // Транспорт фиксированной длины - это тот же пакет, у которого поле длины
+        // отдано в нагрузку. Проверка фиксирует это как контракт: прежняя ветка
+        // читала LEN как два служебных байта и работала только поэтому.
+        var metrology = new byte[ToolProtocolConstants.ToolMetrologySize];
+        BitConverter.GetBytes(0x13151F07u).CopyTo(metrology, 0);
+        var packet = ToolSerialTransport.BuildFramedPacket(ToolProtocolConstants.CmdGetMetrology, metrology);
+
+        Require(packet.Length == 245, "длина пакета метрологии");
+        Require(packet[1] == 0xF5 && packet[2] == 0x00, "поле длины метрологии");
+
+        // Прочтение «фиксированной длиной»: нагрузка 242 = 2 служебных + 240.
+        var fixedLengthPayload = packet.AsSpan(1, ToolProtocolConstants.ToolPayloadLength);
+        Require(
+            fixedLengthPayload[..ToolProtocolConstants.ToolServicePrefixLength].SequenceEqual(packet.AsSpan(1, 2)),
+            "служебные байты - это поле длины");
+        Require(
+            fixedLengthPayload[ToolProtocolConstants.ToolServicePrefixLength..].SequenceEqual(metrology),
+            "структура совпадает при обоих способах чтения");
+    }),
+    ("Знак ориентации фазы задаётся чётностью Tx и не зависит от Rx_Position", () =>
+    {
+        // Все три исходника прошивки (main_AUTO_5Tx.txt, main_LWD_1DDS,
+        // LWD_1_DDS_ATT_UES (2).c) берут Dir = (Tx % 2 == 0) ? +1 : -1, а
+        // Rx_Position обслуживают перестановкой каналов АЦП до расчёта DELTA_PH.
+        int[] expected = [1, -1, 1, -1, 1];
+        for (uint tx = 0; tx < 5; tx++)
+        {
+            Require(PhaseMath.TxPhaseOrientationSign(tx) == expected[tx], $"знак T{tx + 1}");
+        }
+
+        // Прежний расчёт совпадал с прошивкой только при Rx_Position == 0.
+        for (uint tx = 0; tx < 5; tx++)
+        {
+            Require(
+                PhaseMath.LegacyRxPhaseOrientationSign(tx, 0) == expected[tx],
+                $"прежний знак при Rx_Position=0, T{tx + 1}");
+            Require(
+                PhaseMath.LegacyRxPhaseOrientationSign(tx, 1) == -expected[tx],
+                $"прежний знак при Rx_Position=1 переворачивался, T{tx + 1}");
+        }
+
+        // Применение знака к сырой разности фаз.
+        Require(Math.Abs(PhaseMath.ApplyTxPhaseOrientation(0.5f, 0f, 0) - 0.5f) < 1e-6f, "T1 без переворота");
+        Require(Math.Abs(PhaseMath.ApplyTxPhaseOrientation(0.5f, 0f, 1) + 0.5f) < 1e-6f, "T2 с переворотом");
+    }),
+    ("Байт состояния разбирается одинаково в обоих поколениях", () =>
+    {
+        // 00000000 00000000 00054321 00054321: биты 8..12 - 400 кГц, 0..4 - 2000 кГц.
+        const uint allActive4Tx = 0x00000F0Fu;
+        for (var tx = 0; tx < 4; tx++)
+        {
+            Require(GpToolData.IsTransmitterActive(allActive4Tx, 0, tx), $"400 кГц T{tx + 1}");
+            Require(GpToolData.IsTransmitterActive(allActive4Tx, 1, tx), $"2000 кГц T{tx + 1}");
+        }
+
+        Require(!GpToolData.IsTransmitterActive(allActive4Tx, 0, 4), "400 кГц T5 отсутствует");
+        Require(!GpToolData.IsTransmitterActive(allActive4Tx, 1, 4), "2000 кГц T5 отсутствует");
+
+        Require(GpToolData.GetConditionByte(0x00001F1Fu, 0) == 0x1F, "байт 400 кГц");
+        Require(GpToolData.GetConditionByte(0x00001F1Fu, 1) == 0x1F, "байт 2000 кГц");
+
+        // Отказ третьего передатчика на 2000 кГц при исправных 400 кГц.
+        const uint thirdDeadOnHighFrequency = 0x00001F1Bu;
+        Require(GpToolData.IsTransmitterActive(thirdDeadOnHighFrequency, 0, 2), "400 кГц T3 работает");
+        Require(!GpToolData.IsTransmitterActive(thirdDeadOnHighFrequency, 1, 2), "2000 кГц T3 молчит");
+    }),
+    ("Поля метрологии новой прошивки читаются по документированным смещениям", () =>
+    {
+        // Байты взяты из metrology_32023.bin реального прибора 320151303.
+        var metrology = new byte[ExtendedMetrologyFields.MetrologySize];
+        BitConverter.GetBytes(0x13151F07u).CopyTo(metrology, 0);
+        BitConverter.GetBytes(-14.065260f).CopyTo(metrology, ExtendedMetrologyFields.AirAttenuationDbOffset);
+        BitConverter.GetBytes(-4.033413f).CopyTo(metrology, ExtendedMetrologyFields.AirAttenuationDbOffset + (9 * 4));
+        BitConverter.GetBytes(1790064966L).CopyTo(metrology, ExtendedMetrologyFields.WriteTimestampOffset);
+
+        Require(ExtendedMetrologyFields.AirAttenuationDbOffset == 84, "смещение поправок затухания");
+        Require(ExtendedMetrologyFields.WriteTimestampOffset == 124, "смещение отметки времени");
+
+        Require(ExtendedMetrologyFields.TryReadAirAttenuationDb(metrology, 0, 0, out var first), "F1T1 читается");
+        Require(Math.Abs(first + 14.065260f) < 1e-4f, "F1T1 значение");
+        Require(ExtendedMetrologyFields.TryReadAirAttenuationDb(metrology, 1, 4, out var last), "F2T5 читается");
+        Require(Math.Abs(last + 4.033413f) < 1e-4f, "F2T5 значение");
+
+        Require(ExtendedMetrologyFields.TryReadWriteTimestamp(metrology, out var timestamp), "отметка читается");
+        Require(timestamp.ToUnixTimeSeconds() == 1790064966L, "отметка совпадает");
+
+        // Неразмеченная память и метрология до появления поля отметки не дают.
+        var blank = new byte[ExtendedMetrologyFields.MetrologySize];
+        Require(!ExtendedMetrologyFields.TryReadWriteTimestamp(blank, out _), "нули отметки не дают");
+        var erased = new byte[ExtendedMetrologyFields.MetrologySize];
+        erased.AsSpan(ExtendedMetrologyFields.WriteTimestampOffset, 8).Fill(0xFF);
+        Require(!ExtendedMetrologyFields.TryReadWriteTimestamp(erased, out _), "0xFF отметки не дают");
+    }),
+    ("Запись метрологии новой прошивки идёт отдельным кодом команды", () =>
+    {
+        // У старой прошивки отдельного кода записи нет: запись идёт тем же 0x13,
+        // что и чтение. Новая развела их, и отправка 0x13 с нагрузкой в новый
+        // прибор обработчика не найдёт.
+        Require(ToolProtocolConstants.CmdSetMetrologyExtended == 0x12, "код записи метрологии");
+        Require(ToolProtocolConstants.CmdGetMetrology == 0x13, "код чтения метрологии");
+        Require(
+            ToolProtocolConstants.CmdSetMetrologyExtended != ToolProtocolConstants.CmdGetMetrology,
+            "коды чтения и записи различаются");
+    }),
+    ("Точка с малым эталоном не объявляется молчащей", () =>
+    {
+        // Порог обнаружения не опускается ниже 100 мГ. На больших сопротивлениях
+        // сам эталон падает до десятков мГ, и безупречное измерение его не
+        // превысит. Такие точки обязаны оставаться неопределёнными, иначе
+        // исправный прогон будет прерван как обрыв связи.
+        var monitor = new RingFirmwarePointMonitor();
+        monitor.Observe(1, 1000, 40, 46, false);
+        monitor.Observe(2, 2000, 45, 46, false);
+        monitor.Observe(3, 3000, 44, 46, true);
+        monitor.Observe(4, 4000, 43, 46, true);
+
+        Require(
+            monitor.BuildSummary().State == RingFirmwareRetentionState.Inconclusive,
+            "эталон ниже порога обнаружения");
+
+        // Эталон с запасом над порогом по-прежнему классифицируется.
+        var confident = new RingFirmwarePointMonitor();
+        confident.Observe(1, 1000, 20, 1000, false);
+        confident.Observe(2, 2000, 30, 1000, true);
+        confident.Observe(3, 3000, 25, 1000, true);
+        Require(
+            confident.BuildSummary().State == RingFirmwareRetentionState.NoResponse,
+            "молчащее кольцо при большом эталоне");
+    }),
+    ("Реальная точка R1 C1 прибора 320151303 признаётся удержанной", () =>
+    {
+        // Единственная точка, взятая до обрыва связи 22.09: эталон 49942 мГ,
+        // измерено 48290 мГ, отклонение -2%. Классификация обязана быть held,
+        // иначе новое прерывание прогона срежет исправные точки.
+        var monitor = new RingFirmwarePointMonitor();
+        monitor.Observe(1, 1000, 47800, 49942.120, false);
+        monitor.Observe(2, 2000, 48100, 49942.120, false);
+        monitor.Observe(3, 3000, 48290, 49942.120, true);
+        monitor.Observe(4, 4000, 48210, 49942.120, true);
+        monitor.Observe(5, 5000, 48350, 49942.120, true);
+
+        var summary = monitor.BuildSummary();
+        Require(summary.State == RingFirmwareRetentionState.Held, "точка удержана");
+        Require(summary.RetentionRatio >= 0.5, "отношение удержания");
+    }),
+    ("Устаревший первый кадр не выдаётся за отклик кольца", () =>
+    {
+        // Реальная точка R1/C8 Картографа 22.09: первый кадр повторил состояние
+        // предыдущей точки C7, кадры 2..10 - шум. Кольцо меру не включало, и
+        // объявлять её удержанной и отпущенной нельзя.
+        var monitor = new RingFirmwarePointMonitor();
+        double[] measuredPhasesMg =
+        [
+            110298.024, 27.682, -7.042, -0.520, -48.440,
+            1.646, 9.391, -23.599, -21.980, 24.359
+        ];
+        for (var index = 0; index < measuredPhasesMg.Length; index++)
+        {
+            monitor.Observe(index + 1, (index + 1) * 1000.0, measuredPhasesMg[index], 107443.688, index + 1 > 5);
+        }
+
+        var summary = monitor.BuildSummary();
+        Require(summary.State == RingFirmwareRetentionState.NoResponse, "отклика не было");
+        Require(summary.PeakFrame != 1, "первый кадр не может быть пиком");
+
+        // Отклик со второго кадра уликой является: он снят заведомо после команды.
+        var genuine = new RingFirmwarePointMonitor();
+        double[] droppedPhasesMg =
+        [
+            -7.691, 38270.855, 733.620, 17.773, 12.147,
+            10.382, -1.059, -25.661, -2.097, 9.132
+        ];
+        for (var index = 0; index < droppedPhasesMg.Length; index++)
+        {
+            genuine.Observe(index + 1, (index + 1) * 1000.0, droppedPhasesMg[index], 53578.801, index + 1 > 5);
+        }
+
+        Require(
+            genuine.BuildSummary().State == RingFirmwareRetentionState.Dropped,
+            "отклик со второго кадра остаётся сорванной мерой");
+    }),
+    ("Реальные точки R1 C3..C5 признаются молчащими", () =>
+    {
+        // Те же прогон и прибор: эталоны десятки тысяч мГ, измерено единицы.
+        (double Reference, double Measured)[] points =
+        [
+            (45782.497, 11.012),
+            (39620.154, -89.755),
+            (7994.514, 329.322)
+        ];
+
+        foreach (var (reference, measured) in points)
+        {
+            var monitor = new RingFirmwarePointMonitor();
+            monitor.Observe(1, 1000, measured * 0.8, reference, false);
+            monitor.Observe(2, 2000, measured, reference, false);
+            monitor.Observe(3, 3000, measured * 0.9, reference, true);
+            monitor.Observe(4, 4000, measured * 1.1, reference, true);
+
+            Require(
+                monitor.BuildSummary().State == RingFirmwareRetentionState.NoResponse,
+                $"эталон {reference:F0} мГ, измерено {measured:F0} мГ");
+        }
+    }),
+    ("Порог предупреждения о медленном открытии порта кольца", () =>
+    {
+        // Исправный порт открывается за десятки миллисекунд; 22.09 COM12
+        // открывался 4184 мс и оборвался посреди прогона.
+        Require(RingConnection.SlowPortOpenWarningMs == 1000, "порог предупреждения");
+
+        var healthy = new RingConnectResult(RingConnection.RingConnectStatus.Connected, RingDeviceInfo.Legacy, 37);
+        Require(healthy.IsConnected && !healthy.IsLinkSlow, "здоровый канал");
+
+        var slow = new RingConnectResult(RingConnection.RingConnectStatus.Connected, RingDeviceInfo.Legacy, 4184);
+        Require(slow.IsConnected && slow.IsLinkSlow, "канал 22.09 признаётся нездоровым");
+
+        // Прежняя форма результата без времени открытия не должна считаться медленной.
+        var legacyShape = new RingConnectResult(RingConnection.RingConnectStatus.Connected, RingDeviceInfo.Legacy);
+        Require(!legacyShape.IsLinkSlow, "нет сведений о времени открытия");
+    }),
+    ("Транспорт выбирается по поколению прошивки, а не по типу прибора", () =>
+    {
+        // Поле длины отсутствует только у Картографа LWD 4tx старой прошивки.
+        var legacyCartograph = ToolIdentity.Decode(349001u);
+        Require(legacyCartograph.IsCartographLwd4TxMode, "старый Картограф распознан");
+        Require(!legacyCartograph.IsExtendedFirmware, "старый Картограф: кадр 240");
+        Require(ToolPort.UsesFixedLengthTransport(in legacyCartograph), "старый Картограф: фиксированная длина");
+
+        // Перепрошитый Картограф отвечает как все остальные приборы.
+        var extendedCartograph = ToolIdentity.Decode(320349001u);
+        Require(extendedCartograph.IsCartographLwd4TxMode, "новый Картограф распознан");
+        Require(extendedCartograph.IsExtendedFirmware, "новый Картограф: кадр 320");
+        Require(!ToolPort.UsesFixedLengthTransport(in extendedCartograph), "новый Картограф: поле длины");
+
+        foreach (var signature in new[] { 0x00024FCEu, 0x3143ADD1u, 320151303u, 320242107u })
+        {
+            var identity = ToolIdentity.Decode(signature);
+            Require(
+                !ToolPort.UsesFixedLengthTransport(in identity),
+                $"0x{signature:X8}: Автоном и LWD всегда с полем длины");
+        }
+    }),
+    ("Кадр Картографа 320349001 разбирается как length-framed", () =>
+    {
+        // Первые байты реального ответа прибора, снятые 22.09:
+        //   11 45 01 | 49 23 18 13 | 0F 0F 00 00 | 57 00 00 00 | 40 9A B5 41
+        //   CMD LEN    сигнатура     condition     frame=87      t=22,7 °C
+        var frame = new byte[ToolProtocolConstants.ExtendedToolDataSize];
+        Convert.FromHexString("492318130F0F00005700000040 9AB541".Replace(" ", "")).CopyTo(frame, 0);
+        var packet = ToolSerialTransport.BuildFramedPacket(ToolProtocolConstants.CmdGetData, frame);
+
+        Require(packet.Length == 325, "длина пакета");
+        Require(packet[0] == 0x11 && packet[1] == 0x45 && packet[2] == 0x01, "заголовок 11 45 01");
+        Require(
+            ToolSerialTransport.ParseFramedPacket(packet, out var cmd, out var payload) == ToolResponseCode.Ok,
+            "пакет разбирается");
+        Require(cmd == ToolProtocolConstants.CmdGetData, "код команды");
+        Require(payload.Length == ToolProtocolConstants.ExtendedToolDataSize, "размер кадра");
+
+        var data = MemoryMarshal.Read<GpToolData>(payload);
+        Require(data.Signature == 320349001u, "сигнатура кадра");
+        Require(data.Condition == 0x00000F0Fu, "байт состояния");
+        Require(data.Frame == 87u, "номер кадра");
+        Require(Math.Abs(data.Temperature - 22.7f) < 0.05f, "температура");
+
+        // Все четыре передатчика Картографа объявлены рабочими на обеих частотах.
+        for (var tx = 0; tx < 4; tx++)
+        {
+            Require(GpToolData.IsTransmitterActive(data.Condition, 0, tx), $"400 кГц T{tx + 1}");
+            Require(GpToolData.IsTransmitterActive(data.Condition, 1, tx), $"2000 кГц T{tx + 1}");
+        }
+
+        Require(!GpToolData.IsTransmitterActive(data.Condition, 0, 4), "T5 у Картографа отсутствует");
+
+        // Прежнее чтение фиксированной длиной обрывало пакет на 245 байтах и
+        // сравнивало как CRC середину кадра - отсюда были CrcError и тайм-ауты.
+        var truncated = packet.AsSpan(0, ToolProtocolConstants.ToolPacketLength);
+        var wrongCrc = (ushort)(truncated[^2] | (truncated[^1] << 8));
+        Require(Crc16.Compute(packet, 243) != wrongCrc, "усечённое чтение обязано не сходиться по CRC");
+    }),
+    ("Новая прошивка общая: Картограф разбирается на тех же условиях, что LWD", () =>
+    {
+        // Картограф в режиме LWD перепрошит тем же файлом, что Автономный и LWD.
+        // get_sonde_id новой прошивки модификацию в выборе ветки не использует,
+        // поэтому для нового поколения она не должна решать ничего и у нас.
+        foreach (var modification in new uint[] { 1, 2, 9 })
+        {
+            var signature = 320_000_000u + (3u * 100_000u) + (4u * 10_000u) + (modification * 1_000u) + 7u;
+            var identity = ToolIdentity.Decode(signature);
+            Require(identity.IsValid, $"новый Картограф 4 Tx мод.{modification} поддержан");
+            Require(identity.TransmitterCount == 4, $"число передатчиков, мод.{modification}");
+            Require(identity.IsCartographLwd4TxMode, $"режим LWD 4tx, мод.{modification}");
+            Require(!ToolPort.UsesFixedLengthTransport(in identity), $"поле длины, мод.{modification}");
+        }
+
+        // Пять передатчиков у новой прошивки берутся буквально: прошивка
+        // опрашивает ровно N_Tx из сигнатуры, и подгонять 5 под 4 нельзя.
+        var extendedFiveTx = ToolIdentity.Decode(320359007u);
+        Require(extendedFiveTx.IsValid, "новый Картограф 5 Tx поддержан");
+        Require(extendedFiveTx.TransmitterCount == 5, "пять передатчиков не подгоняются под четыре");
+        Require(!extendedFiveTx.IsCartographLwd4TxMode, "это не режим LWD 4tx");
+
+        // Старое поколение сохраняет исторические правила без изменений.
+        var legacyFourTx = ToolIdentity.Decode(349007u);
+        Require(legacyFourTx.IsValid && legacyFourTx.TransmitterCount == 4, "старый Картограф 349");
+        var legacyFiveTx = ToolIdentity.Decode(359007u);
+        Require(legacyFiveTx.IsValid && legacyFiveTx.TransmitterCount == 4, "старый Картограф 359 -> 4 Tx");
+        var legacyWrongModification = ToolIdentity.Decode(341007u);
+        Require(!legacyWrongModification.IsValid, "старый Картограф без модификации 9 не поддержан");
+        Require(
+            !legacyWrongModification.IsCartographLwd4TxMode,
+            "неподдержанный прибор не уводит обмен в транспорт фиксированной длины");
     })
 };
 
@@ -969,4 +1591,18 @@ static void Require(bool condition, string message = "assertion failed")
     {
         throw new InvalidOperationException(message);
     }
+}
+
+// Проверка на незавершаемость: расчёт обязан вернуть управление. Без ограничения
+// по времени регрессия «цикл не сходится» повесила бы сам набор проверок вместо
+// того, чтобы его провалить.
+static void RequireCompletes(Action action, string message, int timeoutSeconds = 10)
+{
+    var task = Task.Run(action);
+    if (!task.Wait(TimeSpan.FromSeconds(timeoutSeconds)))
+    {
+        throw new InvalidOperationException($"{message}: расчёт не завершился за {timeoutSeconds} с");
+    }
+
+    task.GetAwaiter().GetResult();
 }

@@ -56,15 +56,28 @@ public static class RingMeasurementSequence
             logicalCapacitance,
             RingCapacitanceMappingProfile.CompatibilityFallback);
 
+    /// <summary>
+    /// Физическая ёмкость, которую нужно назвать кольцу для логической точки.
+    /// </summary>
+    /// <remarks>
+    /// Сдвиг существует только у колец с десятью ёмкостями: прибор на три или
+    /// четыре передатчика занимает не весь первый банк, и его высокочастотная
+    /// группа начинается с первой позиции второго банка (C6).
+    ///
+    /// У кольца на восемь ёмкостей банки короче и совпадают с каналами прибора
+    /// один в один, поэтому сдвигать нечего: девятой позиции там нет, и команда
+    /// <c>CAP 9</c> была бы подтверждена, но ни одного реле не переключила бы.
+    /// </remarks>
     public static int GetCommandCapacitance(
         int channelCount,
         int logicalCapacitance,
         RingCapacitanceMappingProfile mappingProfile)
     {
-        // Оба текущих профиля используют физические банки универсального
-        // 5-TX кольца. Раздельные значения профиля оставлены намеренно:
-        // сигнатура 151 выбирает подтверждённую ветку, fallback сохраняет
-        // поведение ещё не промаркированных колец в период миграции.
+        if (mappingProfile == RingCapacitanceMappingProfile.CompactFourTransmitter)
+        {
+            return logicalCapacitance;
+        }
+
         var transmitterCount = channelCount / 2;
         var hasTwoCompleteFrequencyGroups =
             channelCount > 0 &&
@@ -77,6 +90,48 @@ public static class RingMeasurementSequence
         }
 
         return logicalCapacitance + RingPhysicalGroupSize - transmitterCount;
+    }
+
+    /// <summary>
+    /// Индекс ячейки <c>Z</c>, в которой лежит реактивность канала.
+    /// </summary>
+    /// <remarks>
+    /// Ячейки кольца пронумерованы по физическим ёмкостям, а не по каналам
+    /// прибора. Значит, эталонную реактивность канала нужно брать по тому же
+    /// правилу, по которому каналу назначается ёмкость: иначе приложение
+    /// командует правильной мерой и сравнивает её с чужим эталоном.
+    ///
+    /// Логическая ёмкость канала равна его номеру, считая с единицы.
+    /// </remarks>
+    public static int GetChannelCellIndex(
+        int channelCount,
+        int channelIndex,
+        RingCapacitanceMappingProfile mappingProfile) =>
+        GetCommandCapacitance(channelCount, channelIndex + 1, mappingProfile) - 1;
+
+    /// <summary>
+    /// Канал, которому принадлежит ячейка <c>Z</c>, либо -1.
+    /// </summary>
+    /// <remarks>
+    /// На универсальном кольце прибор с тремя или четырьмя передатчиками
+    /// занимает не все позиции: свободные относятся к пятому передатчику и
+    /// этому прибору неизвестны. Их нельзя ни рассчитать, ни перезаписать - при
+    /// записи такие ячейки обязаны сохранить прежнее значение кольца.
+    /// </remarks>
+    public static int GetCellChannelIndex(
+        int channelCount,
+        int cellIndex,
+        RingCapacitanceMappingProfile mappingProfile)
+    {
+        for (var channel = 0; channel < channelCount; channel++)
+        {
+            if (GetChannelCellIndex(channelCount, channel, mappingProfile) == cellIndex)
+            {
+                return channel;
+            }
+        }
+
+        return -1;
     }
 
     public static int GetExpectedPhysicalCapacitance(int channelCount, int logicalCapacitance) =>

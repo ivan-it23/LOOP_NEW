@@ -44,6 +44,11 @@ public partial class MainPageViewModel : ObservableObject
     // для установления режима. Они не входят в выбранное пользователем среднее:
     // при SelectedAveraging=5 усредняются ровно кадры 6..10.
     private const int MeasurementSkipFrames = 5;
+
+    // Сколько подряд не удержанных точек считать обрывом связи с кольцом.
+    // Одиночный срыв бывает и на исправной линии, поэтому порог не единичный;
+    // две точки подряд - это уже не случайность, а потерянная мера.
+    private const int UnresponsivePointsBeforeAbort = 2;
     private const double CompactIdentificationPanelWidth = 470;
     private const double ExpandedIdentificationPanelWidth = 540;
     private const int ExpandedIdentificationTypeNameLength = 14;
@@ -60,7 +65,12 @@ public partial class MainPageViewModel : ObservableObject
 
     private CancellationTokenSource? _pollCts;
     private IReadOnlyList<SondeParameter> _sondeParameters = Array.Empty<SondeParameter>();
+    // Номера передатчиков (с единицы), у которых в метрологии не заданы L1/L2.
+    private IReadOnlyList<int> _incompleteGeometryTransmitters = Array.Empty<int>();
     private IReadOnlyList<LoopParameter> _loopParameters = Array.Empty<LoopParameter>();
+    // Последние прочитанные ячейки кольца как есть. Нужны при записи: позиции,
+    // которые этому прибору не принадлежат, обязаны сохранить прежнее значение.
+    private IReadOnlyList<RingLoopParameterCell> _ringCells = Array.Empty<RingLoopParameterCell>();
     private IReadOnlyList<V10> _phaseReferences = Array.Empty<V10>();
     private IReadOnlyList<V10> _resistivityReferences = Array.Empty<V10>();
     private readonly Queue<float>[,] _resistancePercentBuffers = new Queue<float>[MeasurementTable.ResistanceCount, V10.ChannelCount];
@@ -74,6 +84,10 @@ public partial class MainPageViewModel : ObservableObject
     private readonly object _autoLock = new();
     private TaskCompletionSource<bool>? _autoMeasurementCompleteTcs;
     private uint _rxPosition;
+    // Байт состояния последнего принятого кадра: прибор сам сообщает, какие
+    // передатчики живые. Обновляется в потоке опроса, читается при заполнении
+    // таблицы, поэтому доступ идёт через Volatile.
+    private uint _lastFrameCondition;
     private GpToolMetrology _metrology;
     private int _frameCounter;
     private string _ringWorkflowId = "none";
@@ -84,6 +98,11 @@ public partial class MainPageViewModel : ObservableObject
     private readonly Dictionary<int, RingFirmwarePointMonitor> _activeFirmwarePointMonitors = new();
     private long _activeMeasurementPointStartedTimestamp;
     private bool _activeFirmwarePointSummaryLogged = true;
+    // Сколько точек подряд кольцо подтвердило командой, но прибор не увидел
+    // отклика. Растёт, когда связь с кольцом уже оборвалась, а квитанции ещё
+    // приходят; обнуляется на первой же удержанной точке.
+    private int _consecutiveUnresponsivePoints;
+    private string _lastPointRetentionState = "inconclusive";
 
     public MainPageViewModel()
     {
@@ -122,16 +141,25 @@ public partial class MainPageViewModel : ObservableObject
 
     public ObservableCollection<int> ThresholdOptions { get; } = new() { 5, 6, 7, 8, 9, 10 };
 
+    // Метрология зонда описывает все передатчики, объявленные его сигнатурой.
+    // Пока хотя бы у одного не заданы L1/L2, эталонные фазы для его каналов не
+    // существуют, и заполнять таблицу нечем.
+    public bool IsMetrologyGeometryComplete => _incompleteGeometryTransmitters.Count == 0;
+
+    public string IncompleteGeometryTransmittersText =>
+        string.Join(", ", _incompleteGeometryTransmitters.Select(tx => $"T{tx}"));
+
     public bool CanStartSingleResistance =>
         IsConnected &&
         IsRingConnected &&
         IsCurrentToolSupportedByRing &&
+        IsMetrologyGeometryComplete &&
         !IsAutoMode &&
         !IsResistanceMeasurementRunning;
 
     public bool CanToggleAutoMode =>
         IsAutoMode ||
-        (!IsResistanceMeasurementRunning && IsCurrentToolSupportedByRing);
+        (!IsResistanceMeasurementRunning && IsCurrentToolSupportedByRing && IsMetrologyGeometryComplete);
 
     public bool CanReadMetrologyFromFile => !IsConnected;
 
@@ -648,6 +676,8 @@ public partial class MainPageViewModel : ObservableObject
         }
 
         ApplyIdentification(in _metrology);
+        ReportSignatureMismatch(result.ProbedSignature, _metrology.Signature);
+        EvaluateMetrologyGeometry("tool", showUserMessage: true);
         BuildChannels(_sondeParameters, in _metrology);
         BuildRingCalibrationRows(_sondeParameters);
         CalculateRingCalibrationCore(showUserMessage: false, populateMissingMeasuredValues: false);
@@ -662,9 +692,11 @@ public partial class MainPageViewModel : ObservableObject
 
         StatusText = CurrentRingToolCompatibility == RingToolCompatibility.Unsupported
             ? $"Прибор {ToolTypeName} не поддерживается кольцом {_ringDeviceInfo.Signature}"
-            : result.Metrology.Signature != 0
-                ? "Прибор подключён, метрология считана"
-                : "Порт открыт, метрология не считана";
+            : !IsMetrologyGeometryComplete
+                ? $"Метрология неполная: не заданы L1/L2 для {IncompleteGeometryTransmittersText}"
+                : result.Metrology.Signature != 0
+                    ? "Прибор подключён, метрология считана"
+                    : "Порт открыт, метрология не считана";
 
         StartPolling();
     }
@@ -724,6 +756,20 @@ public partial class MainPageViewModel : ObservableObject
                 "RING_FIRMWARE_DIAG",
                 "PROTOCOL_CAPABILITIES",
                 $"workflow={_ringWorkflowId}|ring_port={portName}|profile={result.DeviceInfo.ProtocolVersion}|signature={result.DeviceInfo.Signature?.ToString(CultureInfo.InvariantCulture) ?? "none"}|selection_semantics=documented_single_RES_and_single_CAP|state_readback_supported=false|RESREAD_supported=false|CAPREAD_supported=false|keepalive_requirement=undocumented|physical_state_evidence=corrected_tool_phase");
+
+            // Долгое открытие порта - предвестник обрыва посреди прогона.
+            // Сказать об этом нужно сейчас, а не после испорченного прогона.
+            if (result.IsLinkSlow)
+            {
+                AppLogger.Write(
+                    $"RING_LINK_SLOW: порт {portName} открывался {result.PortOpenElapsedMs} мс — канал нездоров.");
+                RaiseUserMessage(
+                    "Связь с кольцом неустойчива",
+                    $"Порт {portName} открывался {result.PortOpenElapsedMs / 1000.0:F1} с вместо обычных долей секунды. " +
+                    "Кольцо подключено, но такой канал обычно рвётся посреди прогона, и таблица остаётся незаполненной.\n\n" +
+                    "Перед измерениями стоит выключить и включить питание кольца, проверить заряд, " +
+                    "а при подключении по Bluetooth — заново выполнить сопряжение или перейти на проводное соединение.");
+            }
             StatusText = CurrentRingToolCompatibility == RingToolCompatibility.Unsupported
                 ? $"Кольцо {result.DeviceInfo.Signature} не поддерживает прибор {ToolTypeName}"
                 : result.DeviceInfo.ProtocolVersion == RingProtocolVersion.Extended
@@ -1234,13 +1280,30 @@ public partial class MainPageViewModel : ObservableObject
         ClearInactiveRingCalculationRows(count);
         var populatedMeasuredValues = 0;
         var preservedMeasuredValues = 0;
+        var skippedChannels = 0;
         for (var i = 0; i < count; i++)
         {
             var parameter = parameters[i];
-            var value = RingCalibrationCalculator.Calculate(parameter);
             RingCalibrationRows[i].L1Text = parameter.L1.ToString("F3");
             RingCalibrationRows[i].L2Text = parameter.L2.ToString("F3");
             RingCalibrationRows[i].FrequencyText = (parameter.Frequency / 1000f).ToString("F0");
+
+            // Канал без геометрии оставляем пустым. Прежде тернарный поиск на такой
+            // геометрии сползал на нижнюю границу и выдавал 500 пФ с отрицательной
+            // реактивностью — число, по виду неотличимое от расчётного.
+            if (!parameter.HasUsableGeometry)
+            {
+                skippedChannels++;
+                RingCalibrationRows[i].CapacitanceText = string.Empty;
+                RingCalibrationRows[i].ReactanceCalculatedText = string.Empty;
+                AppLogger.WriteDiagnostic(
+                    "RING_CALC",
+                    "CAPACITANCE_CHANNEL_SKIPPED",
+                    $"correlation={correlation}|channel={i}|reason=metrology_geometry_incomplete|frequency_Hz={parameter.Frequency:G9}|L1_m={parameter.L1:G9}|L2_m={parameter.L2:G9}");
+                continue;
+            }
+
+            var value = RingCalibrationCalculator.Calculate(parameter);
             RingCalibrationRows[i].CapacitanceText = (value.CapacitanceFarads * 1_000_000_000_000f).ToString("F0");
             RingCalibrationRows[i].ReactanceCalculatedText = value.Reactance.ToString("F4");
             var hasMeasuredReactance =
@@ -1272,15 +1335,22 @@ public partial class MainPageViewModel : ObservableObject
         AppLogger.WriteDiagnostic(
             "RING_CALC",
             "CAPACITANCE_COMPLETED",
-            $"correlation={correlation}|calculated_channels={count}|populated_measured_values={populatedMeasuredValues}|preserved_measured_values={preservedMeasuredValues}|elapsed_ms={stopwatch.ElapsedMilliseconds}");
-        StatusText = "Расчёт ёмкостей кольца выполнен";
+            $"correlation={correlation}|calculated_channels={count - skippedChannels}|skipped_channels={skippedChannels}|populated_measured_values={populatedMeasuredValues}|preserved_measured_values={preservedMeasuredValues}|elapsed_ms={stopwatch.ElapsedMilliseconds}");
+        StatusText = skippedChannels > 0
+            ? $"Расчёт выполнен частично: не заданы L1/L2 для {IncompleteGeometryTransmittersText}"
+            : "Расчёт ёмкостей кольца выполнен";
         if (showUserMessage)
         {
+            var skippedNote = skippedChannels > 0
+                ? $"\n\nПропущено каналов без геометрии: {skippedChannels} (передатчики {IncompleteGeometryTransmittersText}). " +
+                  "Пока их L1 и L2 не заданы в метрологии прибора, заполнение таблицы R1..R8 заблокировано."
+                : string.Empty;
             RaiseUserMessage(
-                "Расчёт выполнен",
-                $"Рассчитаны ёмкости и реактивные сопротивления для {count} каналов.\n\n" +
+                skippedChannels > 0 ? "Расчёт выполнен частично" : "Расчёт выполнен",
+                $"Рассчитаны ёмкости и реактивные сопротивления для {count - skippedChannels} каналов.\n\n" +
                 $"Поле Re meas дополнено расчётными значениями: {populatedMeasuredValues}. " +
-                $"Сохранено ранее измеренных значений: {preservedMeasuredValues}.");
+                $"Сохранено ранее измеренных значений: {preservedMeasuredValues}." +
+                skippedNote);
         }
 
         return true;
@@ -1417,7 +1487,10 @@ public partial class MainPageViewModel : ObservableObject
 
         ApplyRingCells(result.Cells);
 
-        var parameterLayout = RingParameterLayout.BuildParameterSet(result.Cells, _channelCount);
+        var parameterLayout = RingParameterLayout.BuildParameterSet(
+            result.Cells,
+            _channelCount,
+            CurrentRingCapacitanceMappingProfile);
         var requiredParameterCount = parameterLayout.RequiredCellCount;
         var completeParameterCount = parameterLayout.CompleteCellCount;
         var hasRequiredParameters = parameterLayout.IsComplete;
@@ -1744,6 +1817,96 @@ public partial class MainPageViewModel : ObservableObject
         RunResistanceCommand.NotifyCanExecuteChanged();
     }
 
+    // Сигнатура из команды 0x16 и сигнатура метрологии обязаны совпадать: первая
+    // описывает сам прибор, вторая - его паспорт. Расхождение означает, что кадры
+    // будут разбираться по чужой геометрии, и молчать об этом нельзя. Проба 0x16
+    // возвращает ноль там, где команды нет (Картограф в режиме LWD 4tx), - это не
+    // расхождение, а отсутствие сведений.
+    private void ReportSignatureMismatch(uint probedSignature, uint metrologySignature)
+    {
+        if (probedSignature == 0 || metrologySignature == 0 || probedSignature == metrologySignature)
+        {
+            return;
+        }
+
+        var probed = ToolIdentity.Decode(probedSignature);
+        var stored = ToolIdentity.Decode(metrologySignature);
+        AppLogger.WriteDiagnostic(
+            "RING_WORKFLOW",
+            "TOOL_SIGNATURE_MISMATCH",
+            $"workflow={CurrentRingWorkflowId}|probe=0x{probedSignature:X8}|metrology=0x{metrologySignature:X8}|probe_tx={probed.TransmitterCount}|metrology_tx={stored.TransmitterCount}|probe_frame={probed.FrameSize}|metrology_frame={stored.FrameSize}");
+        StatusText = "Сигнатура прибора не совпадает с метрологией";
+        RaiseUserMessage(
+            "Сигнатура прибора и метрология расходятся",
+            $"Прибор сообщил сигнатуру {probedSignature} (0x{probedSignature:X8}), " +
+            $"а в его метрологии записана {metrologySignature} (0x{metrologySignature:X8}).\n\n" +
+            $"По сигнатуре прибора: {probed.TransmitterCount} передатчиков, кадр {probed.FrameSize} Б.\n" +
+            $"По метрологии: {stored.TransmitterCount} передатчиков, кадр {stored.FrameSize} Б.\n\n" +
+            "Расчёты ведутся по метрологии. Пока расхождение не устранено, результатам доверять нельзя — " +
+            "проверьте, та ли метрология записана в прибор.");
+    }
+
+    // Сверяет геометрию метрологии с числом передатчиков, объявленным сигнатурой.
+    // Прибор, у которого сигнатура заявляет N передатчиков, обязан иметь L1/L2 для
+    // каждого из них: по ним считается эталонная фаза кольца. Незаполненная пара
+    // приходит нулями, эталон для таких каналов не существует, и заполнять по ним
+    // таблицу нечем. Возвращает true, когда все каналы пригодны к расчёту.
+    //
+    // Число каналов берётся из сигнатуры и понижаться по фактической геометрии
+    // не должно. От него зависит раскладка ёмкостей кольца: размер экспресс-группы
+    // и сдвиг логических CAP на физические банки универсального кольца 5 Tx.
+    // Тихое понижение увело бы прогон на другие физические точки кольца, и
+    // таблица заполнилась бы правдоподобными, но неверными числами. Правильное
+    // место лечения - сигнатура и метрология прибора, а не приложение.
+    private bool EvaluateMetrologyGeometry(string source, bool showUserMessage)
+    {
+        var transmitterCount = _sondeParameters.Count / MetrologyConverter.FrequencyCount;
+        var incomplete = new SortedSet<int>();
+        for (var channel = 0; channel < _sondeParameters.Count; channel++)
+        {
+            if (!_sondeParameters[channel].HasUsableGeometry)
+            {
+                // Канал передатчика присутствует на обеих частотах, геометрия у них общая.
+                incomplete.Add(transmitterCount > 0 ? (channel % transmitterCount) + 1 : channel + 1);
+            }
+        }
+
+        _incompleteGeometryTransmitters = incomplete.ToArray();
+        OnPropertyChanged(nameof(IsMetrologyGeometryComplete));
+        OnPropertyChanged(nameof(IncompleteGeometryTransmittersText));
+        OnPropertyChanged(nameof(CanStartSingleResistance));
+        OnPropertyChanged(nameof(CanToggleAutoMode));
+        RunResistanceCommand.NotifyCanExecuteChanged();
+
+        var correlation = BuildDiagnosticCorrelation(AppLogger.NextOperationId("metrology-geometry"));
+        if (IsMetrologyGeometryComplete)
+        {
+            AppLogger.WriteDiagnostic(
+                "RING_CALIBRATION",
+                "METROLOGY_GEOMETRY_OK",
+                $"correlation={correlation}|source={SanitizeDiagnosticValue(source)}|signature=0x{_metrology.Signature:X8}|tx={transmitterCount}|channels={_sondeParameters.Count}");
+            return true;
+        }
+
+        var transmitters = IncompleteGeometryTransmittersText;
+        AppLogger.WriteDiagnostic(
+            "RING_CALIBRATION",
+            "METROLOGY_GEOMETRY_INCOMPLETE",
+            $"correlation={correlation}|source={SanitizeDiagnosticValue(source)}|signature=0x{_metrology.Signature:X8}|serial={_metrology.Serial}|tx={transmitterCount}|channels={_sondeParameters.Count}|transmitters_without_geometry={SanitizeDiagnosticValue(transmitters)}");
+
+        if (showUserMessage)
+        {
+            RaiseUserMessage(
+                "Метрология зонда заполнена не полностью",
+                $"Сигнатура прибора объявляет {transmitterCount} передатчиков, но длины L1 и L2 не заданы для: {transmitters}.\n\n" +
+                "Эталонные фазы кольца для этих каналов рассчитать нельзя, поэтому заполнение таблицы R1..R8 заблокировано: " +
+                "иначе в таблицу попали бы значения, не имеющие физического смысла.\n\n" +
+                $"Заполните L1 и L2 для {transmitters} в метрологии прибора, затем подключите прибор заново.");
+        }
+
+        return false;
+    }
+
     private void ApplyMetrology(in GpToolMetrology metrology)
     {
         _metrology = metrology;
@@ -1766,6 +1929,7 @@ public partial class MainPageViewModel : ObservableObject
         }
 
         ApplyIdentification(in _metrology);
+        EvaluateMetrologyGeometry("file", showUserMessage: true);
         BuildChannels(_sondeParameters, in _metrology);
         BuildRingCalibrationRows(_sondeParameters);
         CalculateRingCalibration();
@@ -2000,6 +2164,22 @@ public partial class MainPageViewModel : ObservableObject
         }
     }
 
+    // Реактивность, которую кольцо сообщило для этой физической ёмкости.
+    // Ноль означает «сведений нет»: такую ячейку нельзя ни сохранить, ни выдать
+    // за измеренную.
+    private float GetRingCellReactance(int cellIndex)
+    {
+        foreach (var cell in _ringCells)
+        {
+            if (cell.Index == cellIndex && cell.HasValue && float.IsFinite(cell.Reactance))
+            {
+                return cell.Reactance;
+            }
+        }
+
+        return 0f;
+    }
+
     private IReadOnlyList<RingLoopParameterCell> BuildRingWriteCells()
     {
         var activeCalculationCellCount = GetActiveRingCalculationCellCount();
@@ -2008,15 +2188,27 @@ public partial class MainPageViewModel : ObservableObject
         for (var index = 0; index < cellCount; index++)
         {
             var resistanceRow = index < RingResistanceRows.Count ? RingResistanceRows[index] : null;
-            var calibrationRow = index < activeCalculationCellCount && index < RingCalibrationRows.Count
-                ? RingCalibrationRows[index]
+
+            // Ячейка принадлежит тому каналу, которому приложение назначит эту
+            // физическую ёмкость. Позиции без канала относятся к передатчику,
+            // которого у прибора нет: рассчитать их нечем, и они сохраняются.
+            var ownerChannel = RingMeasurementSequence.GetCellChannelIndex(
+                _channelCount,
+                index,
+                CurrentRingCapacitanceMappingProfile);
+            var calibrationRow = ownerChannel >= 0 &&
+                                 ownerChannel < activeCalculationCellCount &&
+                                 ownerChannel < RingCalibrationRows.Count
+                ? RingCalibrationRows[ownerChannel]
                 : null;
             var resistance = index < _loopParameters.Count
                 ? _loopParameters[index].Resistance
                 : index == 0 ? 1f : 0f;
-            var reactance = index < _loopParameters.Count
-                ? _loopParameters[index].Reactance
-                : 0f;
+
+            // Исходное значение реактивности берётся из самой ячейки, а не из
+            // набора параметров: набор пронумерован по каналам прибора, а
+            // ячейка - по физической ёмкости кольца.
+            var reactance = GetRingCellReactance(index);
 
             if (resistanceRow is not null && !string.IsNullOrWhiteSpace(resistanceRow.ResistanceText))
             {
@@ -2031,6 +2223,19 @@ public partial class MainPageViewModel : ObservableObject
             if (RingParameterLayout.IsResistanceRequired(index) && resistance <= 0.000001f)
             {
                 throw new InvalidOperationException($"Для Z{index} не задано R{index + 1}.");
+            }
+
+            // Реактивность канала без геометрии не рассчитывается, и записывать
+            // в кольцо по нему нечего. Причина называется прямо: иначе общее
+            // сообщение ниже отправляло бы пользователя нажимать «Рассчитать»,
+            // что этот случай не лечит.
+            if (ownerChannel >= 0 &&
+                ownerChannel < _sondeParameters.Count &&
+                !_sondeParameters[ownerChannel].HasUsableGeometry)
+            {
+                throw new InvalidOperationException(
+                    $"Для Z{index} нет реактивности: в метрологии прибора не заданы L1/L2 для " +
+                    $"{IncompleteGeometryTransmittersText}. Заполните геометрию в метрологии и подключите прибор заново.");
             }
 
             if (calibrationRow is not null &&
@@ -2098,10 +2303,13 @@ public partial class MainPageViewModel : ObservableObject
 
     private void ApplyRingCells(IReadOnlyList<RingLoopParameterCell> cells)
     {
+        _ringCells = cells;
         ApplyRingResistanceSummary(cells);
 
         var activeCalculationCellCount = GetActiveRingCalculationCellCount();
         ClearInactiveRingCalculationRows(activeCalculationCellCount);
+
+        // Сопротивления R1..R8 лежат в ячейках Z0..Z7 по порядку.
         foreach (var cell in cells)
         {
             if (cell.Index >= 0 && cell.Index < RingResistanceRows.Count)
@@ -2110,15 +2318,25 @@ public partial class MainPageViewModel : ObservableObject
                     ? cell.Resistance.ToString("F0")
                     : string.Empty;
             }
+        }
 
-            if (cell.Index >= 0 &&
-                cell.Index < activeCalculationCellCount &&
-                cell.Index < RingCalibrationRows.Count)
-            {
-                RingCalibrationRows[cell.Index].ReactanceMeasuredText = cell.HasValue
+        // Реактивность строки канала лежит в ячейке его физической ёмкости, а
+        // не в одноимённой: на универсальном кольце эти нумерации расходятся.
+        var cellsByIndex = cells
+            .Where(cell => cell.Index >= 0)
+            .GroupBy(cell => cell.Index)
+            .ToDictionary(group => group.Key, group => group.Last());
+        var rowCount = Math.Min(activeCalculationCellCount, RingCalibrationRows.Count);
+        for (var channel = 0; channel < rowCount; channel++)
+        {
+            var cellIndex = RingMeasurementSequence.GetChannelCellIndex(
+                _channelCount,
+                channel,
+                CurrentRingCapacitanceMappingProfile);
+            RingCalibrationRows[channel].ReactanceMeasuredText =
+                cellsByIndex.TryGetValue(cellIndex, out var cell) && cell.HasValue
                     ? cell.Reactance.ToString("F4")
                     : string.Empty;
-            }
         }
     }
 
@@ -2305,6 +2523,25 @@ public partial class MainPageViewModel : ObservableObject
             return false;
         }
 
+        // Заполнять таблицу без эталонов по части каналов нельзя: ячейки таких
+        // каналов остались бы пустыми, а прогон выглядел бы завершённым.
+        if (!IsMetrologyGeometryComplete)
+        {
+            var transmitters = IncompleteGeometryTransmittersText;
+            AppLogger.Write($"{modeName}: запуск заблокирован, в метрологии нет L1/L2 для {transmitters}.");
+            AppLogger.WriteDiagnostic(
+                "RING_MEASUREMENT",
+                "PREPARE_BLOCKED",
+                $"correlation={correlation}|reason=metrology_geometry_incomplete|tool_signature=0x{_metrology.Signature:X8}|transmitters_without_geometry={SanitizeDiagnosticValue(transmitters)}");
+            StatusText = $"{modeName}: не заданы L1/L2 для {transmitters}";
+            RaiseUserMessage(
+                "Метрология зонда заполнена не полностью",
+                $"Заполнение таблицы невозможно: в метрологии прибора не заданы длины L1 и L2 для {transmitters}.\n\n" +
+                "Эталонные фазы кольца для этих каналов не рассчитываются, и таблица была бы заполнена значениями без физического смысла.\n\n" +
+                $"Заполните L1 и L2 для {transmitters} в метрологии прибора, затем подключите прибор заново.");
+            return false;
+        }
+
         if (!IsLocalAirSet())
         {
             const string message = "Сначала соберите локальный воздух, затем повторите заполнение таблицы.";
@@ -2445,7 +2682,42 @@ public partial class MainPageViewModel : ObservableObject
             AppLogger.WriteDiagnostic(
                 "RING_MEASUREMENT",
                 "POINT_COMPLETED",
-                $"run={_activeMeasurementRunId}|point={pointCorrelation}|R={resistanceIndex}|logical_C={capacitanceIndex}|command_C={commandCapacitance}|required_frames={MeasurementSkipFrames + SelectedAveraging}|active_channels=[{string.Join(",", activeChannels)}]|cells=[{FormatResistanceCellsDiagnostic(resistanceIndex, activeChannels)}]|elapsed_ms={pointStopwatch.ElapsedMilliseconds}");
+                $"run={_activeMeasurementRunId}|point={pointCorrelation}|R={resistanceIndex}|logical_C={capacitanceIndex}|command_C={commandCapacitance}|required_frames={MeasurementSkipFrames + SelectedAveraging}|active_channels=[{string.Join(",", activeChannels)}]|retention_state={SanitizeDiagnosticValue(_lastPointRetentionState)}|cells=[{FormatResistanceCellsDiagnostic(resistanceIndex, activeChannels)}]|elapsed_ms={pointStopwatch.ElapsedMilliseconds}");
+
+            // Кольцо подтверждает команды, но прибор не видит отклика подряд на
+            // нескольких точках. Продолжать нечего: дальше в таблицу пойдут
+            // отклонения около -100%, собранные из шума около нуля.
+            if (_consecutiveUnresponsivePoints >= UnresponsivePointsBeforeAbort)
+            {
+                var unresponsivePoints = _consecutiveUnresponsivePoints;
+                AppLogger.Write(
+                    $"{modeName}: прогон остановлен, кольцо не удерживает меру {unresponsivePoints} точек подряд.");
+                AppLogger.WriteDiagnostic(
+                    "RING_MEASUREMENT",
+                    "RUN_ABORTED_RING_UNRESPONSIVE",
+                    $"run={_activeMeasurementRunId}|R={resistanceIndex}|logical_C={capacitanceIndex}|consecutive_unresponsive_points={unresponsivePoints}|last_state={SanitizeDiagnosticValue(_lastPointRetentionState)}|ring_port={_ringPort.PortName}|ring_port_open={_ringPort.IsOpen}");
+                StatusText = $"{modeName} остановлен: кольцо не переключает меры";
+                lock (_autoLock)
+                {
+                    _autoMeasurementCompleteTcs = null;
+                    SetActiveMeasurementPoint(0, 0);
+                }
+
+                RaiseUserMessage(
+                    "Кольцо не переключает меры",
+                    $"{modeName} остановлен на точке R{resistanceIndex}/C{capacitanceIndex}.\n\n" +
+                    $"Кольцо подтверждает команды RES/CAP, но прибор не видит отклика уже {unresponsivePoints} точек подряд. " +
+                    "Значит, связь с кольцом разорвана или его реле не срабатывают, а квитанции приходят по инерции.\n\n" +
+                    "Заполнение таблицы прервано намеренно: измеренная в таком состоянии фаза — шум около нуля, " +
+                    "и в ячейки попали бы отклонения около −100 %, неотличимые по виду от результата. " +
+                    "Ячейки этих точек очищены.\n\n" +
+                    "Что проверить:\n" +
+                    "• питание кольца — выключить, подождать 10 секунд, включить и зарядить;\n" +
+                    "• установку кольца на приборе между приёмными антеннами R1 и R2;\n" +
+                    $"• связь по порту {_ringPort.PortName}: при Bluetooth попробуйте проводное подключение.\n\n" +
+                    "После этого переподключите кольцо и повторите прогон.");
+                return false;
+            }
         }
 
         RefreshReportSelectionForResistance(resistanceIndex);
@@ -2627,6 +2899,7 @@ public partial class MainPageViewModel : ObservableObject
 
                 if (frame.Code == ToolResponseCode.Ok)
                 {
+                    Volatile.Write(ref _lastFrameCondition, frame.Condition);
                     V10 air;
                     V10 corrected;
                     lock (_airLock)
@@ -3008,6 +3281,19 @@ public partial class MainPageViewModel : ObservableObject
             return;
         }
 
+        // Прибор сам сообщает работоспособность передатчиков в байте состояния.
+        // Канал, помеченный им как молчащий, заполнять нельзя: измеренная по нему
+        // фаза — шум, а ячейка выглядела бы как настоящий результат.
+        if (!IsChannelActiveInLastFrame(channelIndex))
+        {
+            AppLogger.WriteDiagnostic(
+                "RING_CELL",
+                "SAMPLE_SKIPPED",
+                $"workflow={CurrentRingWorkflowId}|run={_activeMeasurementRunId}|R={resistanceIndex}|C={capacitanceIndex}|channel={channelIndex}|point_frame={frameIndex}|reason=transmitter_inactive|condition=0x{Volatile.Read(ref _lastFrameCondition):X8}");
+            ResistanceRows[channelIndex].SetResistanceCell(resistanceIndex, MeasurementCell.Empty);
+            return;
+        }
+
         var referencePhase = _phaseReferences[resistanceIndex].GetValue(channelIndex);
         var measuredPhase = corrected.GetValue(channelIndex);
         if (!float.IsFinite(referencePhase) || !float.IsFinite(measuredPhase))
@@ -3095,6 +3381,19 @@ public partial class MainPageViewModel : ObservableObject
         {
             _resistancePercentBuffers[resistanceIndex - 1, c]?.Clear();
         }
+    }
+
+    // Буфер одного канала: нужен, когда точка отбракована и её образцы не
+    // должны попасть в среднее следующей попытки.
+    private void ClearResistancePercentBuffer(int bufferRowIndex, int channelIndex)
+    {
+        if (bufferRowIndex < 0 || bufferRowIndex >= MeasurementTable.ResistanceCount ||
+            channelIndex < 0 || channelIndex >= V10.ChannelCount)
+        {
+            return;
+        }
+
+        _resistancePercentBuffers[bufferRowIndex, channelIndex]?.Clear();
     }
 
     private void ClearResistanceCells()
@@ -3272,6 +3571,68 @@ public partial class MainPageViewModel : ObservableObject
             "RING_FIRMWARE_DIAG",
             "POINT_CLASSIFICATION",
             $"workflow={CurrentRingWorkflowId}|run={_activeMeasurementRunId}|point={pointId}|R={resistanceIndex}|C={capacitanceIndex}|completion={completionStatus}|state={pointState}|channels={summaries.Length}|hypothesis={hypothesis}|command_ack=true|state_readback_supported=false|evidence=corrected_tool_phase");
+
+        ApplyPointRetentionVerdictNoLock(pointState, resistanceIndex, summaries.Select(item => item.Channel).ToArray());
+    }
+
+    /// <summary>
+    /// Решение по точке: удержало кольцо выбранную меру или нет.
+    /// </summary>
+    /// <remarks>
+    /// Кольцо квитирует команды, но состояния реле не отдаёт: RESREAD и CAPREAD
+    /// в протоколе нет. Единственная независимая улика — фаза самого прибора,
+    /// и по ней видно, что на оборвавшейся связи квитанции ещё приходят, а меры
+    /// уже не переключаются. Ячейки такой точки содержат не измерение, а шум
+    /// около нуля, дающий отклонение около −100%, поэтому они очищаются, а не
+    /// показываются как результат.
+    ///
+    /// Неопределённые точки счётчик не трогают ни в одну сторону: на больших
+    /// сопротивлениях ожидаемая фаза сама по себе ниже порога обнаружения, и
+    /// принимать это за молчание кольца нельзя.
+    /// </remarks>
+    private void ApplyPointRetentionVerdictNoLock(
+        string pointState,
+        int resistanceIndex,
+        IReadOnlyList<int> channels)
+    {
+        _lastPointRetentionState = pointState;
+
+        switch (pointState)
+        {
+            case "selection_held":
+                _consecutiveUnresponsivePoints = 0;
+                return;
+
+            case "no_physical_response":
+            case "selection_dropped":
+                break;
+
+            default:
+                return;
+        }
+
+        _consecutiveUnresponsivePoints++;
+
+        if (resistanceIndex is <= 0 or > MeasurementTable.ResistanceCount)
+        {
+            return;
+        }
+
+        foreach (var channel in channels)
+        {
+            if (channel < 0 || channel >= ResistanceRows.Count)
+            {
+                continue;
+            }
+
+            ResistanceRows[channel].SetResistanceCell(resistanceIndex, MeasurementCell.Empty);
+            ClearResistancePercentBuffer(resistanceIndex - 1, channel);
+        }
+
+        AppLogger.WriteDiagnostic(
+            "RING_CELL",
+            "POINT_DISCARDED",
+            $"workflow={CurrentRingWorkflowId}|run={_activeMeasurementRunId}|R={resistanceIndex}|state={pointState}|channels=[{string.Join(",", channels)}]|consecutive_unresponsive_points={_consecutiveUnresponsivePoints}|reason=ring_selection_not_observed_in_tool_phase");
     }
 
     private static string FormatFirmwareRetentionState(RingFirmwareRetentionState state) => state switch
@@ -3496,6 +3857,40 @@ public partial class MainPageViewModel : ObservableObject
         return (ushort)scaled;
     }
 
+    /// <summary>
+    /// Передатчик этого канала объявлен прибором работоспособным в последнем кадре.
+    /// </summary>
+    /// <remarks>
+    /// Раскладка байта состояния одинакова в обоих поколениях прошивки. Пока
+    /// порог <c>min_amp</c> в метрологии не заполнен, прошивка помечает рабочими
+    /// все каналы, и проверка ничего не отсекает — это ожидаемо и безвредно.
+    /// Нулевой байт состояния трактуется как «сведений нет»: так отвечает кадр,
+    /// принятый до первого измерения, и блокировать по нему таблицу нельзя.
+    /// </remarks>
+    private bool IsChannelActiveInLastFrame(int channelIndex)
+    {
+        var condition = Volatile.Read(ref _lastFrameCondition);
+        if (condition == 0)
+        {
+            return true;
+        }
+
+        var transmitterCount = _channelCount / MetrologyConverter.FrequencyCount;
+        if (transmitterCount <= 0 || channelIndex < 0 || channelIndex >= _channelCount)
+        {
+            return true;
+        }
+
+        var frequencyIndex = channelIndex / transmitterCount;
+        var transmitterIndex = channelIndex % transmitterCount;
+        if (frequencyIndex >= GpToolData.FrequencyCount || transmitterIndex >= GpToolData.MaxTransmitterCount)
+        {
+            return true;
+        }
+
+        return GpToolData.IsTransmitterActive(condition, frequencyIndex, transmitterIndex);
+    }
+
     private (string FrequencyLabel, int TxIndex) GetChannelFrequencyAndTx(int channelIndex)
     {
         var transmitterCount = Math.Max(1, _channelCount / MetrologyConverter.FrequencyCount);
@@ -3546,6 +3941,8 @@ public partial class MainPageViewModel : ObservableObject
         _activeMeasurementRunStartedTimestamp = Stopwatch.GetTimestamp();
         _diagnosticCompletedPoints = 0;
         _diagnosticFailedPoints = 0;
+        _consecutiveUnresponsivePoints = 0;
+        _lastPointRetentionState = "inconclusive";
 
         V10 air;
         lock (_airLock)

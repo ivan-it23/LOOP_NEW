@@ -148,6 +148,27 @@ public unsafe struct GpToolData
         return frequencyIndex * MaxTransmitterCount + transmitterIndex;
     }
 
+    // Байт состояния прибора. Раскладка одинакова в обоих поколениях прошивки:
+    //                  400 кГц  2000 кГц
+    // 00000000 00000000 00054321 00054321
+    // Биты 8..12 — передатчики T1..T5 на 400 кГц, биты 0..4 — на 2000 кГц.
+    // Прошивка выставляет бит, когда амплитуда приёмника превышает порог
+    // min_amp из метрологии; какой именно приёмник она сравнивает, между
+    // поколениями отличается, но смысл бита один: передатчик работает.
+    public static byte GetConditionByte(uint condition, int frequencyIndex)
+    {
+        ValidateIndex(frequencyIndex, FrequencyCount, nameof(frequencyIndex));
+        return frequencyIndex == 0
+            ? (byte)((condition >> 8) & 0xFFu)
+            : (byte)(condition & 0xFFu);
+    }
+
+    public static bool IsTransmitterActive(uint condition, int frequencyIndex, int transmitterIndex)
+    {
+        ValidateIndex(transmitterIndex, MaxTransmitterCount, nameof(transmitterIndex));
+        return (GetConditionByte(condition, frequencyIndex) & (1 << transmitterIndex)) != 0;
+    }
+
     private static void ValidateIndex(int index, int length, string parameterName)
     {
         if ((uint)index >= (uint)length)

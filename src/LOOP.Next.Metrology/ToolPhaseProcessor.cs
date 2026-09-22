@@ -28,7 +28,7 @@ public static class ToolPhaseProcessor
     {
         var identity = ToolIdentity.Decode(data.Signature);
         var normalizedRx = PhaseMath.NormalizedRxPosition(metrology.RxPosition);
-        var phases = FillRawPhaseFromToolData(in data, normalizedRx);
+        var phases = FillRawPhaseFromToolData(in data);
         var rawPhases = FillNormalizedDeltaPhaseFromToolData(in data);
 
         var debug = new PhaseOrientationDebug
@@ -45,7 +45,7 @@ public static class ToolPhaseProcessor
             {
                 var idx = (int)(freq * identity.TransmitterCount + tx);
                 var rawDelta = data.GetDeltaPhase((int)freq, (int)tx);
-                var orientationSign = PhaseMath.RxPhaseOrientationSign(tx, normalizedRx);
+                var orientationSign = PhaseMath.TxPhaseOrientationSign(tx);
                 var finalPhase = phases.GetValue(idx);
 
                 debug.RawDelta[freq, tx] = rawDelta;
@@ -67,7 +67,21 @@ public static class ToolPhaseProcessor
             _loggedPipelineConfiguration = true;
             AppLogger.Write(
                 $"PHASE_PIPELINE: signature=0x{data.Signature:X8}, Tx={identity.TransmitterCount}, " +
-                $"Rx_Position={normalizedRx}, source=DELTA_PH, phase_smt_used=false, air_zz_used=false");
+                $"Rx_Position={normalizedRx}, source=DELTA_PH, orientation=tx_parity, " +
+                $"phase_smt_used=false, air_zz_used=false");
+
+            // При Rx_Position == 1 прежний расчёт переворачивал весь узор знаков.
+            // Один прогон на таком приборе должен дать ответ, какой вариант верен,
+            // поэтому прежний узор выводится рядом — пересобирать приложение ради
+            // сравнения не нужно.
+            if (normalizedRx == 1)
+            {
+                AppLogger.Write(
+                    $"PHASE_ORIENTATION_CHANGED: Rx_Position={normalizedRx}, " +
+                    $"applied=[{FormatSignVector(identity.TransmitterCount, tx => PhaseMath.TxPhaseOrientationSign(tx))}], " +
+                    $"legacy_rx_dependent=[{FormatSignVector(identity.TransmitterCount, tx => PhaseMath.LegacyRxPhaseOrientationSign(tx, normalizedRx))}] — " +
+                    "применён знак по чётности Tx, как в прошивке; прежний узор приведён для сверки");
+            }
         }
 
         AppLogger.Write(
@@ -78,8 +92,9 @@ public static class ToolPhaseProcessor
         return new PhaseResult(phases, rawPhases, debug);
     }
 
-    // Формирует фазы без симметризации и без Air_zz; знак Tx/Rx_Position нужен для DELTA_PH.
-    private static V10 FillRawPhaseFromToolData(in GpToolData data, uint rxPosition)
+    // Формирует фазы без симметризации и без Air_zz; знак задаётся чётностью Tx,
+    // как в прошивке. Rx_Position учтён прибором до формирования DELTA_PH.
+    private static V10 FillRawPhaseFromToolData(in GpToolData data)
     {
         var phases = default(V10);
         phases.Clear();
@@ -91,13 +106,19 @@ public static class ToolPhaseProcessor
             {
                 var idx = (int)(freq * identity.TransmitterCount + tx);
                 var rawDelta = data.GetDeltaPhase((int)freq, (int)tx);
-                var finalPhase = PhaseMath.ApplyRxPhaseOrientation(rawDelta, 0.0f, tx, rxPosition);
+                var finalPhase = PhaseMath.ApplyTxPhaseOrientation(rawDelta, 0.0f, tx);
 
                 phases.SetValue(idx, finalPhase);
             }
         }
 
         return phases;
+    }
+
+    private static string FormatSignVector(uint transmitterCount, Func<uint, int> signProvider)
+    {
+        return string.Join(", ", Enumerable.Range(0, (int)transmitterCount)
+            .Select(tx => $"T{tx + 1}={signProvider((uint)tx):+0;-0}"));
     }
 
     private static V10 FillNormalizedDeltaPhaseFromToolData(in GpToolData data)

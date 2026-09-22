@@ -34,9 +34,19 @@ public readonly record struct ToolIdentity(
 
     private const uint FrameSizeScale = 1_000_000u;
 
+    /// <summary>
+    /// Картограф, работающий как LWD с четырьмя передатчиками.
+    /// </summary>
+    /// <remarks>
+    /// Модификация в признак не входит: у новой прошивки она не участвует ни в
+    /// одном решении, а у старой её роль уже учтена при разборе сигнатуры -
+    /// туда непригодный Картограф не дойдёт, потому что окажется невалидным.
+    /// Проверка валидности здесь обязательна: неподдержанный прибор не должен
+    /// уводить обмен в исторический транспорт фиксированной длины.
+    /// </remarks>
     public bool IsCartographLwd4TxMode =>
+        IsValid &&
         DeviceType == DeviceTypeCartograph &&
-        Modification == CartographLwd4TxModification &&
         TransmitterCount == 4;
 
     // Прибор работает под новой прошивкой: кадр измерений 320 байт.
@@ -71,10 +81,10 @@ public readonly record struct ToolIdentity(
         var txCount = (payload % 100000u) / 10000u;
         var modification = (payload % 10000u) / 1000u;
         var number = payload % 1000u;
-        var normalizedTxCount = NormalizeTransmitterCount(deviceType, txCount, modification);
+        var normalizedTxCount = NormalizeTransmitterCount(deviceType, txCount, modification, frameSize);
 
         // Валидность определяется до клампинга n_tx, как в эталонном коде.
-        var isValid = IsSupportedDeviceType(deviceType, txCount, modification)
+        var isValid = IsSupportedDeviceType(deviceType, txCount, modification, frameSize)
                       && normalizedTxCount is >= 3 and <= 5;
 
         if (normalizedTxCount is < 3 or > 5)
@@ -93,9 +103,19 @@ public readonly record struct ToolIdentity(
             frameSize);
     }
 
-    private static uint NormalizeTransmitterCount(uint deviceType, uint txCount, uint modification)
+    // Нормализация числа передатчиков существует только ради старого Картографа:
+    // в парке встречались коды 349 и 359, и оба работали как 4 Tx. У новой
+    // прошивки нормализовать нечего - она берёт N_Tx из сигнатуры буквально
+    // (get_sonde_id: N_Tx = (signature % 100000) / 10000) и столько передатчиков
+    // и опрашивает. Подогнать 5 под 4 здесь означало бы читать пять каналов как
+    // четыре.
+    private static uint NormalizeTransmitterCount(
+        uint deviceType,
+        uint txCount,
+        uint modification,
+        int frameSize)
     {
-        if (IsCartographLwd4Tx(deviceType, txCount, modification))
+        if (frameSize == LegacyFrameSize && IsLegacyCartographLwd4Tx(deviceType, txCount, modification))
         {
             return 4;
         }
@@ -103,16 +123,36 @@ public readonly record struct ToolIdentity(
         return txCount;
     }
 
-    private static bool IsSupportedDeviceType(uint deviceType, uint txCount, uint modification) =>
+    /// <summary>
+    /// Прибор описан поддерживаемым сочетанием типа и числа передатчиков.
+    /// </summary>
+    /// <remarks>
+    /// У старой прошивки Картограф принимался только в режиме LWD 4tx, и этот
+    /// режим помечался модификацией 9.
+    ///
+    /// Новая прошивка общая: Картограф в режиме LWD перепрошит тем же файлом,
+    /// что Автономный и LWD (<c>LWD_1_DDS_ATT_UES (2).c</c>). Её
+    /// <c>get_sonde_id</c> читает тип и число передатчиков, а модификацию в
+    /// выборе ветки не использует вовсе - никакой особой обработки Картографа в
+    /// ней нет. Поэтому для нового поколения тип прибора перестаёт что-либо
+    /// менять, и Картограф принимается на тех же условиях, что LWD.
+    /// </remarks>
+    private static bool IsSupportedDeviceType(
+        uint deviceType,
+        uint txCount,
+        uint modification,
+        int frameSize) =>
         deviceType switch
         {
             DeviceTypeAutonom => txCount is >= 3 and <= 5,
             DeviceTypeLwd => txCount is >= 3 and <= 5,
-            DeviceTypeCartograph => IsCartographLwd4Tx(deviceType, txCount, modification),
+            DeviceTypeCartograph => frameSize == LegacyFrameSize
+                ? IsLegacyCartographLwd4Tx(deviceType, txCount, modification)
+                : txCount is >= 3 and <= 5,
             _ => false
         };
 
-    private static bool IsCartographLwd4Tx(uint deviceType, uint txCount, uint modification) =>
+    private static bool IsLegacyCartographLwd4Tx(uint deviceType, uint txCount, uint modification) =>
         deviceType == DeviceTypeCartograph &&
         modification == CartographLwd4TxModification &&
         txCount is 4 or 5;

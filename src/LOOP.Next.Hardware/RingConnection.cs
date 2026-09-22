@@ -14,6 +14,13 @@ public static class RingConnection
 {
     private static readonly ConditionalWeakTable<SerialPort, object> PortLocks = new();
 
+    /// <summary>
+    /// Открытие порта дольше этого времени считается признаком нездорового
+    /// канала. Исправный COM-порт, в том числе Bluetooth-порт с живым
+    /// сопряжением, открывается за десятки миллисекунд.
+    /// </summary>
+    public const long SlowPortOpenWarningMs = 1000;
+
     public enum RingConnectStatus
     {
         Connected,
@@ -36,6 +43,7 @@ public static class RingConnection
             AppLogger.Write("=== НАЧАЛО ВКЛЮЧЕНИЯ КОЛЬЦА ===");
             AppLogger.Write($"Порт кольца={port.PortName}, BaudRate={RingProtocolConstants.BaudRate}, Timeout={RingProtocolConstants.TimeoutMs}ms");
 
+            var portOpenElapsedMs = 0L;
             try
             {
                 if (port.IsOpen)
@@ -47,10 +55,23 @@ public static class RingConnection
                 ConfigurePort(port);
                 port.Open();
                 AppLogger.Write("Порт кольца открыт успешно (9600, 8N1, ASCII, CRLF).");
+                portOpenElapsedMs = operationStopwatch.ElapsedMilliseconds;
                 AppLogger.WriteDiagnostic(
                     "RING_CONNECT",
                     "PORT_OPENED",
-                    $"correlation={correlation}|operation={operationId}|port={port.PortName}|elapsed_ms={operationStopwatch.ElapsedMilliseconds}|data_bits={port.DataBits}|parity={port.Parity}|stop_bits={port.StopBits}|handshake={port.Handshake}|newline=CRLF");
+                    $"correlation={correlation}|operation={operationId}|port={port.PortName}|elapsed_ms={portOpenElapsedMs}|data_bits={port.DataBits}|parity={port.Parity}|stop_bits={port.StopBits}|handshake={port.Handshake}|newline=CRLF");
+
+                // Исправный порт открывается за десятки миллисекунд. Секунды
+                // означают, что канал к кольцу поднимается с трудом: у
+                // Bluetooth-порта это предвестник обрыва посреди прогона, и
+                // отметить его нужно до того, как оператор начнёт измерения.
+                if (portOpenElapsedMs >= SlowPortOpenWarningMs)
+                {
+                    AppLogger.WriteDiagnostic(
+                        "RING_CONNECT",
+                        "PORT_OPEN_SLOW",
+                        $"correlation={correlation}|operation={operationId}|port={port.PortName}|elapsed_ms={portOpenElapsedMs}|warning_threshold_ms={SlowPortOpenWarningMs}|note=link_unhealthy_expect_drops");
+                }
             }
             catch (Exception ex)
             {
@@ -94,7 +115,7 @@ public static class RingConnection
                         device,
                         signatureProbe.CommandName.ToLowerInvariant(),
                         operationStopwatch.ElapsedMilliseconds);
-                    return new RingConnectResult(RingConnectStatus.Connected, device);
+                    return new RingConnectResult(RingConnectStatus.Connected, device, portOpenElapsedMs);
                 }
 
                 if (RingProtocolParser.IsUnknownCommand(signatureResponse))
@@ -121,7 +142,7 @@ public static class RingConnection
                 {
                     AppLogger.Write("=== КОЛЬЦО ПОДКЛЮЧЕНО: старая прошивка, legacy fallback ===");
                     LogConnectCompleted(correlation, operationId, port, RingDeviceInfo.Legacy, "legacy_fallback", operationStopwatch.ElapsedMilliseconds);
-                    return new RingConnectResult(RingConnectStatus.Connected, RingDeviceInfo.Legacy);
+                    return new RingConnectResult(RingConnectStatus.Connected, RingDeviceInfo.Legacy, portOpenElapsedMs);
                 }
             }
             else
@@ -859,9 +880,13 @@ public readonly record struct RingDeviceInfo(
 
 public readonly record struct RingConnectResult(
     RingConnection.RingConnectStatus Status,
-    RingDeviceInfo DeviceInfo)
+    RingDeviceInfo DeviceInfo,
+    long PortOpenElapsedMs = 0)
 {
     public bool IsConnected => Status == RingConnection.RingConnectStatus.Connected;
+
+    /// <summary>Канал поднимался слишком долго — от него стоит ждать обрывов.</summary>
+    public bool IsLinkSlow => PortOpenElapsedMs >= RingConnection.SlowPortOpenWarningMs;
 }
 
 public readonly record struct RingSignatureReadResult(

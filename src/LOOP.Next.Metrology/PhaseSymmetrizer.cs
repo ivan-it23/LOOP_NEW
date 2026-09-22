@@ -29,7 +29,6 @@ public static class PhaseSymmetrizer
 
         var identity = ToolIdentity.Decode(data.Signature);
         var nTx = identity.TransmitterCount;
-        var rxPosition = metrology.RxPosition == 1 ? 1u : 0u;
 
         for (var frequency = 0; frequency < FrequencyCount; frequency++)
         {
@@ -42,7 +41,7 @@ public static class PhaseSymmetrizer
             {
                 var rawDelta = data.GetDeltaPhase(frequency, tx);
                 var airZz = metrology.GetAirZz(frequency, tx) / (float)PhysicalConstants.Milligrad;
-                deltas[tx] = PhaseMath.ApplyRxPhaseOrientation(rawDelta, airZz, (uint)tx, rxPosition);
+                deltas[tx] = PhaseMath.ApplyTxPhaseOrientation(rawDelta, airZz, (uint)tx);
             }
 
             // phase_smt[freq * N_Tx + t] = sum_j K[t][j] * deltas[j].

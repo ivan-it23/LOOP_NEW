@@ -41,17 +41,28 @@ public static class RingSignatureCatalog
     };
 
     /// <summary>
-    /// Возвращает профиль физической раскладки конденсаторов. Неизвестные и
-    /// ещё не промаркированные кольца продолжают работать по прежнему алгоритму
-    /// приложения, пока парк устройств переводится на сигнатуры.
-    /// Обе каталожные сигнатуры относятся к устройствам на универсальной
-    /// физической сетке 5 Tx (десять позиций, банки C1..C5 и C6..C10): кольцо 241
-    /// получено перепрошивкой такого устройства, его плата не менялась.
+    /// Возвращает профиль физической раскладки конденсаторов.
     /// </summary>
-    public static RingCapacitanceMappingProfile GetCapacitanceMappingProfile(uint? signature) =>
-        IsKnownSignature(signature)
-            ? RingCapacitanceMappingProfile.UniversalFiveTransmitter
-            : RingCapacitanceMappingProfile.CompatibilityFallback;
+    /// <remarks>
+    /// Кольцо 151 — универсальная мера на десять ёмкостей: банки C1..C5 и
+    /// C6..C10. Прибор с тремя или четырьмя передатчиками занимает в каждом
+    /// банке не все позиции, поэтому его высокочастотная группа сдвигается на
+    /// начало второго банка.
+    ///
+    /// Кольцо 241 рассчитано только на четырёхпередатчиковый прибор и несёт
+    /// **восемь** ёмкостей: банки C1..C4 и C5..C8. Сдвигать здесь нечего и
+    /// некуда — девятой позиции у него физически нет, и команда <c>CAP 9</c>
+    /// квитируется, но ни одного реле не переключает.
+    ///
+    /// Неизвестные и ещё не промаркированные кольца сохраняют прежнее поведение
+    /// приложения, пока парк устройств переводится на сигнатуры.
+    /// </remarks>
+    public static RingCapacitanceMappingProfile GetCapacitanceMappingProfile(uint? signature) => signature switch
+    {
+        UniversalAutonomousSignature => RingCapacitanceMappingProfile.UniversalFiveTransmitter,
+        LwdFourTransmitterSignature => RingCapacitanceMappingProfile.CompactFourTransmitter,
+        _ => RingCapacitanceMappingProfile.CompatibilityFallback
+    };
 
     public static RingToolCompatibility GetToolCompatibility(
         uint? ringSignature,
@@ -131,8 +142,14 @@ public static class RingSignatureCatalog
 
 public enum RingCapacitanceMappingProfile
 {
+    /// <summary>Кольцо без подтверждённой сигнатуры: прежнее поведение приложения.</summary>
     CompatibilityFallback,
-    UniversalFiveTransmitter
+
+    /// <summary>Универсальная мера на десять ёмкостей, банки C1..C5 и C6..C10.</summary>
+    UniversalFiveTransmitter,
+
+    /// <summary>Мера на восемь ёмкостей под четыре передатчика, банки C1..C4 и C5..C8.</summary>
+    CompactFourTransmitter
 }
 
 public enum RingToolCompatibility

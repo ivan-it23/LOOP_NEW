@@ -13,27 +13,24 @@ namespace LoopNext.Hardware;
 public static class ToolConnection
 {
     private const int MetrologyPayloadLength = ToolProtocolConstants.ToolPayloadLength; // 242
-    private const int ReadAttempts = 3;
+    private const int ReadAttempts = 2;
     private const int PostCloseDelayMs = 100;
     private const int PostOpenDelayMs = 150;
     private const int PreReceiveDelayMs = 100;
 
     private const byte ReadSubCommand = 0x05;
 
-    // Смещение, по которому кончается часть метрологии, общая для обоих
-    // поколений прошивки. Дальше у старой служебная область, у новой —
-    // воздушные поправки затухания.
-    private const int MetrologyCommonSize = 84;
-
     public readonly record struct ToolConnectResult(
         bool Success,
         GpToolMetrology Metrology,
         IReadOnlyList<SondeParameter> SondeParameters,
-        string? ErrorMessage = null);
+        string? ErrorMessage = null,
+        uint ProbedSignature = 0);
 
-    // Включение прибора: открытие порта на 125000 бод и чтение метрологии командой 0x13.
-    // Успех определяется отсутствием исключения при открытии/обмене, как в эталоне
-    // (on_off=true даже если метрология не считана; в этом случае параметры зонда пусты).
+    // Включение прибора: открытие порта на 125000 бод, проба сигнатуры командой
+    // 0x16 и чтение метрологии командой 0x13. Успех определяется отсутствием
+    // исключения при открытии/обмене, как в эталоне (on_off=true даже если
+    // метрология не считана; в этом случае параметры зонда пусты).
     public static ToolConnectResult Connect(SerialPort port)
     {
         AppLogger.Write("=== НАЧАЛО ВКЛЮЧЕНИЯ ПРИБОРА (единый COM-опрос) ===");
@@ -63,8 +60,25 @@ public static class ToolConnection
             port.DiscardOutBuffer();
             Thread.Sleep(PostOpenDelayMs);
 
+            // Сигнатура из 0x16 — единственная идентификация, не зависящая от
+            // того, размечена ли метрология. Она же называет транспорт: Картограф
+            // в режиме LWD 4tx этой команды не имеет и молчит.
+            var probedSignature = ProbeSignature(port);
+            var probedIdentity = ToolIdentity.Decode(probedSignature);
+
+            // Транспорт без поля длины остался только у Картографа в режиме
+            // LWD 4tx со старой прошивкой. После перепрошивки он отвечает как
+            // все: прибор 320349001 прислал кадр с полем длины 325 и ответил на
+            // 0x16, которого у него прежде не было.
+            //
+            // Молчание на 0x16 тоже указывает на старый Картограф, поэтому при
+            // нём чтение метрологии начинается с фиксированной длины. Для
+            // обычного прибора порядок безразличен: пакет метрологии в 240 байт
+            // у обоих транспортов побайтово одинаков.
+            var preferFixedLength = probedSignature == 0 || ToolPort.UsesFixedLengthTransport(in probedIdentity);
+
             AppLogger.Write("Чтение метрологии (команда 0x13)...");
-            var metrology = ReadMetrologyOnConnect(port, out var metrologyPayload);
+            var metrology = ReadMetrologyOnConnect(port, preferFixedLength, out var metrologyStructure);
 
             port.DiscardOutBuffer();
             Thread.Sleep(PostCloseDelayMs);
@@ -75,9 +89,10 @@ public static class ToolConnection
                 $"Метрология прибора: Signature=0x{metrology.Signature:X8}, Serial={metrology.Serial}, " +
                 $"N_Tx={identity.TransmitterCount}, Channels={sondeParameters.Count}, DeviceType={identity.DeviceType}, Valid={identity.IsValid}, " +
                 $"Firmware={(identity.IsExtendedFirmware ? "new" : "legacy")}, FrameSize={identity.FrameSize}");
-            LogMetrologyDetails(in metrology, metrologyPayload);
+            LogSignatureCrossCheck(probedSignature, in metrology);
+            LogMetrologyDetails(in metrology, metrologyStructure);
             AppLogger.Write("=== ПРИБОР УСПЕШНО ВКЛЮЧЕН ===");
-            return new ToolConnectResult(true, metrology, sondeParameters);
+            return new ToolConnectResult(true, metrology, sondeParameters, null, probedSignature);
         }
         catch (Exception ex)
         {
@@ -106,11 +121,53 @@ public static class ToolConnection
         Thread.Sleep(PostCloseDelayMs);
     }
 
+    // Проба сигнатуры. Молчание не является ошибкой подключения: у Картографа в
+    // режиме LWD 4tx обработчика этой команды нет.
+    private static uint ProbeSignature(SerialPort port)
+    {
+        var result = ToolPort.ReadSignature(port);
+        if (result.Code != ToolResponseCode.Ok)
+        {
+            AppLogger.Write(
+                $"TOOL_SIGNATURE_PROBE: result={result.Code} — прибор не ответил на 0x16; " +
+                "это ожидаемо для Картографа в режиме LWD 4tx, для остальных приборов — повод посмотреть линию");
+            return 0;
+        }
+
+        var identity = ToolIdentity.Decode(result.Signature);
+        AppLogger.Write(
+            $"TOOL_SIGNATURE_PROBE: signature=0x{result.Signature:X8} ({result.Signature}) | " +
+            $"тип={identity.DeviceType} Tx={identity.TransmitterCount} мод.{identity.Modification} № {identity.Number} | " +
+            $"кадр={identity.FrameSize}Б валидна={identity.IsValid}");
+        return result.Signature;
+    }
+
+    // Сверка сигнатуры из 0x16 с сигнатурой метрологии. Расхождение означает,
+    // что прибор и его паспорт описывают разные приборы.
+    private static void LogSignatureCrossCheck(uint probedSignature, in GpToolMetrology metrology)
+    {
+        if (probedSignature == 0 || metrology.Signature == 0)
+        {
+            return;
+        }
+
+        if (probedSignature == metrology.Signature)
+        {
+            AppLogger.Write(
+                $"TOOL_SIGNATURE_MATCH: 0x{probedSignature:X8} — сигнатура прибора и метрологии совпадают");
+            return;
+        }
+
+        AppLogger.Write(
+            $"TOOL_SIGNATURE_MISMATCH: probe=0x{probedSignature:X8} ({probedSignature}) " +
+            $"metrology=0x{metrology.Signature:X8} ({metrology.Signature}) — " +
+            "прибор и его метрология описывают разные приборы");
+    }
+
     // Полный разбор метрологии прибора: все поля структуры, а для новой
-    // прошивки — ещё и воздушные поправки затухания, которые она разместила в
-    // начале служебной области. Раскладка самой структуры здесь не меняется:
-    // поправки читаются из принятой нагрузки только ради журнала.
-    private static void LogMetrologyDetails(in GpToolMetrology metrology, ReadOnlySpan<byte> payload)
+    // прошивки — ещё и поправки затухания с отметкой времени записи, которые она
+    // разместила в начале служебной области.
+    private static void LogMetrologyDetails(in GpToolMetrology metrology, ReadOnlySpan<byte> structure)
     {
         var identity = ToolIdentity.Decode(metrology.Signature);
         var txCount = (int)identity.TransmitterCount;
@@ -145,29 +202,28 @@ public static class ToolConnection
         AppLogger.Write($"METROLOGY_AIR_PHASE: Air_zz=[{string.Join(", ", airZz)}]");
         AppLogger.Write($"METROLOGY_MIN_AMPLITUDE: min_amp=[{string.Join(", ", minAmp)}]");
 
-        LogAirAttenuation(identity, payload, txCount, freqCount);
+        LogExtendedMetrologyFields(identity, structure, txCount, freqCount);
 
-        AppLogger.Write(
-            ToolSerialTransport.FormatHexDump("METROLOGY_DUMP", payload));
+        AppLogger.Write(ToolSerialTransport.FormatHexDump("METROLOGY_DUMP", structure));
     }
 
-    // Воздушные поправки затухания лежат по смещению 84 внутри метрологии и
+    // Поправки затухания лежат по смещению 84, отметка времени — по 124, и
     // существуют только у новой прошивки: у старой там нерасшифрованная
     // служебная область, и выводить её как калибровку нельзя.
-    private static void LogAirAttenuation(
+    private static void LogExtendedMetrologyFields(
         ToolIdentity identity,
-        ReadOnlySpan<byte> payload,
+        ReadOnlySpan<byte> structure,
         int txCount,
         int freqCount)
     {
         if (!identity.IsExtendedFirmware)
         {
-            AppLogger.Write("METROLOGY_AIR_ATTENUATION: прибор старой прошивки, поправок затухания нет");
+            AppLogger.Write(
+                "METROLOGY_EXTENDED_FIELDS: прибор старой прошивки, поправок затухания и отметки времени нет");
             return;
         }
 
-        var structure = payload[ToolProtocolConstants.ToolServicePrefixLength..];
-        if (structure.Length < ToolProtocolConstants.ToolMetrologySize)
+        if (structure.Length < ExtendedMetrologyFields.MetrologySize)
         {
             return;
         }
@@ -177,49 +233,115 @@ public static class ToolConnection
         {
             for (var tx = 0; tx < txCount; tx++)
             {
-                var offset = MetrologyCommonSize + ((freq * GpToolMetrology.MaxTransmitterCount + tx) * sizeof(float));
-                var value = BitConverter.ToSingle(structure.Slice(offset, sizeof(float)));
-                values.Add($"F{freq + 1}T{tx + 1}={value:F4}");
+                values.Add(
+                    ExtendedMetrologyFields.TryReadAirAttenuationDb(structure, freq, tx, out var value)
+                        ? $"F{freq + 1}T{tx + 1}={value:F4}"
+                        : $"F{freq + 1}T{tx + 1}=—");
             }
         }
 
         AppLogger.Write($"METROLOGY_AIR_ATTENUATION (дБ): air_att_dB=[{string.Join(", ", values)}]");
+
+        // Отметку ставит записывающая программа по часам компьютера, а не прибор.
+        AppLogger.Write(
+            ExtendedMetrologyFields.TryReadWriteTimestamp(structure, out var timestamp)
+                ? $"METROLOGY_WRITE_TIMESTAMP: {timestamp.UtcDateTime:yyyy-MM-dd HH:mm:ss} UTC " +
+                  $"({timestamp.ToLocalTime():yyyy-MM-dd HH:mm:ss} местное)"
+                : "METROLOGY_WRITE_TIMESTAMP: отметки нет (метрология записана до появления поля либо память не размечена)");
     }
 
-    // Чтение метрологии при подключении: 3 попытки команды 0x13 с паузой перед приёмом.
-    private static GpToolMetrology ReadMetrologyOnConnect(SerialPort port, out byte[] receivedPayload)
+    /// <summary>
+    /// Чтение метрологии при подключении. Возвращает структуру и её байты.
+    /// </summary>
+    /// <remarks>
+    /// Метрология занимает 240 байт в обоих поколениях, и оба отвечают
+    /// length-framed пакетом с <c>LEN = 245</c>. Ветка фиксированной длины
+    /// остаётся для Картографа в режиме LWD 4tx, который вместо поля длины шлёт
+    /// два служебных байта. Порядок веток задаёт проба сигнатуры; если она
+    /// молчала, пробуются обе — так подключение переживает и неразмеченную
+    /// метрологию, и молчащий 0x16.
+    /// </remarks>
+    private static GpToolMetrology ReadMetrologyOnConnect(
+        SerialPort port,
+        bool preferFixedLength,
+        out byte[] structure)
     {
-        Span<byte> payload = stackalloc byte[] { ReadSubCommand, 0x00 };
-        var dataIn = new byte[MetrologyPayloadLength];
-        receivedPayload = dataIn;
-        var result = ToolResponseCode.Timeout;
-        var metrology = default(GpToolMetrology);
+        var order = preferFixedLength
+            ? new[] { true, false }
+            : new[] { false, true };
 
-        for (var attempt = 0; attempt < ReadAttempts && result != ToolResponseCode.Ok; attempt++)
+        foreach (var useFixedLength in order)
         {
-            if (ToolSerialTransport.Send(port, ToolProtocolConstants.CmdGetMetrology, payload, 2) != 0)
+            for (var attempt = 0; attempt < ReadAttempts; attempt++)
             {
-                AppLogger.Write($"ОШИБКА: send_to_tool вернул ошибку (попытка {attempt + 1})");
-                continue;
-            }
+                var code = useFixedLength
+                    ? TryReadMetrologyFixedLength(port, out structure)
+                    : TryReadMetrologyFramed(port, out structure);
 
-            Thread.Sleep(PreReceiveDelayMs);
-            result = (ToolResponseCode)ToolSerialTransport.Receive(port, out _, dataIn, MetrologyPayloadLength);
-            if (result == ToolResponseCode.Ok)
-            {
-                metrology = MemoryMarshal.Read<GpToolMetrology>(dataIn.AsSpan(2));
-                AppLogger.Write($"Метрология получена (попытка {attempt + 1}).");
-            }
-            else if (result == ToolResponseCode.Timeout)
-            {
-                AppLogger.Write($"ОШИБКА: receive_from_tool timeout (попытка {attempt + 1})");
-            }
-            else if (result == ToolResponseCode.CrcError)
-            {
-                AppLogger.Write($"ОШИБКА: receive_from_tool CRC error (попытка {attempt + 1})");
+                if (code == ToolResponseCode.Ok)
+                {
+                    AppLogger.Write(
+                        $"Метрология получена ({(useFixedLength ? "фиксированная длина" : "поле длины")}, попытка {attempt + 1}).");
+                    return MemoryMarshal.Read<GpToolMetrology>(structure);
+                }
+
+                AppLogger.Write(
+                    $"ОШИБКА чтения метрологии: result={code}, транспорт={(useFixedLength ? "fixed" : "framed")}, попытка {attempt + 1}");
             }
         }
 
-        return metrology;
+        structure = new byte[ToolProtocolConstants.ToolMetrologySize];
+        return default;
+    }
+
+    private static ToolResponseCode TryReadMetrologyFramed(SerialPort port, out byte[] structure)
+    {
+        structure = new byte[ToolProtocolConstants.ToolMetrologySize];
+        port.DiscardInBuffer();
+        if (ToolSerialTransport.SendFramed(port, ToolProtocolConstants.CmdGetMetrology, ReadOnlySpan<byte>.Empty) != 0)
+        {
+            return ToolResponseCode.Timeout;
+        }
+
+        Thread.Sleep(PreReceiveDelayMs);
+        var code = ToolSerialTransport.ReceiveFramed(port, out var cmd, out var payload);
+        if (code != ToolResponseCode.Ok)
+        {
+            return code;
+        }
+
+        if (cmd != ToolProtocolConstants.CmdGetMetrology || payload.Length != ToolProtocolConstants.ToolMetrologySize)
+        {
+            AppLogger.Write(
+                $"METROLOGY_FRAMED_REJECTED: cmd=0x{cmd:X2} payload={payload.Length} " +
+                $"expected_cmd=0x{ToolProtocolConstants.CmdGetMetrology:X2} expected_payload={ToolProtocolConstants.ToolMetrologySize}");
+            return ToolResponseCode.InvalidResponse;
+        }
+
+        structure = payload;
+        return ToolResponseCode.Ok;
+    }
+
+    private static ToolResponseCode TryReadMetrologyFixedLength(SerialPort port, out byte[] structure)
+    {
+        structure = new byte[ToolProtocolConstants.ToolMetrologySize];
+        Span<byte> request = stackalloc byte[] { ReadSubCommand, 0x00 };
+        var dataIn = new byte[MetrologyPayloadLength];
+
+        port.DiscardInBuffer();
+        if (ToolSerialTransport.Send(port, ToolProtocolConstants.CmdGetMetrology, request, request.Length) != 0)
+        {
+            return ToolResponseCode.Timeout;
+        }
+
+        Thread.Sleep(PreReceiveDelayMs);
+        var code = (ToolResponseCode)ToolSerialTransport.Receive(port, out _, dataIn, MetrologyPayloadLength);
+        if (code != ToolResponseCode.Ok)
+        {
+            return code;
+        }
+
+        dataIn.AsSpan(ToolProtocolConstants.ToolServicePrefixLength).CopyTo(structure);
+        return ToolResponseCode.Ok;
     }
 }

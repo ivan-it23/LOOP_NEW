@@ -21,9 +21,22 @@ public static class LoopResistivity
 
     private const float FrequencyThreshold = 1_000_000.0f;
 
+    // Ограничитель золотого сечения. На исправных данных поиск сходится за
+    // считанные десятки шагов; предел нужен только как страховка от входа,
+    // на котором обе точки останова не срабатывают никогда.
+    private const int MaxIterations = 256;
+
     // Фаза, наводимая кольцом. Перенос dfi_from_loop (function.cpp:101).
     public static float DfiFromLoop(in SondeParameter param, in LoopParameter loop)
     {
+        // Без геометрии передатчика прямая задача вырождается в 0/0. Возвращаем
+        // NaN явно: вызывающая сторона обязана увидеть отсутствие значения, а не
+        // получить правдоподобное число из неопределённости.
+        if (!param.HasUsableGeometry)
+        {
+            return float.NaN;
+        }
+
         // Полное сопротивление кольца зависит от частотного диапазона.
         // При F == FrequencyThreshold обе ветви пропускаются, как в исходном коде.
         var zFull = new ComplexF(0f, 0f);
@@ -73,11 +86,20 @@ public static class LoopResistivity
     // Кажущееся УЭС по фазе методом золотого сечения. Перенос ro_dfi (function.cpp:123).
     public static float RoDfi(in SondeParameter param, float phaseFromLoop)
     {
+        // Обе точки останова — сравнения с невязкой. Любое сравнение с NaN ложно,
+        // поэтому на нечисловом входе цикл не завершался никогда и вешал поток,
+        // из которого его вызвали. Такой вход отсекается до цикла.
+        if (!param.HasUsableGeometry || !float.IsFinite(phaseFromLoop))
+        {
+            return float.NaN;
+        }
+
         var ro0 = RoMin;
         var roMax = RoMax;
         var stopArg = false;
         var stopInf = false;
         var result = 0.0f;
+        var iterations = 0;
 
         do
         {
@@ -102,6 +124,17 @@ public static class LoopResistivity
             else if (MathF.Abs(a - b) < EpsilonInf)
             {
                 stopInf = true;
+            }
+
+            // Страховка поверх проверки входа: сходимость ограничена по числу
+            // шагов, как в эталонной реализации. Срабатывание — аномалия, её
+            // видно в журнале, но поток при этом не встаёт.
+            if (++iterations >= MaxIterations && !stopArg && !stopInf)
+            {
+                AppLogger.Write(
+                    $"RO_DFI_ITERATION_LIMIT: L1={param.L1:G9}, L2={param.L2:G9}, F={param.Frequency:G9}, " +
+                    $"phase={phaseFromLoop:G9}, ro0={ro0:G9}, roMax={roMax:G9} — поиск прерван на {MaxIterations} шагах");
+                return float.NaN;
             }
         }
         while (!stopArg && !stopInf);

@@ -22,9 +22,51 @@ public static class RingParameterLayout
     public static bool IsReactanceRequired(int index, int channelCount) =>
         index >= 0 && index < GetActiveReactanceCellCount(channelCount);
 
+    /// <summary>
+    /// Ячейка, из которой берётся реактивность канала с этим индексом.
+    /// </summary>
+    /// <remarks>
+    /// Для позиций вне активных каналов отображать нечего, и берётся та же
+    /// ячейка: эти позиции в расчёте не участвуют, а совпадение индексов
+    /// сохраняет прежнее поведение проверок полноты набора.
+    /// </remarks>
+    public static int GetReactanceCellIndex(
+        int index,
+        int channelCount,
+        RingCapacitanceMappingProfile mappingProfile)
+    {
+        if (!IsReactanceRequired(index, channelCount))
+        {
+            return index;
+        }
+
+        var cellIndex = RingMeasurementSequence.GetChannelCellIndex(channelCount, index, mappingProfile);
+        return cellIndex >= 0 && cellIndex < RingProtocolConstants.WorkingParameterCellCount
+            ? cellIndex
+            : index;
+    }
+
     public static RingParameterLayoutResult BuildParameterSet(
         IReadOnlyList<RingLoopParameterCell> cells,
-        int channelCount)
+        int channelCount) =>
+        BuildParameterSet(cells, channelCount, RingCapacitanceMappingProfile.CompatibilityFallback);
+
+    /// <summary>
+    /// Собирает рабочий набор параметров кольца из прочитанных ячеек.
+    /// </summary>
+    /// <remarks>
+    /// Индекс набора имеет двойной смысл, унаследованный от эталона: по нему
+    /// берётся и сопротивление <c>R1..R8</c>, и реактивность канала. Но ячейки
+    /// кольца пронумерованы по физическим ёмкостям, а каналы прибора — подряд,
+    /// и на кольце с десятью ёмкостями эти нумерации расходятся. Поэтому
+    /// сопротивление берётся по индексу набора, а реактивность — по той
+    /// физической ёмкости, которую приложение и назначит этому каналу командой
+    /// <c>CAP</c>.
+    /// </remarks>
+    public static RingParameterLayoutResult BuildParameterSet(
+        IReadOnlyList<RingLoopParameterCell> cells,
+        int channelCount,
+        RingCapacitanceMappingProfile mappingProfile)
     {
         ArgumentNullException.ThrowIfNull(cells);
 
@@ -41,12 +83,17 @@ public static class RingParameterLayout
         for (var index = 0; index < requiredCellCount; index++)
         {
             var hasCell = cellsByIndex.TryGetValue(index, out var cell) && cell.HasValue;
+            var reactanceCellIndex = GetReactanceCellIndex(index, channelCount, mappingProfile);
+            var hasReactanceCell =
+                cellsByIndex.TryGetValue(reactanceCellIndex, out var reactanceCell) && reactanceCell.HasValue;
+
             var resistanceRequired = IsResistanceRequired(index);
             var reactanceRequired = IsReactanceRequired(index, channelCount);
             var resistanceValid = !resistanceRequired ||
                                   hasCell && float.IsFinite(cell.Resistance) && cell.Resistance > MinimumUsableValue;
             var reactanceValid = !reactanceRequired ||
-                                 hasCell && float.IsFinite(cell.Reactance) && cell.Reactance > MinimumUsableValue;
+                                 hasReactanceCell && float.IsFinite(reactanceCell.Reactance) &&
+                                 reactanceCell.Reactance > MinimumUsableValue;
 
             if (!resistanceValid)
             {
@@ -66,7 +113,7 @@ public static class RingParameterLayout
             parameters.Add(new LoopParameter
             {
                 Resistance = hasCell && float.IsFinite(cell.Resistance) ? cell.Resistance : 0f,
-                Reactance = hasCell && float.IsFinite(cell.Reactance) ? cell.Reactance : 0f,
+                Reactance = hasReactanceCell && float.IsFinite(reactanceCell.Reactance) ? reactanceCell.Reactance : 0f,
                 Radius = 0.5f,
                 AdditionalWireResistance = 0.5f
             });

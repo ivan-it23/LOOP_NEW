@@ -18,6 +18,15 @@ public static class RingCalibrationCalculator
 
     public static RingCalibrationValue Calculate(in SondeParameter parameter, double radius, double inductance)
     {
+        // Без геометрии передатчика Loop() считает 0/0, сравнение NaN < NaN
+        // ложно, и тернарный поиск сползает на нижнюю границу диапазона. Он
+        // завершается, но отдаёт 500 пФ и отрицательную реактивность — числа,
+        // неотличимые от расчётных по виду и негодные к записи в кольцо.
+        if (!parameter.HasUsableGeometry)
+        {
+            return new RingCalibrationValue(float.NaN, float.NaN);
+        }
+
         var capacitance = CMaxFi(parameter.Frequency, radius, inductance, parameter.L1, parameter.L2);
         var reactance = Z(1.0, inductance, capacitance, parameter.Frequency).Imaginary;
         return new RingCalibrationValue((float)capacitance, (float)reactance);
@@ -26,6 +35,12 @@ public static class RingCalibrationCalculator
     // Перенос C_max_fi (function.cpp:801): поиск емкости, максимизирующей фазу сигнала кольца.
     public static double CMaxFi(double frequency, double radius, double inductance, double l1, double l2)
     {
+        // Та же защита для прямого вызова в обход Calculate.
+        if (!(l1 > 0.0) || !(l2 > l1) || !(frequency > 0.0))
+        {
+            return double.NaN;
+        }
+
         var left = CapacitanceMin;
         var right = CapacitanceMax;
 
