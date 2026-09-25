@@ -18,6 +18,7 @@ public sealed partial class MainPage : Page
 
     // Гарантирует, что одновременно отображается не более одного модального уведомления.
     private bool _isShowingNotification;
+    private readonly Queue<UserNotification> _pendingNotifications = new();
 
     // Защищает диалог масштаба от повторного открытия быстрым двойным нажатием.
     private bool _isShowingWindowScaleDialog;
@@ -120,15 +121,25 @@ public sealed partial class MainPage : Page
         toolTip.FontSize = fontSize;
     }
 
+    /// <summary>
+    /// Показывает уведомления по очереди.
+    /// </summary>
+    /// <remarks>
+    /// Прежде уведомление, пришедшее при открытом диалоге, отбрасывалось. При
+    /// подключении кольца по Bluetooth первым почти всегда приходит сообщение о
+    /// медленном подключении, и следующее за ним - например, о пустой ячейке
+    /// памяти - пропадало бесследно. Все обращения идут из UI-потока, поэтому
+    /// очередь не требует блокировок.
+    /// </remarks>
     private async void OnNotificationRequested(UserNotification notification)
     {
-        if (_isShowingNotification)
+        // Одно и то же сообщение дважды подряд в очереди ничего не добавляет.
+        if (!_pendingNotifications.Contains(notification))
         {
-            return;
+            _pendingNotifications.Enqueue(notification);
         }
 
-        var xamlRoot = XamlRoot ?? Content?.XamlRoot;
-        if (xamlRoot is null)
+        if (_isShowingNotification)
         {
             return;
         }
@@ -136,19 +147,33 @@ public sealed partial class MainPage : Page
         _isShowingNotification = true;
         try
         {
-            var dialog = new ContentDialog
+            while (_pendingNotifications.Count > 0)
             {
-                XamlRoot = xamlRoot,
-                DefaultButton = ContentDialogButton.None
-            };
-            dialog.Content = BuildNotificationContent(notification, dialog);
-            ApplyContentScaleToDialog(dialog);
+                var xamlRoot = XamlRoot ?? Content?.XamlRoot;
+                if (xamlRoot is null)
+                {
+                    _pendingNotifications.Clear();
+                    return;
+                }
 
-            await dialog.ShowAsync();
-        }
-        catch (Exception ex)
-        {
-            AppLogger.Write(ex, "Ошибка показа диалога уведомления");
+                var next = _pendingNotifications.Dequeue();
+                try
+                {
+                    var dialog = new ContentDialog
+                    {
+                        XamlRoot = xamlRoot,
+                        DefaultButton = ContentDialogButton.None
+                    };
+                    dialog.Content = BuildNotificationContent(next, dialog);
+                    ApplyContentScaleToDialog(dialog);
+
+                    await dialog.ShowAsync();
+                }
+                catch (Exception ex)
+                {
+                    AppLogger.Write(ex, "Ошибка показа диалога уведомления");
+                }
+            }
         }
         finally
         {

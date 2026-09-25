@@ -1,4 +1,4 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO.Ports;
@@ -711,6 +711,14 @@ public partial class MainPageViewModel : ObservableObject
         StopPolling();
         ToolConnection.Disconnect(_toolPort);
         IsConnected = false;
+
+        // Без прибора неизвестно, какие реактивности нужны: остаётся проверка R1–R8.
+        _shownRingMemoryFingerprint = null;
+        if (IsRingConnected)
+        {
+            EvaluateRingMemory(_ringCells, CurrentRingWorkflowId, RingMemoryNotice.None);
+        }
+
         StatusText = "Прибор отключён";
     }
 
@@ -757,18 +765,21 @@ public partial class MainPageViewModel : ObservableObject
                 "PROTOCOL_CAPABILITIES",
                 $"workflow={_ringWorkflowId}|ring_port={portName}|profile={result.DeviceInfo.ProtocolVersion}|signature={result.DeviceInfo.Signature?.ToString(CultureInfo.InvariantCulture) ?? "none"}|selection_semantics=documented_single_RES_and_single_CAP|state_readback_supported=false|RESREAD_supported=false|CAPREAD_supported=false|keepalive_requirement=undocumented|physical_state_evidence=corrected_tool_phase");
 
-            // Долгое открытие порта - предвестник обрыва посреди прогона.
-            // Сказать об этом нужно сейчас, а не после испорченного прогона.
+            // Долгое открытие порта само по себе не означает отказа: в
+            // большинстве случаев кольцо после него работает штатно и таблица
+            // заполняется полностью. Поэтому сообщение только предупреждает о
+            // возможных последствиях и не советует переподключаться - совет,
+            // который в девяти случаях из десяти оказался бы лишним.
             if (result.IsLinkSlow)
             {
                 AppLogger.Write(
-                    $"RING_LINK_SLOW: порт {portName} открывался {result.PortOpenElapsedMs} мс — канал нездоров.");
+                    $"RING_LINK_SLOW: порт {portName} открывался {result.PortOpenElapsedMs} мс, дольше обычного.");
                 RaiseUserMessage(
-                    "Связь с кольцом неустойчива",
+                    "Подключение к кольцу заняло больше обычного",
                     $"Порт {portName} открывался {result.PortOpenElapsedMs / 1000.0:F1} с вместо обычных долей секунды. " +
-                    "Кольцо подключено, но такой канал обычно рвётся посреди прогона, и таблица остаётся незаполненной.\n\n" +
-                    "Перед измерениями стоит выключить и включить питание кольца, проверить заряд, " +
-                    "а при подключении по Bluetooth — заново выполнить сопряжение или перейти на проводное соединение.");
+                    "Кольцо подключено и готово к работе.\n\n" +
+                    "Имейте в виду: при неустойчивой связи заполниться могут не все ячейки таблицы. " +
+                    "Если прогон прервётся, его потребуется выполнить заново.");
             }
             StatusText = CurrentRingToolCompatibility == RingToolCompatibility.Unsupported
                 ? $"Кольцо {result.DeviceInfo.Signature} не поддерживает прибор {ToolTypeName}"
@@ -793,6 +804,12 @@ public partial class MainPageViewModel : ObservableObject
                 RingConnection.RingConnectStatus.Rejected => "Не удается установить соединение !",
                 _ => $"Кольцо: {result.Status}"
             };
+
+            // Прежде отказ был виден только в строке состояния. 25.09 COM9
+            // дважды не открылся с «таймаутом семафора», и понять, что выбран не
+            // тот порт, можно было лишь по журналу.
+            var (title, message) = BuildRingConnectFailureMessage(portName, result);
+            RaiseUserMessage(title, message);
         }
     }
 
@@ -957,6 +974,7 @@ public partial class MainPageViewModel : ObservableObject
             RingSignatureText = "—";
             RingSignatureEditorText = string.Empty;
             RingSupportedToolTypesText = "—";
+            ResetRingMemoryState();
         }
 
         OnPropertyChanged(nameof(CanStartSingleResistance));
@@ -1279,6 +1297,7 @@ public partial class MainPageViewModel : ObservableObject
         var count = Math.Min(RingCalibrationRows.Count, parameters.Count);
         ClearInactiveRingCalculationRows(count);
         var populatedMeasuredValues = 0;
+        var replacedMeasuredValues = 0;
         var preservedMeasuredValues = 0;
         var skippedChannels = 0;
         for (var i = 0; i < count; i++)
@@ -1306,15 +1325,33 @@ public partial class MainPageViewModel : ObservableObject
             var value = RingCalibrationCalculator.Calculate(parameter);
             RingCalibrationRows[i].CapacitanceText = (value.CapacitanceFarads * 1_000_000_000_000f).ToString("F0");
             RingCalibrationRows[i].ReactanceCalculatedText = value.Reactance.ToString("F4");
+            // Защищено только то, что ввёл человек: это измерение из сертификата
+            // кольца, и расчёт не вправе его подменять. Значение, прочитанное из
+            // кольца или полученное прошлым расчётом, измерением не является, и
+            // держать его вопреки новому расчёту незачем: прежде это запирало
+            // приложение в круге «кольцо -> поле -> кольцо», из которого выводила
+            // только ручная очистка поля.
             var hasMeasuredReactance =
                 TryParseDouble(RingCalibrationRows[i].ReactanceMeasuredText, out var measuredReactance) &&
                 measuredReactance > 0.000001;
-            if (populateMissingMeasuredValues && !hasMeasuredReactance)
+            var isUserEnteredReactance =
+                hasMeasuredReactance && RingCalibrationRows[i].HasUserEnteredReactance;
+            var previousReactanceOrigin = RingCalibrationRows[i].ReactanceMeasuredOrigin;
+            if (populateMissingMeasuredValues && !isUserEnteredReactance)
             {
-                RingCalibrationRows[i].ReactanceMeasuredText = value.Reactance.ToString("F4");
-                populatedMeasuredValues++;
+                RingCalibrationRows[i].SetReactanceMeasured(
+                    value.Reactance.ToString("F4"),
+                    RingReactanceOrigin.Calculated);
+                if (hasMeasuredReactance)
+                {
+                    replacedMeasuredValues++;
+                }
+                else
+                {
+                    populatedMeasuredValues++;
+                }
             }
-            else if (hasMeasuredReactance)
+            else if (isUserEnteredReactance)
             {
                 preservedMeasuredValues++;
             }
@@ -1322,7 +1359,7 @@ public partial class MainPageViewModel : ObservableObject
             AppLogger.WriteDiagnostic(
                 "RING_CALC",
                 "CAPACITANCE_CHANNEL",
-                $"correlation={correlation}|channel={i}|frequency_Hz={parameter.Frequency:G9}|L1_m={parameter.L1:G9}|L2_m={parameter.L2:G9}|capacitance_F={value.CapacitanceFarads:G9}|capacitance_pF={value.CapacitanceFarads * 1_000_000_000_000f:F3}|reactance={value.Reactance:G9}|measured_reactance_source={(hasMeasuredReactance ? "preserved" : populateMissingMeasuredValues ? "calculated_fallback" : "unchanged")}");
+                $"correlation={correlation}|channel={i}|frequency_Hz={parameter.Frequency:G9}|L1_m={parameter.L1:G9}|L2_m={parameter.L2:G9}|capacitance_F={value.CapacitanceFarads:G9}|capacitance_pF={value.CapacitanceFarads * 1_000_000_000_000f:F3}|reactance={value.Reactance:G9}|previous_reactance_origin={previousReactanceOrigin}|measured_reactance_source={(isUserEnteredReactance ? "preserved_user_value" : populateMissingMeasuredValues ? (hasMeasuredReactance ? "replaced_by_calculation" : "filled_by_calculation") : "unchanged")}");
         }
 
         if (populateMissingMeasuredValues)
@@ -1335,7 +1372,7 @@ public partial class MainPageViewModel : ObservableObject
         AppLogger.WriteDiagnostic(
             "RING_CALC",
             "CAPACITANCE_COMPLETED",
-            $"correlation={correlation}|calculated_channels={count - skippedChannels}|skipped_channels={skippedChannels}|populated_measured_values={populatedMeasuredValues}|preserved_measured_values={preservedMeasuredValues}|elapsed_ms={stopwatch.ElapsedMilliseconds}");
+            $"correlation={correlation}|calculated_channels={count - skippedChannels}|skipped_channels={skippedChannels}|populated_measured_values={populatedMeasuredValues}|replaced_measured_values={replacedMeasuredValues}|preserved_measured_values={preservedMeasuredValues}|elapsed_ms={stopwatch.ElapsedMilliseconds}");
         StatusText = skippedChannels > 0
             ? $"Расчёт выполнен частично: не заданы L1/L2 для {IncompleteGeometryTransmittersText}"
             : "Расчёт ёмкостей кольца выполнен";
@@ -1348,8 +1385,9 @@ public partial class MainPageViewModel : ObservableObject
             RaiseUserMessage(
                 skippedChannels > 0 ? "Расчёт выполнен частично" : "Расчёт выполнен",
                 $"Рассчитаны ёмкости и реактивные сопротивления для {count - skippedChannels} каналов.\n\n" +
-                $"Поле Re meas дополнено расчётными значениями: {populatedMeasuredValues}. " +
-                $"Сохранено ранее измеренных значений: {preservedMeasuredValues}." +
+                $"Поле «Реакт. изм.» заполнено расчётом: {populatedMeasuredValues}. " +
+                $"Обновлено расчётом вместо прежних значений: {replacedMeasuredValues}. " +
+                $"Сохранено значений, введённых вручную: {preservedMeasuredValues}." +
                 skippedNote);
         }
 
@@ -1422,6 +1460,7 @@ public partial class MainPageViewModel : ObservableObject
                 .Select(index => new RingLoopParameterCell(index, 0f, 0f, true))
                 .ToArray();
             ApplyRingCells(erasedCells);
+            EvaluateRingMemory(erasedCells, correlation, RingMemoryNotice.None);
             _loopParameters = Array.Empty<LoopParameter>();
             _phaseReferences = Array.Empty<V10>();
             _resistivityReferences = Array.Empty<V10>();
@@ -1468,7 +1507,9 @@ public partial class MainPageViewModel : ObservableObject
             $"Не удалось открыть окно подтверждения команды ZERASE.\n\nПричина: {message}");
     }
 
-    private async Task LoadRingParametersAsync(bool showUserMessage = false)
+    private async Task LoadRingParametersAsync(
+        bool showUserMessage = false,
+        RingMemoryNotice memoryNotice = RingMemoryNotice.IfNew)
     {
         if (!IsRingConnected || !_ringPort.IsOpen)
         {
@@ -1494,6 +1535,13 @@ public partial class MainPageViewModel : ObservableObject
         var requiredParameterCount = parameterLayout.RequiredCellCount;
         var completeParameterCount = parameterLayout.CompleteCellCount;
         var hasRequiredParameters = parameterLayout.IsComplete;
+
+        // Ручное чтение объясняет находки своим же сообщением ниже, поэтому
+        // второй диалог ему не нужен.
+        var memoryAudit = EvaluateRingMemory(
+            result.Cells,
+            correlation,
+            showUserMessage ? RingMemoryNotice.None : memoryNotice);
         _loopParameters = hasRequiredParameters
             ? parameterLayout.Parameters
             : Array.Empty<LoopParameter>();
@@ -1517,13 +1565,22 @@ public partial class MainPageViewModel : ObservableObject
                 "RING_CALIBRATION",
                 "PARAMETERS_READ_COMPLETED",
                 $"correlation={correlation}|success={result.Success}|cells={result.Cells.Count}|calculation_parameters={_loopParameters.Count}|complete_parameters={completeParameterCount}|required_parameters={requiredParameterCount}|invalid_resistance_indexes=[{string.Join(",", parameterLayout.InvalidResistanceIndexes)}]|invalid_reactance_indexes=[{string.Join(",", parameterLayout.InvalidReactanceIndexes)}]|has_required={hasRequiredParameters}|phase_reference_sets={_phaseReferences.Count}|resistivity_reference_sets={_resistivityReferences.Count}|elapsed_ms={stopwatch.ElapsedMilliseconds}");
-            StatusText = $"Параметры кольца прочитаны: {_loopParameters.Count}";
+            StatusText = memoryAudit.HasMismatches
+                ? $"Параметры кольца прочитаны: {_loopParameters.Count}; кольцо заполнено не под этот прибор"
+                : $"Параметры кольца прочитаны: {_loopParameters.Count}";
             if (showUserMessage)
             {
-                RaiseUserMessage(
-                    "Чтение завершено",
-                    $"Из кольца считано {result.Cells.Count} ячеек.\n" +
-                    $"Полных расчётных параметров: {_loopParameters.Count} из {requiredParameterCount}.");
+                if (memoryAudit.HasMismatches)
+                {
+                    ShowRingMemoryMessage(memoryAudit);
+                }
+                else
+                {
+                    RaiseUserMessage(
+                        "Чтение завершено",
+                        $"Из кольца считано {result.Cells.Count} ячеек.\n" +
+                        $"Полных расчётных параметров: {_loopParameters.Count} из {requiredParameterCount}.");
+                }
             }
         }
         else
@@ -1538,13 +1595,7 @@ public partial class MainPageViewModel : ObservableObject
                 : "Параметры кольца не получены";
             if (showUserMessage)
             {
-                var message = result.Cells.Count > 0
-                    ? $"Ячейки кольца прочитаны, но полных расчётных параметров только {completeParameterCount} из {requiredParameterCount}.\n\n" +
-                      "Проверьте R1…R8 и Re meas активных каналов. Нулевое Re meas допустимо только для неактивных каналов."
-                    : "Кольцо не вернуло параметры. Проверьте соединение и повторите чтение.";
-                RaiseUserMessage(
-                    result.Cells.Count > 0 ? "Параметры прочитаны не полностью" : "Чтение не выполнено",
-                    message);
+                ShowRingMemoryMessage(memoryAudit);
             }
         }
     }
@@ -1621,6 +1672,7 @@ public partial class MainPageViewModel : ObservableObject
                 .OrderBy(cell => cell.Index)
                 .ToArray();
             ApplyRingCells(verifiedCells);
+            EvaluateRingMemory(verification.Cells, correlation, RingMemoryNotice.None);
             RebuildLoopParametersFromRingRows();
             RecalculateLoopReferences();
             ClearResistanceBuffers();
@@ -1702,7 +1754,28 @@ public partial class MainPageViewModel : ObservableObject
         AppLogger.WriteDiagnostic(
             "RING_AIR",
             "REQUESTED",
-            $"correlation={correlation}|currently_set={isSet}|ring_connected={IsRingConnected}|ring_port_open={_ringPort.IsOpen}|selected_samples={SelectedFrameCount}|channels={_channelCount}");
+            $"correlation={correlation}|currently_set={isSet}|polling={IsPolling}|ring_connected={IsRingConnected}|ring_port_open={_ringPort.IsOpen}|selected_samples={SelectedFrameCount}|channels={_channelCount}");
+
+        // Обе ветви кнопки живут кадрами прибора: сбор их накапливает, а сброс
+        // наступает при обработке очередного. С остановленным опросом кадров нет,
+        // нажатие не приводит ни к чему, и пользователь видит только
+        // неотвечающую кнопку - именно так это и выглядело 22.09, когда опрос
+        // стоял на паузе и кнопка приняла 48 нажатий подряд без единого
+        // видимого следствия.
+        if (!IsPolling)
+        {
+            AppLogger.WriteDiagnostic(
+                "RING_AIR",
+                "BLOCKED",
+                $"correlation={correlation}|reason=polling_stopped|currently_set={isSet}");
+            StatusText = "Локальный воздух: возобновите опрос прибора";
+            RaiseUserMessage(
+                "Опрос прибора остановлен",
+                "Локальный воздух набирается по кадрам прибора, а опрос сейчас на паузе, " +
+                $"поэтому {(isSet ? "сбросить" : "задать")} его сейчас нельзя.\n\n" +
+                "Возобновите опрос кнопкой паузы рядом с полем «Усреднение» и повторите.");
+            return;
+        }
 
         if (!isSet)
         {
@@ -2160,7 +2233,7 @@ public partial class MainPageViewModel : ObservableObject
             row.FrequencyText = string.Empty;
             row.CapacitanceText = string.Empty;
             row.ReactanceCalculatedText = string.Empty;
-            row.ReactanceMeasuredText = string.Empty;
+            row.SetReactanceMeasured(string.Empty, RingReactanceOrigin.None);
         }
     }
 
@@ -2183,7 +2256,13 @@ public partial class MainPageViewModel : ObservableObject
     private IReadOnlyList<RingLoopParameterCell> BuildRingWriteCells()
     {
         var activeCalculationCellCount = GetActiveRingCalculationCellCount();
-        var cellCount = RingParameterLayout.GetRequiredWorkingCellCount(activeCalculationCellCount);
+
+        // Диапазон записи считается по ячейкам, а не по каналам: на кольце с
+        // десятью ёмкостями канал T4 второй частоты живёт в Z8, и подсчёт по
+        // числу каналов оставлял эту ячейку с прежним, чужим значением.
+        var cellCount = RingParameterLayout.GetRequiredWriteCellCount(
+            activeCalculationCellCount,
+            CurrentRingCapacitanceMappingProfile);
         var cells = new List<RingLoopParameterCell>(cellCount);
         for (var index = 0; index < cellCount; index++)
         {
@@ -2333,10 +2412,11 @@ public partial class MainPageViewModel : ObservableObject
                 _channelCount,
                 channel,
                 CurrentRingCapacitanceMappingProfile);
-            RingCalibrationRows[channel].ReactanceMeasuredText =
+            RingCalibrationRows[channel].SetReactanceMeasured(
                 cellsByIndex.TryGetValue(cellIndex, out var cell) && cell.HasValue
                     ? cell.Reactance.ToString("F4")
-                    : string.Empty;
+                    : string.Empty,
+                RingReactanceOrigin.Ring);
         }
     }
 
@@ -2504,6 +2584,14 @@ public partial class MainPageViewModel : ObservableObject
                 "PREPARE_BLOCKED",
                 $"correlation={correlation}|reason=connection_state|tool_connected={IsConnected}|ring_connected={IsRingConnected}|ring_port_open={_ringPort.IsOpen}");
             StatusText = $"{modeName}: подключите прибор и кольцо";
+            RaiseUserMessage(
+                $"{DescribeBlockedStart(modeName)}: нет подключения",
+                (IsConnected, IsRingConnected && _ringPort.IsOpen) switch
+                {
+                    (false, false) => "Не подключены ни прибор, ни кольцо. Подключите оба, соберите локальный воздух и повторите запуск.",
+                    (false, true) => "Прибор не подключён. Подключите прибор, соберите локальный воздух и повторите запуск.",
+                    _ => "Кольцо не подключено. Подключите кольцо и повторите запуск."
+                });
             return false;
         }
 
@@ -2558,7 +2646,9 @@ public partial class MainPageViewModel : ObservableObject
         if (_loopParameters.Count == 0)
         {
             AppLogger.Write($"{modeName}: параметры кольца не загружены, читаем...");
-            await LoadRingParametersAsync();
+
+            // Отказ ниже объяснит причину сам; диалог чтения был бы вторым о том же.
+            await LoadRingParametersAsync(memoryNotice: RingMemoryNotice.None);
         }
 
         if (_channelCount <= 0 || _resistivityReferences.Count <= MeasurementTable.ResistanceCount)
@@ -2569,6 +2659,24 @@ public partial class MainPageViewModel : ObservableObject
                 "PREPARE_BLOCKED",
                 $"correlation={correlation}|reason=reference_data_missing|channels={_channelCount}|phase_reference_sets={_phaseReferences.Count}|resistivity_reference_sets={_resistivityReferences.Count}|required_sets={MeasurementTable.ResistanceCount + 1}");
             StatusText = $"{modeName}: нет расчётных эталонов кольца";
+
+            // Прежде здесь менялась только строка состояния, и запуск выглядел
+            // так, будто кнопка не работает.
+            if (!_ringMemoryAudit.IsComplete)
+            {
+                var (title, message) = BuildRingMemoryMessage(_ringMemoryAudit, modeName);
+                _shownRingMemoryFingerprint = _ringMemoryAudit.Fingerprint;
+                RaiseUserMessage(title, message);
+            }
+            else
+            {
+                RaiseUserMessage(
+                    $"{DescribeBlockedStart(modeName)}: нет эталонов кольца",
+                    "Эталонные фазы кольца не рассчитаны, хотя память кольца заполнена.\n\n" +
+                    "Нажмите «Прочитать из кольца» и повторите запуск. Если ошибка повторится, переподключите прибор: " +
+                    "эталоны рассчитываются по метрологии прибора и памяти кольца вместе.");
+            }
+
             return false;
         }
 
@@ -2576,6 +2684,7 @@ public partial class MainPageViewModel : ObservableObject
             "RING_MEASUREMENT",
             "PREPARE_COMPLETED",
             $"correlation={correlation}|loop_parameters={_loopParameters.Count}|phase_reference_sets={_phaseReferences.Count}|resistivity_reference_sets={_resistivityReferences.Count}|channels={_channelCount}");
+        LogNoiseFloor(correlation);
         return true;
     }
 
@@ -2871,6 +2980,21 @@ public partial class MainPageViewModel : ObservableObject
         _pollCts?.Cancel();
         _pollCts = null;
         IsPolling = false;
+
+        // Сброс воздуха наступает при обработке кадра. Если опрос остановлен
+        // между запросом и очередным кадром, запрос повис бы до возобновления,
+        // а состояние воздуха осталось бы прежним вопреки действию оператора.
+        bool applied;
+        lock (_airLock)
+        {
+            applied = _localAir.ApplyPendingReset(_channelCount);
+        }
+
+        if (applied)
+        {
+            AppLogger.Write("LOCAL_AIR: отложенный сброс применён при остановке опроса.");
+            RefreshLocalAirUi();
+        }
     }
 
     // Фоновый цикл выполняет блокирующее чтение COM вне UI-потока и публикует результат через DispatcherQueue.
@@ -2916,6 +3040,16 @@ public partial class MainPageViewModel : ObservableObject
 
                     _frameCounter++;
                     DispatchFrame(frame.Phases, air, corrected, resistivity, _frameCounter, frame.Temperature);
+                }
+                else if (frame.Code == ToolResponseCode.PortClosed && token.IsCancellationRequested)
+                {
+                    // Порт закрыло отключение прибора, пока кадр был в чтении:
+                    // StopPolling отменяет опрос раньше, чем закрывается порт. Это
+                    // штатное завершение, а не сбой, - прежде оно попадало в журнал
+                    // как «ОШИБКА опроса прибора: PortClosed». Порт, закрывшийся
+                    // без отмены (выдернут кабель), по-прежнему остаётся ошибкой.
+                    AppLogger.Write("Опрос прибора остановлен: порт закрыт при отключении прибора.");
+                    break;
                 }
                 else
                 {
@@ -3329,15 +3463,20 @@ public partial class MainPageViewModel : ObservableObject
     }
 
     // Возвращает дискретный образец PH_percent_from_sonde, как в старом WorkForm.h.
+    // Процент кадра не усекается до целого. Эталон делал (int) на каждом кадре
+    // и лишь потом усреднял: значение смещалось к нулю до целого процентного
+    // пункта, в таблице выходили шаги по 0,2 %, а «0,0 %» могло означать что
+    // угодно от −0,99 до +0,99 %. На границе допуска это меняло и цвет: 6,9 %
+    // при допуске 6 % усекалось до 6 и попадало в «норму».
     private static float CalculatePhasePercentSample(float measuredPhase, float referencePhase)
     {
         var referenceMg = referencePhase * (float)PhysicalConstants.Milligrad;
         if (MathF.Abs(referenceMg) < 0.001f)
         {
-            return (int)(MathF.Abs(measuredPhase * (float)PhysicalConstants.Milligrad) / 6.0f);
+            return MathF.Abs(measuredPhase * (float)PhysicalConstants.Milligrad) / 6.0f;
         }
 
-        return (int)(100f * (measuredPhase - referencePhase) / referencePhase);
+        return 100f * (measuredPhase - referencePhase) / referencePhase;
     }
 
     private float PushResistancePercent(int resistanceIndex, int channelIndex, float value)

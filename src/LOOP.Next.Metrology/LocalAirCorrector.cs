@@ -16,6 +16,8 @@ public sealed class LocalAirCorrector
     public const int MaxSampleCount = 200;
 
     private V10 _air;
+    private V10 _airStdDev;
+    private int _acceptedSampleCount;
     private readonly float[] _sum = new float[V10.ChannelCount];
     private readonly float[] _sumSq = new float[V10.ChannelCount];
     private readonly float[] _min = new float[V10.ChannelCount];
@@ -36,6 +38,19 @@ public sealed class LocalAirCorrector
     }
 
     public V10 Air => _air;
+
+    /// <summary>
+    /// Разброс фазы по кадрам при сборе воздуха, по каналам.
+    /// </summary>
+    /// <remarks>
+    /// Это шум одного кадра. По нему видно, какие ячейки таблицы вообще
+    /// различимы: при больших сопротивлениях ожидаемая фаза на 401 кГц падает
+    /// до десятков мГ, то есть до уровня этого шума.
+    /// </remarks>
+    public V10 AirStdDev => _airStdDev;
+
+    /// <summary>Сколько кадров вошло в принятый воздух; 0, если воздух не задан.</summary>
+    public int AcceptedSampleCount => _isSet ? _acceptedSampleCount : 0;
 
     public bool IsSet => _isSet;
 
@@ -68,6 +83,8 @@ public sealed class LocalAirCorrector
             "BEGIN",
             $"correlation={_diagnosticCorrelationId}|requested_samples={requestedSampleCount}|samples={_sampleCount}|settle_frames={SettleFrames}");
         _air.Clear();
+        _airStdDev.Clear();
+        _acceptedSampleCount = 0;
         ResetAccumulator();
         _collecting = true;
         _resetRequested = false;
@@ -85,6 +102,30 @@ public sealed class LocalAirCorrector
             "RESET_REQUESTED",
             $"correlation={_diagnosticCorrelationId}|is_set={_isSet}|collecting={_collecting}|collected_samples={_sampleCounter}");
         _resetRequested = true;
+    }
+
+    /// <summary>
+    /// Применяет отложенный сброс, не дожидаясь очередного кадра.
+    /// </summary>
+    /// <remarks>
+    /// Сброс исторически выполняется внутри обработки кадра, чтобы сохранить
+    /// порядок «сбор → сброс → вычитание» эталонной реализации. Но пока кадры не
+    /// идут — опрос прибора остановлен или связь потеряна — отложенный сброс не
+    /// наступает никогда, и состояние воздуха остаётся заданным. Пользователь
+    /// при этом видит только то, что кнопка не отвечает.
+    ///
+    /// Вызывается вне кадрового пути, поэтому порядок внутри кадра не меняет.
+    /// Возвращает true, если сброс действительно был применён.
+    /// </remarks>
+    public bool ApplyPendingReset(int channelCount)
+    {
+        if (!_resetRequested)
+        {
+            return false;
+        }
+
+        ApplyResetIfRequested(channelCount);
+        return true;
     }
 
     // Обрабатывает кадр в порядке LOOP_NEW: сбор -> сброс -> вычитание AIR.
@@ -151,6 +192,7 @@ public sealed class LocalAirCorrector
                 }
 
                 var stdDev = MathF.Sqrt(variance);
+                _airStdDev.SetValue(i, stdDev);
                 AppLogger.WriteDiagnostic(
                     "RING_AIR",
                     "CHANNEL_STATS",
@@ -159,6 +201,7 @@ public sealed class LocalAirCorrector
 
             _collecting = false;
             _isSet = true;
+            _acceptedSampleCount = _sampleCount;
             _sampleCounter = 0;
             _settleCounter = 0;
 
@@ -181,8 +224,10 @@ public sealed class LocalAirCorrector
         for (var i = 0; i < count; i++)
         {
             _air.SetValue(i, 0f);
+            _airStdDev.SetValue(i, 0f);
         }
 
+        _acceptedSampleCount = 0;
         _resetRequested = false;
         _isSet = false;
         _collecting = false;

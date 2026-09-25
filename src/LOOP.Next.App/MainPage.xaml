@@ -996,6 +996,7 @@
                                     <RowDefinition Height="Auto" />
                                     <RowDefinition Height="Auto" />
                                     <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto" />
@@ -1011,7 +1012,7 @@
                                         AutomationProperties.Name="Значение сигнатуры кольца" />
                                 </Border>
 
-                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Ёмкости:" Style="{StaticResource IdentificationLabelTextStyle}" />
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Расчёт ёмкостей:" Style="{StaticResource IdentificationLabelTextStyle}" />
                                 <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource IdentificationCompactValueBorderStyle}">
                                     <TextBlock
                                         Text="{x:Bind ViewModel.RingCapacitanceStateText, Mode=OneWay}"
@@ -1027,6 +1028,15 @@
                                         TextWrapping="NoWrap"
                                         TextTrimming="None"
                                         AutomationProperties.Name="Поддерживаемые типы приборов кольца" />
+                                </Border>
+
+                                <TextBlock Grid.Row="3" Grid.Column="0" Text="Память:" Style="{StaticResource IdentificationLabelTextStyle}" />
+                                <Border Grid.Row="3" Grid.Column="1" Style="{StaticResource IdentificationCompactValueBorderStyle}">
+                                    <TextBlock
+                                        Text="{x:Bind ViewModel.RingMemoryStateText, Mode=OneWay}"
+                                        Style="{StaticResource IdentificationValueTextStyle}"
+                                        ToolTipService.ToolTip="Заполнена ли память кольца для подключённого прибора. Подробности — в сообщении при подключении кольца и по кнопке «Прочитать из кольца»."
+                                        AutomationProperties.Name="Состояние памяти кольца" />
                                 </Border>
                             </Grid>
                         </Grid>
@@ -1523,6 +1533,7 @@
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
                                     </Grid.RowDefinitions>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto" />
@@ -1538,7 +1549,7 @@
                                             AutomationProperties.Name="Значение сигнатуры кольца" />
                                     </Border>
 
-                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Ёмкости:" Style="{StaticResource IdentificationLabelTextStyle}" />
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Расчёт ёмкостей:" Style="{StaticResource IdentificationLabelTextStyle}" />
                                     <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource IdentificationCompactValueBorderStyle}">
                                         <TextBlock
                                             Text="{x:Bind ViewModel.RingCapacitanceStateText, Mode=OneWay}"
@@ -1554,6 +1565,15 @@
                                             TextWrapping="NoWrap"
                                             TextTrimming="None"
                                             AutomationProperties.Name="Поддерживаемые типы приборов кольца" />
+                                    </Border>
+
+                                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Память:" Style="{StaticResource IdentificationLabelTextStyle}" />
+                                    <Border Grid.Row="3" Grid.Column="1" Style="{StaticResource IdentificationCompactValueBorderStyle}">
+                                        <TextBlock
+                                            Text="{x:Bind ViewModel.RingMemoryStateText, Mode=OneWay}"
+                                            Style="{StaticResource IdentificationValueTextStyle}"
+                                            ToolTipService.ToolTip="Заполнена ли память кольца для подключённого прибора. Подробности — в сообщении при подключении кольца и по кнопке «Прочитать из кольца»."
+                                            AutomationProperties.Name="Состояние памяти кольца" />
                                     </Border>
                                 </Grid>
                             </Grid>
@@ -2029,7 +2049,7 @@
                 <TextBlock Style="{StaticResource DocSubHeaderTextStyle}" Text="Информационные панели" />
                 <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• &quot;Идентификация зонда&quot;: тип, серийный номер, сигнатура, номер, модификация, позиция R1." />
                 <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• &quot;Состояние зонда&quot;: локальный воздух, число принятых кадров, температура." />
-                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• &quot;Состояние кольца&quot;: сигнатура, состояние расчёта ёмкостей, поддерживаемые типы приборов." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• &quot;Состояние кольца&quot;: сигнатура, состояние расчёта ёмкостей, поддерживаемые типы приборов и строка &quot;Память&quot;. &quot;Память&quot; показывает, пригодна ли память кольца для подключённого прибора: &quot;Заполнена&quot;, &quot;Не заполнено: Z8&quot; (ячейка пуста, заполнение таблицы невозможно), &quot;Не прочитано: Z8&quot; (кольцо не ответило - ошибка связи, а не пустая память) или &quot;Не под этот прибор: N каналов&quot; (записанные реактивности расходятся с расчётом для прибора). Без прибора проверяются только R1…R8." />
                 <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• Кнопки прибора и кольца подсвечиваются корпоративным красным, пока соответствующее устройство включено." />
                 <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• Кнопка &quot;Рапорт&quot; расположена под панелью состояния кольца." />
 
@@ -2090,8 +2110,8 @@
                 <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• &quot;Сопротивления резисторов кольца, Ом&quot; - всегда восемь значений R1..R8. Это физически неизменная часть кольца, она не зависит от числа передатчиков прибора." />
 
                 <TextBlock Style="{StaticResource DocSubHeaderTextStyle}" Text="Кнопки" />
-                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• &quot;Рассчитать&quot; - пересчитывает требуемые ёмкости и расчётные реактивные сопротивления по метрологии зонда. Пустые и нулевые измеренные значения дополняются расчётными; уже введённые положительные измеренные значения сохраняются." />
-                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• &quot;Прочитать из кольца&quot; - читает параметры из памяти подключённого кольца." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• &quot;Рассчитать&quot; - пересчитывает требуемые ёмкости и расчётные реактивные сопротивления по метрологии зонда, после чего обновляет строку &quot;Реакт. изм., Ом&quot;. Значения, введённые вручную, сохраняются: это измерения из сертификата кольца, и расчёт их не подменяет. Всё остальное - пустые ячейки, прочитанное из кольца и результаты прошлого расчёта - заменяется новым расчётом. В сообщении о выполнении названо, сколько значений заполнено, сколько обновлено и сколько сохранено." />
+                <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• &quot;Прочитать из кольца&quot; - читает параметры из памяти подключённого кольца и проверяет их для подключённого прибора. Если ячейки пусты, не прочитаны или заполнены не под этот прибор, сообщение называет эти ячейки, каналы, которым они нужны, и порядок действий. Та же проверка выполняется при подключении кольца и прибора." />
                 <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• &quot;Записать в кольцо&quot; - записывает параметры. Доступна только при включённом чекбоксе &quot;Редактировать&quot;. После записи приложение перечитывает память кольца и сравнивает значения; сообщение об успехе появляется только при полном совпадении, иначе перечисляются несовпавшие ячейки." />
                 <TextBlock Style="{StaticResource DocBulletTextStyle}" Text="• &quot;Стереть все ячейки кольца&quot; - диагностическая команда, см. раздел 11." />
                 <TextBlock

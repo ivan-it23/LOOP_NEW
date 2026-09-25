@@ -15,9 +15,9 @@ public static class RingConnection
     private static readonly ConditionalWeakTable<SerialPort, object> PortLocks = new();
 
     /// <summary>
-    /// Открытие порта дольше этого времени считается признаком нездорового
-    /// канала. Исправный COM-порт, в том числе Bluetooth-порт с живым
-    /// сопряжением, открывается за десятки миллисекунд.
+    /// Открытие порта дольше этого времени считается более долгим, чем обычно.
+    /// COM-порт, в том числе Bluetooth-порт с живым сопряжением, открывается за
+    /// десятки миллисекунд; секунды стоит отметить, но отказом они не являются.
     /// </summary>
     public const long SlowPortOpenWarningMs = 1000;
 
@@ -61,16 +61,16 @@ public static class RingConnection
                     "PORT_OPENED",
                     $"correlation={correlation}|operation={operationId}|port={port.PortName}|elapsed_ms={portOpenElapsedMs}|data_bits={port.DataBits}|parity={port.Parity}|stop_bits={port.StopBits}|handshake={port.Handshake}|newline=CRLF");
 
-                // Исправный порт открывается за десятки миллисекунд. Секунды
-                // означают, что канал к кольцу поднимается с трудом: у
-                // Bluetooth-порта это предвестник обрыва посреди прогона, и
-                // отметить его нужно до того, как оператор начнёт измерения.
+                // Обычно порт открывается за десятки миллисекунд. Секунды стоит
+                // отметить в журнале: по ним разбирается, был ли канал вялым ещё
+                // до прогона. Отказом это не является - чаще всего после такого
+                // открытия кольцо работает штатно.
                 if (portOpenElapsedMs >= SlowPortOpenWarningMs)
                 {
                     AppLogger.WriteDiagnostic(
                         "RING_CONNECT",
                         "PORT_OPEN_SLOW",
-                        $"correlation={correlation}|operation={operationId}|port={port.PortName}|elapsed_ms={portOpenElapsedMs}|warning_threshold_ms={SlowPortOpenWarningMs}|note=link_unhealthy_expect_drops");
+                        $"correlation={correlation}|operation={operationId}|port={port.PortName}|elapsed_ms={portOpenElapsedMs}|warning_threshold_ms={SlowPortOpenWarningMs}|note=slower_than_usual_not_a_failure");
                 }
             }
             catch (Exception ex)
@@ -81,7 +81,11 @@ public static class RingConnection
                     "FAILED",
                     ex,
                     $"correlation={correlation}|operation={operationId}|port={port.PortName}|stage=open|elapsed_ms={operationStopwatch.ElapsedMilliseconds}");
-                return new RingConnectResult(RingConnectStatus.PortOpenFailed, RingDeviceInfo.Unknown);
+                return new RingConnectResult(
+                    RingConnectStatus.PortOpenFailed,
+                    RingDeviceInfo.Unknown,
+                    PortOpenFailure: ClassifyPortOpenFailure(ex),
+                    FailureReason: ex.Message);
             }
 
             Exception? signatureError = null;
@@ -161,6 +165,30 @@ public static class RingConnection
             return new RingConnectResult(status, RingDeviceInfo.Unknown);
         }
     }
+
+    // Коды Win32, которые SerialPort возвращает в HResult исключения.
+    private const int ErrorFileNotFound = 2;
+    private const int ErrorSemaphoreTimeout = 121;
+
+    /// <summary>
+    /// Почему не открылся порт: от этого зависит, что посоветовать пользователю.
+    /// </summary>
+    /// <remarks>
+    /// «Превышен таймаут семафора» (ERROR_SEM_TIMEOUT) - типичный ответ
+    /// виртуального Bluetooth-порта, за которым устройство недоступно: кольцо
+    /// выключено, далеко или выбран не тот из двух портов, которые Windows
+    /// создаёт для Bluetooth-устройства. Так было 25.09: COM9 дважды не
+    /// открылся, COM12 того же кольца открылся сразу.
+    /// </remarks>
+    public static RingPortOpenFailure ClassifyPortOpenFailure(Exception exception) => exception switch
+    {
+        UnauthorizedAccessException => RingPortOpenFailure.Busy,
+        FileNotFoundException => RingPortOpenFailure.NotFound,
+        ArgumentException => RingPortOpenFailure.NotFound,
+        IOException io when (io.HResult & 0xFFFF) == ErrorSemaphoreTimeout => RingPortOpenFailure.DeviceNotResponding,
+        IOException io when (io.HResult & 0xFFFF) == ErrorFileNotFound => RingPortOpenFailure.NotFound,
+        _ => RingPortOpenFailure.Other
+    };
 
     public static void Disconnect(SerialPort port, string? correlationId = null)
     {
@@ -322,8 +350,15 @@ public static class RingConnection
                     AppLogger.Write($"ZREAD n={index}: ответ '{response.Trim()}'");
                     var parsed = RingProtocolParser.TryParseLoopParameterCell(index, response, out var cell);
                     var storedCell = parsed
-                        ? cell
-                        : new RingLoopParameterCell(index, 0f, 0f, false);
+                        ? cell with { ReadStatus = RingCellReadStatus.Parsed }
+                        : new RingLoopParameterCell(
+                            index,
+                            0f,
+                            0f,
+                            false,
+                            RingProtocolParser.IsEmptyLoopParameterCell(index, response)
+                                ? RingCellReadStatus.EmptyInMemory
+                                : RingCellReadStatus.NoAnswer);
                     cells.Add(storedCell);
                     AppLogger.WriteDiagnostic(
                         "RING_MEMORY",
@@ -338,7 +373,7 @@ public static class RingConnection
                         "CELL_READ_FAILED",
                         ex,
                         $"correlation={correlation}|operation={operationId}|index={index}|elapsed_ms={cellStopwatch.ElapsedMilliseconds}");
-                    cells.Add(new RingLoopParameterCell(index, 0f, 0f, false));
+                    cells.Add(new RingLoopParameterCell(index, 0f, 0f, false, RingCellReadStatus.NoAnswer));
                 }
             }
 
@@ -878,14 +913,33 @@ public readonly record struct RingDeviceInfo(
         commandSet);
 }
 
+/// <summary>Причина, по которой не открылся порт кольца.</summary>
+public enum RingPortOpenFailure
+{
+    None,
+
+    /// <summary>Порт занят другой программой.</summary>
+    Busy,
+
+    /// <summary>Порта нет в системе: устройство отключено или удалено.</summary>
+    NotFound,
+
+    /// <summary>Порт есть, но устройство за ним не отвечает (обычно Bluetooth).</summary>
+    DeviceNotResponding,
+
+    Other
+}
+
 public readonly record struct RingConnectResult(
     RingConnection.RingConnectStatus Status,
     RingDeviceInfo DeviceInfo,
-    long PortOpenElapsedMs = 0)
+    long PortOpenElapsedMs = 0,
+    RingPortOpenFailure PortOpenFailure = RingPortOpenFailure.None,
+    string? FailureReason = null)
 {
     public bool IsConnected => Status == RingConnection.RingConnectStatus.Connected;
 
-    /// <summary>Канал поднимался слишком долго — от него стоит ждать обрывов.</summary>
+    /// <summary>Порт открывался дольше обычного. Это повод для оговорки, а не отказ.</summary>
     public bool IsLinkSlow => PortOpenElapsedMs >= RingConnection.SlowPortOpenWarningMs;
 }
 
@@ -913,7 +967,36 @@ public readonly record struct RingWorkOutcome(RingWorkResult Result, string? Fai
     public static RingWorkOutcome NotConnected(string reason) => new(RingWorkResult.NotConnected, reason);
 }
 
-public readonly record struct RingLoopParameterCell(int Index, float Resistance, float Reactance, bool HasValue);
+/// <summary>
+/// Как получено содержимое ячейки кольца.
+/// </summary>
+/// <remarks>
+/// Ячейка без значения бывает двух родов, и лечатся они по-разному. Стёртая
+/// флеш-память отвечает <c>Z8 -nan -nan</c>: кольцо на связи, в ячейку просто
+/// ничего не писали, и помогает запись. Нет ответа или он не разобран - дело
+/// в связи, и запись в исправное кольцо тут не поможет, а навредить может.
+/// </remarks>
+public enum RingCellReadStatus
+{
+    /// <summary>Происхождение не отслеживалось (ячейка создана не чтением).</summary>
+    Unknown = 0,
+
+    /// <summary>Кольцо вернуло числа.</summary>
+    Parsed,
+
+    /// <summary>Кольцо ответило, что ячейка пуста (<c>nan</c>).</summary>
+    EmptyInMemory,
+
+    /// <summary>Ответа нет или он не распознан.</summary>
+    NoAnswer
+}
+
+public readonly record struct RingLoopParameterCell(
+    int Index,
+    float Resistance,
+    float Reactance,
+    bool HasValue,
+    RingCellReadStatus ReadStatus = RingCellReadStatus.Unknown);
 
 public readonly record struct RingLoopParameterWriteCell(int Index, bool Success, string Response, string? ErrorMessage);
 

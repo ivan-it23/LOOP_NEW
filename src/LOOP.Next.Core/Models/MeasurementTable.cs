@@ -43,8 +43,33 @@ public readonly record struct MeasurementCell(bool HasValue, float Value, Measur
 {
     public static readonly MeasurementCell Empty = new(false, 0f, MeasurementQuality.InTolerance);
 
-    public static MeasurementCell Create(float value, int threshold) =>
-        new(true, value, MeasurementQualityClassifier.Classify(value, threshold));
+    public static MeasurementCell Create(float value, int threshold)
+    {
+        var shown = RoundForDisplay(value);
+        return new(true, shown, MeasurementQualityClassifier.Classify(shown, threshold));
+    }
+
+    /// <summary>
+    /// Значение ячейки с той точностью, с которой его видит пользователь.
+    /// </summary>
+    /// <remarks>
+    /// Таблица и рапорт показывают одну цифру после запятой. Маленькое
+    /// отрицательное отклонение (−0,04 %) округлялось до нуля, но сохраняло знак,
+    /// и в таблице и в Excel выходило «−0,0 %». Пока процент кадра усекался до
+    /// целого, такого не было; после отказа от усечения это стало видно.
+    /// Цвет считается по тому же округлённому числу, чтобы ячейка «6,0 %» при
+    /// допуске 6 % не оказалась окрашена как выход за допуск.
+    /// </remarks>
+    public static float RoundForDisplay(float value)
+    {
+        if (!float.IsFinite(value))
+        {
+            return value;
+        }
+
+        var rounded = MathF.Round(value, 1, MidpointRounding.AwayFromZero);
+        return rounded == 0f ? 0f : rounded;
+    }
 }
 
 // Заголовок столбца канала: номер передатчика и частота.

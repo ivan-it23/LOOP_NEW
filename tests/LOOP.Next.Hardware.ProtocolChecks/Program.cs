@@ -1,4 +1,4 @@
-﻿using System.IO.Compression;
+using System.IO.Compression;
 using System.Runtime.InteropServices;
 using System.Xml.Linq;
 using LOOP.Next.Reporting;
@@ -206,6 +206,58 @@ var checks = new List<(string Name, Action Run)>
         Require(RingParameterLayout.GetRequiredWorkingCellCount(6) == 8);
         Require(RingParameterLayout.GetRequiredWorkingCellCount(8) == 8);
         Require(RingParameterLayout.GetRequiredWorkingCellCount(10) == 10);
+    }),
+    ("Диапазон записи покрывает ячейку Z8 четырёхзондового прибора на универсальном кольце", () =>
+    {
+        // Каналы 4 Tx на кольце со смещением занимают Z0..Z3 и Z5..Z8:
+        // девять позиций, а не восемь. Подсчёт по числу каналов оставлял Z8
+        // ненаписанной, и высокочастотный T4 навсегда сохранял чужую
+        // реактивность.
+        Require(RingParameterLayout.GetRequiredWriteCellCount(
+            8,
+            RingCapacitanceMappingProfile.UniversalFiveTransmitter) == 9);
+
+        // На кольце с восемью ёмкостями смещения нет, и каналы ложатся подряд.
+        Require(RingParameterLayout.GetRequiredWriteCellCount(
+            8,
+            RingCapacitanceMappingProfile.CompactFourTransmitter) == 8);
+
+        // Трёхзондовый прибор занимает Z0..Z2 и Z5..Z7 - восьми ячеек хватает.
+        Require(RingParameterLayout.GetRequiredWriteCellCount(
+            6,
+            RingCapacitanceMappingProfile.UniversalFiveTransmitter) == 8);
+
+        // Пятизондовый прибор занимает весь набор.
+        Require(RingParameterLayout.GetRequiredWriteCellCount(
+            10,
+            RingCapacitanceMappingProfile.UniversalFiveTransmitter) == 10);
+
+        // Сопротивления R1..R8 требуют Z0..Z7 даже без единого канала.
+        Require(RingParameterLayout.GetRequiredWriteCellCount(
+            0,
+            RingCapacitanceMappingProfile.UniversalFiveTransmitter) == 8);
+    }),
+    ("Каждая ячейка канала попадает в диапазон записи", () =>
+    {
+        // Прямая проверка свойства, ради которого диапазон и считается:
+        // ни один канал не должен отображаться за пределы записи.
+        foreach (var profile in new[]
+                 {
+                     RingCapacitanceMappingProfile.UniversalFiveTransmitter,
+                     RingCapacitanceMappingProfile.CompactFourTransmitter,
+                     RingCapacitanceMappingProfile.CompatibilityFallback
+                 })
+        {
+            foreach (var channelCount in new[] { 6, 8, 10 })
+            {
+                var writeCount = RingParameterLayout.GetRequiredWriteCellCount(channelCount, profile);
+                for (var channel = 0; channel < channelCount; channel++)
+                {
+                    var cellIndex = RingMeasurementSequence.GetChannelCellIndex(channelCount, channel, profile);
+                    Require(cellIndex >= 0 && cellIndex < writeCount);
+                }
+            }
+        }
     }),
     ("Кольцо на восемь ёмкостей: 4 Tx читает реактивности подряд", () =>
     {
@@ -1273,6 +1325,42 @@ var checks = new List<(string Name, Action Run)>
         Require(summary.State == RingFirmwareRetentionState.Held, "точка удержана");
         Require(summary.RetentionRatio >= 0.5, "отношение удержания");
     }),
+    ("Сброс локального воздуха не ждёт кадра прибора", () =>
+    {
+        // Регрессия 22.09: опрос был на паузе, сброс оставался отложенным, и
+        // каждое нажатие кнопки снова уходило в ветвь сброса. Кнопка выглядела
+        // неотвечающей: 48 нажатий подряд, все с currently_set=True.
+        var corrector = new LocalAirCorrector();
+        corrector.Begin(2);
+
+        var phase = default(V10);
+        phase.Clear();
+        for (var channel = 0; channel < 8; channel++)
+        {
+            phase.SetValue(channel, 0.01f * (channel + 1));
+        }
+
+        // Стабилизационные кадры, затем образцы: воздух становится заданным.
+        for (var frame = 0; frame < LocalAirCorrector.SettleFrames + 2; frame++)
+        {
+            corrector.ProcessFrame(phase, 8);
+        }
+
+        Require(corrector.IsSet, "воздух задан");
+
+        // Кадры прекратились. Отложенный сброс сам по себе состояние не меняет.
+        corrector.RequestReset("test");
+        Require(corrector.IsSet, "до применения воздух ещё задан");
+        Require(corrector.ResetRequested, "сброс запрошен");
+
+        Require(corrector.ApplyPendingReset(8), "сброс применён вне кадрового пути");
+        Require(!corrector.IsSet, "воздух сброшен");
+        Require(!corrector.ResetRequested, "запрос снят");
+        Require(!corrector.Collecting, "сбор остановлен");
+
+        // Повторное применение без запроса ничего не делает.
+        Require(!corrector.ApplyPendingReset(8), "без запроса сбрасывать нечего");
+    }),
     ("Устаревший первый кадр не выдаётся за отклик кольца", () =>
     {
         // Реальная точка R1/C8 Картографа 22.09: первый кадр повторил состояние
@@ -1440,6 +1528,205 @@ var checks = new List<(string Name, Action Run)>
         Require(
             !legacyWrongModification.IsCartographLwd4TxMode,
             "неподдержанный прибор не уводит обмен в транспорт фиксированной длины");
+    }),
+    ("Ответ «Z8 -nan -nan» распознаётся как пустая ячейка, а не как сбой связи", () =>
+    {
+        Require(RingProtocolParser.IsEmptyLoopParameterCell(8, "Z8 -nan -nan"), "стёртая флеш-память");
+        Require(RingProtocolParser.IsEmptyLoopParameterCell(8, "READ Z8 nan nan"), "вариант с префиксом READ");
+        Require(!RingProtocolParser.IsEmptyLoopParameterCell(8, "Z8 1.000000 2.000000"), "обычные числа");
+        Require(!RingProtocolParser.IsEmptyLoopParameterCell(8, "Z9 -nan -nan"), "чужой номер ячейки");
+        Require(!RingProtocolParser.IsEmptyLoopParameterCell(8, "Unknown command!"), "отказ команды");
+        Require(!RingProtocolParser.IsEmptyLoopParameterCell(8, ""), "пустой ответ - это нет ответа");
+        Require(!RingProtocolParser.TryParseLoopParameterCell(8, "Z8 -nan -nan", out _), "NaN не принимается за значение");
+    }),
+    ("Кольцо коллег 23.09: пустая Z8 и сдвинутая высокочастотная группа", () =>
+    {
+        // Память кольца 151 до перезаписи и расчёт для LWD 4Tx № 42023 - с фото
+        // вкладки «Поверка кольца».
+        var audit = RingMemoryAudit.Evaluate(
+            ColleagueRingCells(z8: null),
+            8,
+            RingCapacitanceMappingProfile.UniversalFiveTransmitter,
+            ColleagueCalculatedReactances());
+
+        Require(!audit.IsComplete, "без Z8 набор неполный");
+        var blocking = audit.Blocking.ToArray();
+        Require(blocking.Length == 1, $"одна блокирующая находка, получено {blocking.Length}");
+        Require(blocking[0].Kind == RingCellIssueKind.ReactanceEmpty, "Z8 пуста, а не непрочитана");
+        Require(blocking[0].CellIndex == 8 && blocking[0].ChannelIndex == 7, "Z8 нужна каналу T4 2001");
+
+        var mismatches = audit.Mismatches.OrderBy(issue => issue.ChannelIndex).ToArray();
+        Require(mismatches.Length == 3, $"сдвинуты три канала, получено {mismatches.Length}");
+        Require(mismatches.Select(issue => issue.ChannelIndex).SequenceEqual(new[] { 4, 5, 6 }), "T1..T3 2001");
+        Require(mismatches.Select(issue => issue.NearestChannelIndex).SequenceEqual(new[] { 5, 6, 7 }), "каждый похож на соседа");
+
+        // Порог 25 % в одиночку пропустил бы T2 (+20 %) и T3 (+8 %).
+        Require(mismatches[1].RelativeDeviation < RingMemoryAudit.MismatchRelativeLimit, "T2 ниже порога");
+        Require(mismatches[2].RelativeDeviation < RingMemoryAudit.MismatchRelativeLimit, "T3 ниже порога");
+
+        // Z4 и Z9 принадлежат пятому передатчику и этому прибору не нужны.
+        Require(audit.Issues.All(issue => issue.CellIndex is not 4 and not 9), "Z4 и Z9 не упоминаются");
+        Require(audit.Issues.All(issue => issue.ChannelIndex is not (0 or 1 or 2 or 3)), "низкая частота записана верно");
+    }),
+    ("Кольцо коллег после перезаписи 23.09 проходит проверку", () =>
+    {
+        // Записано 15:58: Z0..Z3 и Z5..Z8 - расчёт, Z4 - прежнее значение T5.
+        var calculated = ColleagueCalculatedReactances();
+        float[] resistances = { 1, 5, 20, 50, 100, 428, 814, 1500, 0, 0 };
+        float[] reactances =
+        {
+            calculated[0], calculated[1], calculated[2], calculated[3],
+            4.5004f,
+            calculated[4], calculated[5], calculated[6], calculated[7],
+            float.NaN
+        };
+        var cells = Enumerable.Range(0, 10)
+            .Select(index => float.IsNaN(reactances[index])
+                ? new RingLoopParameterCell(index, 0f, 0f, false, RingCellReadStatus.EmptyInMemory)
+                : new RingLoopParameterCell(index, resistances[index], reactances[index], true, RingCellReadStatus.Parsed))
+            .ToArray();
+
+        var audit = RingMemoryAudit.Evaluate(
+            cells,
+            8,
+            RingCapacitanceMappingProfile.UniversalFiveTransmitter,
+            calculated);
+        Require(audit.IsComplete && !audit.HasMismatches, $"находок быть не должно: {audit.Fingerprint}");
+    }),
+    ("Кольцо 241 на восемь ёмкостей: пустые Z8 и Z9 не ошибка", () =>
+    {
+        var calculated = ColleagueCalculatedReactances();
+        var cells = Enumerable.Range(0, 10)
+            .Select(index => index < 8
+                ? new RingLoopParameterCell(index, 1f + index, calculated[index], true, RingCellReadStatus.Parsed)
+                : new RingLoopParameterCell(index, 0f, 0f, false, RingCellReadStatus.EmptyInMemory))
+            .ToArray();
+        var audit = RingMemoryAudit.Evaluate(
+            cells,
+            8,
+            RingCapacitanceMappingProfile.CompactFourTransmitter,
+            calculated);
+        Require(audit.IsComplete && !audit.HasMismatches, $"на кольце 241 Z8/Z9 физически нет: {audit.Fingerprint}");
+    }),
+    ("Пятизондовый прибор на кольце коллег требует и Z8, и Z9", () =>
+    {
+        var audit = RingMemoryAudit.Evaluate(
+            ColleagueRingCells(z8: null),
+            10,
+            RingCapacitanceMappingProfile.UniversalFiveTransmitter);
+        var empty = audit.Blocking.Select(issue => issue.CellIndex).OrderBy(index => index).ToArray();
+        Require(empty.SequenceEqual(new[] { 8, 9 }), $"пусты Z8 и Z9, получено [{string.Join(",", empty)}]");
+    }),
+    ("Нет ответа и пустая ячейка различаются", () =>
+    {
+        var cells = ColleagueRingCells(z8: null);
+        cells[8] = new RingLoopParameterCell(8, 0f, 0f, false, RingCellReadStatus.NoAnswer);
+        var audit = RingMemoryAudit.Evaluate(cells, 8, RingCapacitanceMappingProfile.UniversalFiveTransmitter);
+        var issue = audit.Blocking.Single();
+        Require(issue.Kind == RingCellIssueKind.ReactanceUnreadable, "таймаут - это не пустая память");
+        Require(audit.HasUnreadable, "итог знает о сбое связи");
+    }),
+    ("Нули после ZERASE и пустое сопротивление считаются незаполненными", () =>
+    {
+        var cells = ColleagueRingCells(z8: 9.842f);
+        cells[3] = new RingLoopParameterCell(3, 0f, 0f, true, RingCellReadStatus.Parsed);
+        var audit = RingMemoryAudit.Evaluate(cells, 8, RingCapacitanceMappingProfile.UniversalFiveTransmitter);
+        var kinds = audit.Blocking
+            .Where(issue => issue.CellIndex == 3)
+            .Select(issue => issue.Kind)
+            .OrderBy(kind => kind)
+            .ToArray();
+        Require(
+            kinds.SequenceEqual(new[] { RingCellIssueKind.ResistanceEmpty, RingCellIssueKind.ReactanceEmpty }),
+            "в Z3 нет ни R4, ни реактивности T4 401");
+        Require(audit.Blocking.Single(issue => issue.Kind == RingCellIssueKind.ResistanceEmpty).ResistanceIndex == 3, "это R4");
+    }),
+    ("Кольцо без ответа: ни одной ячейки", () =>
+    {
+        var audit = RingMemoryAudit.Evaluate(
+            Array.Empty<RingLoopParameterCell>(),
+            8,
+            RingCapacitanceMappingProfile.UniversalFiveTransmitter);
+        Require(audit.NothingRead && !audit.IsComplete && audit.HasUnreadable, "пустое чтение - сбой связи");
+    }),
+    ("Без прибора проверяются только сопротивления", () =>
+    {
+        var audit = RingMemoryAudit.Evaluate(
+            ColleagueRingCells(z8: null),
+            0,
+            RingCapacitanceMappingProfile.UniversalFiveTransmitter);
+        Require(audit.IsComplete, "пустая Z8 без прибора никому не нужна");
+    }),
+    ("Шум: прогон коллег 23.09 выделяет ровно недостоверные ячейки", () =>
+    {
+        // Эталоны и шум воздуха - из журнала прогона 16:00 (усреднение 5,
+        // воздух 20 кадров, допуск 6 %).
+        var references = ColleaguePhaseReferencesMg().Select(ToV10Radians).ToArray();
+        var airStdDev = ToV10Radians(new[] { 80.821, 26.892, 41.990, 66.396, 17.142, 17.703, 30.875, 44.957 });
+        var cells = MeasurementNoiseFloor.Evaluate(references, in airStdDev, 8, 20, 5, 6, new[] { 5, 10, 15, 20 });
+
+        var flagged = cells.Select(cell => (cell.ResistanceIndex, cell.ChannelIndex)).ToHashSet();
+        var expected = new HashSet<(int, int)>
+        {
+            (5, 3),
+            (6, 0), (6, 1), (6, 2), (6, 3),
+            (7, 0), (7, 1), (7, 2), (7, 3), (7, 7),
+            (8, 0), (8, 1), (8, 2), (8, 3), (8, 6), (8, 7)
+        };
+        Require(
+            flagged.SetEquals(expected),
+            $"выделено: {string.Join(" ", flagged.OrderBy(cell => cell).Select(cell => $"R{cell.Item1}:{cell.Item2}"))}");
+
+        var recoverable = cells
+            .Where(cell => cell.RequiredAveraging > 0)
+            .Select(cell => (cell.ResistanceIndex, cell.ChannelIndex, cell.RequiredAveraging))
+            .OrderBy(cell => cell)
+            .ToArray();
+        Require(
+            recoverable.SequenceEqual(new[] { (5, 3, 10), (6, 1, 10), (7, 7, 10), (8, 6, 10) }),
+            $"достижимо усреднением: {string.Join(" ", recoverable)}");
+
+        // Систематические отклонения - не шум: R1–R4 не выделяются.
+        Require(!flagged.Any(cell => cell.Item1 <= 4), "R1–R4 шумом не объясняются");
+    }),
+    ("Шум: без воздуха оценка не выполняется", () =>
+    {
+        var references = ColleaguePhaseReferencesMg().Select(ToV10Radians).ToArray();
+        var airStdDev = ToV10Radians(new double[8]);
+        Require(
+            MeasurementNoiseFloor.Evaluate(references, in airStdDev, 8, 0, 5, 6, new[] { 5, 10, 15, 20 }).Count == 0,
+            "воздух не собран");
+    }),
+    ("Ячейка таблицы не показывает «−0,0 %»", () =>
+    {
+        // R2 T4 401 прогона 25.09: маленькое отрицательное отклонение
+        // округлялось до нуля со знаком.
+        var cell = MeasurementCell.Create(-0.04f, 6);
+        Require(cell.Value == 0f && !float.IsNegative(cell.Value), "отрицательный ноль нормализуется");
+        Require(cell.Value.ToString("F1", System.Globalization.CultureInfo.InvariantCulture) == "0.0", "в тексте нет минуса");
+        Require(MeasurementCell.Create(-0.05f, 6).Value == -0.1f, "−0,05 округляется от нуля");
+        Require(MeasurementCell.Create(9.24f, 6).Value == 9.2f, "одна цифра после запятой");
+
+        // Цвет считается по тому же числу, что видит пользователь.
+        Require(MeasurementCell.Create(6.04f, 6).Quality == MeasurementQuality.InTolerance, "«6,0 %» при допуске 6 % - в норме");
+        Require(MeasurementCell.Create(6.06f, 6).Quality == MeasurementQuality.Warning, "«6,1 %» - предупреждение");
+    }),
+    ("Причина отказа открытия порта кольца распознаётся", () =>
+    {
+        // ERROR_SEM_TIMEOUT - так 25.09 не открылся COM9.
+        var semaphoreTimeout = new IOException("Превышен таймаут семафора. : 'COM9'.", unchecked((int)0x80070079));
+        Require(
+            RingConnection.ClassifyPortOpenFailure(semaphoreTimeout) == RingPortOpenFailure.DeviceNotResponding,
+            "таймаут семафора - устройство не отвечает");
+        Require(
+            RingConnection.ClassifyPortOpenFailure(new UnauthorizedAccessException()) == RingPortOpenFailure.Busy,
+            "отказ в доступе - порт занят");
+        Require(
+            RingConnection.ClassifyPortOpenFailure(new FileNotFoundException()) == RingPortOpenFailure.NotFound,
+            "порта нет");
+        Require(
+            RingConnection.ClassifyPortOpenFailure(new IOException("other", unchecked((int)0x8007001F))) == RingPortOpenFailure.Other,
+            "прочее");
     })
 };
 
@@ -1583,6 +1870,54 @@ static (double Width, double Height) HostEffectiveSize(
     return (
         physicalWidth / rasterizationScale,
         physicalHeight / rasterizationScale - TaskbarEffectiveHeight - TitleBarEffectiveHeight);
+}
+
+// Память кольца 151 коллег до перезаписи 23.09 (фото вкладки «Поверка кольца»).
+// z8: null - ячейка стёрта (кольцо отвечает «Z8 -nan -nan»).
+static RingLoopParameterCell[] ColleagueRingCells(float? z8)
+{
+    float[] resistances = { 1, 5, 20, 50, 100, 428, 814, 1500 };
+    float[] reactances = { 0.9018f, 1.5395f, 1.8522f, 2.0095f, 4.5004f, 7.6801f, 9.2408f, 10.02f };
+    var cells = new List<RingLoopParameterCell>();
+    for (var index = 0; index < 8; index++)
+    {
+        cells.Add(new RingLoopParameterCell(index, resistances[index], reactances[index], true, RingCellReadStatus.Parsed));
+    }
+
+    cells.Add(z8 is float value
+        ? new RingLoopParameterCell(8, 0f, value, true, RingCellReadStatus.Parsed)
+        : new RingLoopParameterCell(8, 0f, 0f, false, RingCellReadStatus.EmptyInMemory));
+    cells.Add(new RingLoopParameterCell(9, 0f, 0f, false, RingCellReadStatus.EmptyInMemory));
+    return cells.ToArray();
+}
+
+// «Реакт. расч.» для LWD 4Tx № 42023 - с того же фото.
+static float[] ColleagueCalculatedReactances() =>
+    new[] { 0.8891f, 1.5445f, 1.8553f, 2.0071f, 4.4313f, 7.7127f, 9.2592f, 10.0124f };
+
+// Эталонные фазы R0..R8 прогона коллег 23.09 16:00, мГ (журнал, REFERENCE_SET).
+static double[][] ColleaguePhaseReferencesMg() => new[]
+{
+    new double[8],
+    new[] { 49894.230, 53487.488, 46654.199, 39670.641, 127138.438, 130701.234, 123598.414, 114677.969 },
+    new[] { 13018.803, 14091.959, 12075.805, 10112.518, 57504.180, 61449.004, 53917.355, 46094.973 },
+    new[] { 3412.688, 3696.558, 3163.715, 2646.619, 16747.971, 18119.748, 15540.983, 13023.805 },
+    new[] { 1377.629, 1492.285, 1277.079, 1068.277, 6839.374, 7407.133, 6341.200, 5305.978 },
+    new[] { 690.900, 748.406, 640.469, 535.748, 3439.754, 3725.872, 3188.808, 2667.613 },
+    new[] { 161.798, 175.265, 149.988, 125.463, 806.986, 874.154, 748.083, 625.766 },
+    new[] { 85.101, 92.185, 78.890, 65.990, 424.552, 459.890, 393.562, 329.212 },
+    new[] { 46.189, 50.034, 42.818, 35.817, 230.456, 249.638, 213.634, 178.703 }
+};
+
+static V10 ToV10Radians(double[] milligrad)
+{
+    var result = new V10();
+    for (var channel = 0; channel < milligrad.Length; channel++)
+    {
+        result.SetValue(channel, (float)(milligrad[channel] / PhysicalConstants.Milligrad));
+    }
+
+    return result;
 }
 
 static void Require(bool condition, string message = "assertion failed")

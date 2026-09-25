@@ -16,6 +16,42 @@ public static class RingParameterLayout
             MeasurementTable.ResistanceCount,
             GetActiveReactanceCellCount(channelCount));
 
+    /// <summary>
+    /// Сколько ячеек кольца обязана охватить запись.
+    /// </summary>
+    /// <remarks>
+    /// Набор параметров пронумерован по каналам прибора, а ячейки - по
+    /// физическим ёмкостям, и на кольце с десятью ёмкостями эти нумерации
+    /// расходятся. Считать по числу каналов здесь нельзя: прибор на четыре
+    /// передатчика занимает Z0..Z3 и Z5..Z8, то есть девять позиций, а не
+    /// восемь. Ячейка Z8 при подсчёте по каналам выпадала из записи, и
+    /// высокочастотный канал T4 навсегда оставался с чужой реактивностью -
+    /// именно он и расходился с остальными в прогоне 22.09.
+    ///
+    /// Поэтому диапазон равен объединению двух требований: ячейки
+    /// сопротивлений R1..R8 плюс все ячейки, в которые отображаются каналы.
+    /// </remarks>
+    public static int GetRequiredWriteCellCount(
+        int channelCount,
+        RingCapacitanceMappingProfile mappingProfile)
+    {
+        var required = MeasurementTable.ResistanceCount;
+        var activeChannels = GetActiveReactanceCellCount(channelCount);
+        for (var channel = 0; channel < activeChannels; channel++)
+        {
+            var cellIndex = RingMeasurementSequence.GetChannelCellIndex(
+                channelCount,
+                channel,
+                mappingProfile);
+            if (cellIndex >= 0 && cellIndex + 1 > required)
+            {
+                required = cellIndex + 1;
+            }
+        }
+
+        return Math.Min(required, RingProtocolConstants.WorkingParameterCellCount);
+    }
+
     public static bool IsResistanceRequired(int index) =>
         index is >= 0 and < MeasurementTable.ResistanceCount;
 

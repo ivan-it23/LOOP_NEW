@@ -60,6 +60,40 @@ public static class RingProtocolParser
         return true;
     }
 
+    /// <summary>
+    /// Ответ кольца о пустой ячейке: <c>Z8 -nan -nan</c>.
+    /// </summary>
+    /// <remarks>
+    /// Стёртая флеш-память читается как <c>0xFFFFFFFF</c>, то есть NaN, и
+    /// прошивка печатает его через <c>%f</c>. Такой ответ - не сбой связи:
+    /// кольцо ответило, просто в ячейку ничего не записано.
+    /// </remarks>
+    public static bool IsEmptyLoopParameterCell(int index, string? response)
+    {
+        if (string.IsNullOrWhiteSpace(response))
+        {
+            return false;
+        }
+
+        var parts = response.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var valueOffset = parts.Length == 4 && string.Equals(parts[0], "READ", StringComparison.Ordinal) ? 1 : 0;
+        if (parts.Length != valueOffset + 3 ||
+            !string.Equals(parts[valueOffset], $"Z{index}", StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        return IsNonFiniteToken(parts[valueOffset + 1]) && IsNonFiniteToken(parts[valueOffset + 2]);
+    }
+
+    private static bool IsNonFiniteToken(string token)
+    {
+        var text = token.TrimStart('+', '-');
+        return text.Equals("nan", StringComparison.OrdinalIgnoreCase) ||
+               text.Equals("inf", StringComparison.OrdinalIgnoreCase) ||
+               text.Equals("infinity", StringComparison.OrdinalIgnoreCase);
+    }
+
     public static bool IsWriteLoopParameterReply(int index, string? response) =>
         IsOptionalExclamationReply($"WRITE Z{index} OK", response);
 
